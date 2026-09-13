@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-13
+
+### Added
+- AI Engine wrapper (`ai_engine.py`) using `requests` with 10-second timeouts, custom `BlueprintError`, and robust JSON parsing (fenced code block extraction, brace block detection).
+- Groq (`llama-3.3-70b-versatile` / `openai/gpt-oss-120b`) integration with automatic fallback to Gemini REST (`gemini-2.0-flash`).
+- Streamlit UI wiring for Analyze page form (project name, problem, target audience, skill level) and Blueprint page tabs (`Tech Stack`, `Folder Structure`, `Edge Cases`, `Roadmap`, `Summary`).
+- Unit tests (`tests/test_ai_engine.py`) covering parser helper, schema validation, and fallback handling with zero network calls.
+- Live smoke test script (`scripts/smoke_groq.py`) for verifying Groq API connectivity and response structure.
+
 ## [0.1.0] - 2026-09-13
 
 ### Added
