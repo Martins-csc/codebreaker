@@ -85,7 +85,11 @@ def _call_groq(system_prompt: str, user_prompt: str) -> dict:
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    models_to_try = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b"]
+    groq_model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+    models_to_try = [groq_model]
+    for m in ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"]:
+        if m not in models_to_try:
+            models_to_try.append(m)
     last_err = None
 
     for model in models_to_try:
@@ -133,7 +137,7 @@ def _call_gemini(system_prompt: str, user_prompt: str) -> dict:
 def generate_blueprint(analysis: dict) -> dict:
     """
     Generate a system blueprint from project analysis dict.
-    Tries Groq (llama-3.3-70b-versatile, falling back to openai/gpt-oss-120b),
+    Tries Groq (configurable via GROQ_MODEL env var, default openai/gpt-oss-120b),
     then falls back to Gemini (gemini-2.0-flash).
     Timeout set to 10 seconds. Raises BlueprintError on failure without leaking secrets.
     """
