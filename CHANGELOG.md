@@ -5,6 +5,13 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-09-14
+
+### Added
+- GitHub OAuth authentication integration ("Continue with GitHub" button on Login page calling `sign_in_with_oauth` with dynamic app URL `redirect_to` and rendering `st.link_button`).
+- Automatic PKCE authorization code exchange on page load (`exchange_code_for_session`), secure session storage in `st.session_state`, and query parameter cleanup.
+- Unit tests (`tests/test_oauth.py`) covering OAuth sign-in and PKCE code exchange with zero network calls and query-param cleanup assertion.
+
 ## [0.3.0] - 2026-09-14
 
 ### Added

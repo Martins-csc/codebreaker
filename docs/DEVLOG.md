@@ -46,3 +46,15 @@
 - **Event:** First live login hit 42501 on engineering_log despite perfect RLS policies.
 - **Cause:** Table-level GRANTs for the authenticated role were missing; RLS governs rows, GRANTs govern roles.
 - **Fix:** GRANT select/insert/update/delete on engineering_log and select/update on profiles TO authenticated.
+
+## Entry 005: GitHub OAuth Second Door & PKCE Flow (v0.3.1)
+- **Date**: 2026-09-14
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v0.3.1 GitHub OAuth Integration
+
+### Design Notes & Architectural Decisions
+1. **Supabase Mediation**: OAuth secret never appears in code; Supabase mediates the handshake so the app never touches the OAuth secret.
+2. **PKCE Code Exchange**: PKCE authorization code arrives via query params on page load and is exchanged immediately via `client.auth.exchange_code_for_session(code)`.
+3. **Redirect URL Integrity**: `redirect_to` is dynamically built from the app's own URL (`st.context.url` with fallback).
+4. **Session Consistency**: Session storage and synchronization (`client.auth.set_session`) are identical to the email authentication flow.
+5. **Zero-Network Unit Testing**: Tested with mocked client methods and simulated query params, verifying clean query-param cleanup.

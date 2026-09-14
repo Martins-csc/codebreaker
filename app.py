@@ -7,6 +7,43 @@ st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
 # Ensure Supabase client session is restored if access_token is in session_state
 try:
     client = get_client()
+
+    # Check for OAuth authorization code in query params on page load
+    code_param = st.query_params.get("code")
+    if code_param:
+        code = code_param[0] if isinstance(code_param, list) else code_param
+        try:
+            try:
+                res = client.auth.exchange_code_for_session(code)
+            except Exception:
+                res = client.auth.exchange_code_for_session({"auth_code": code})
+
+            if res and res.user and res.session:
+                display_name = ""
+                if res.user.user_metadata:
+                    display_name = (
+                        res.user.user_metadata.get("display_name", "")
+                        or res.user.email.split("@")[0]
+                    )
+                elif res.user.email:
+                    display_name = res.user.email.split("@")[0]
+                st.session_state["user"] = {
+                    "id": res.user.id,
+                    "email": res.user.email,
+                    "display_name": display_name,
+                }
+                st.session_state["access_token"] = res.session.access_token
+                st.session_state["refresh_token"] = res.session.refresh_token
+                client.auth.set_session(
+                    res.session.access_token, res.session.refresh_token
+                )
+                st.success("Successfully logged in with GitHub!")
+        except Exception as e:
+            st.error(f"GitHub OAuth authentication failed: {e}")
+        finally:
+            st.query_params.clear()
+            st.rerun()
+
     if "access_token" in st.session_state and "refresh_token" in st.session_state:
         try:
             client.auth.set_session(
@@ -52,37 +89,100 @@ if page == "Login":
 
     auth_mode = st.radio("Mode", ["Log In", "Sign Up"], horizontal=True)
 
-    if auth_mode == "Sign Up":
-        st.subheader("Create a New Account")
-        with st.form("signup_form"):
-            signup_email = st.text_input("Email", placeholder="you@example.com")
-            signup_password = st.text_input(
-                "Password", type="password", placeholder="Secure password"
-            )
-            signup_display_name = st.text_input(
-                "Display Name", placeholder="e.g. CodeBreaker Dev"
-            )
-            signup_submitted = st.form_submit_button("Sign Up")
+    col1, col2 = st.columns([1, 1], gap="large")
 
-        if signup_submitted:
-            if not signup_email.strip() or not signup_password.strip():
-                st.error("Please provide both email and password.")
-            else:
-                try:
-                    client = get_client()
-                    res = client.auth.sign_up(
-                        {
-                            "email": signup_email,
-                            "password": signup_password,
-                            "options": {"data": {"display_name": signup_display_name}},
-                        }
-                    )
-                    if res.user:
-                        if res.session:
+    with col1:
+        if auth_mode == "Sign Up":
+            st.subheader("Create a New Account")
+            with st.form("signup_form"):
+                signup_email = st.text_input("Email", placeholder="you@example.com")
+                signup_password = st.text_input(
+                    "Password", type="password", placeholder="Secure password"
+                )
+                signup_display_name = st.text_input(
+                    "Display Name", placeholder="e.g. CodeBreaker Dev"
+                )
+                signup_submitted = st.form_submit_button("Sign Up")
+
+            if signup_submitted:
+                if not signup_email.strip() or not signup_password.strip():
+                    st.error("Please provide both email and password.")
+                else:
+                    try:
+                        client = get_client()
+                        res = client.auth.sign_up(
+                            {
+                                "email": signup_email,
+                                "password": signup_password,
+                                "options": {
+                                    "data": {"display_name": signup_display_name}
+                                },
+                            }
+                        )
+                        if res.user:
+                            if res.session:
+                                st.session_state["user"] = {
+                                    "id": res.user.id,
+                                    "email": res.user.email,
+                                    "display_name": signup_display_name,
+                                }
+                                st.session_state["access_token"] = (
+                                    res.session.access_token
+                                )
+                                st.session_state["refresh_token"] = (
+                                    res.session.refresh_token
+                                )
+                                client.auth.set_session(
+                                    res.session.access_token, res.session.refresh_token
+                                )
+                                st.success(
+                                    "Account created and logged in successfully!"
+                                )
+                                st.rerun()
+                            else:
+                                st.success(
+                                    "Account created successfully! Please log in."
+                                )
+                    except Exception as e:
+                        err_str = str(e)
+                        if (
+                            "already registered" in err_str.lower()
+                            or "already exists" in err_str.lower()
+                        ):
+                            st.error(
+                                "An account with this email already exists. Please log in."
+                            )
+                        else:
+                            st.error(f"Sign-up failed: {err_str}")
+
+        else:
+            st.subheader("Log In to Your Account")
+            with st.form("login_form"):
+                login_email = st.text_input("Email", placeholder="you@example.com")
+                login_password = st.text_input(
+                    "Password", type="password", placeholder="Your password"
+                )
+                login_submitted = st.form_submit_button("Log In")
+
+            if login_submitted:
+                if not login_email.strip() or not login_password.strip():
+                    st.error("Please provide both email and password.")
+                else:
+                    try:
+                        client = get_client()
+                        res = client.auth.sign_in_with_password(
+                            {"email": login_email, "password": login_password}
+                        )
+                        if res.user and res.session:
+                            display_name = ""
+                            if res.user.user_metadata:
+                                display_name = res.user.user_metadata.get(
+                                    "display_name", ""
+                                )
                             st.session_state["user"] = {
                                 "id": res.user.id,
                                 "email": res.user.email,
-                                "display_name": signup_display_name,
+                                "display_name": display_name,
                             }
                             st.session_state["access_token"] = res.session.access_token
                             st.session_state["refresh_token"] = (
@@ -91,71 +191,54 @@ if page == "Login":
                             client.auth.set_session(
                                 res.session.access_token, res.session.refresh_token
                             )
-                            st.success("Account created and logged in successfully!")
+                            st.success("Logged in successfully!")
                             st.rerun()
-                        else:
-                            st.success("Account created successfully! Please log in.")
-                except Exception as e:
-                    err_str = str(e)
-                    if (
-                        "already registered" in err_str.lower()
-                        or "already exists" in err_str.lower()
-                    ):
-                        st.error(
-                            "An account with this email already exists. Please log in."
-                        )
-                    else:
-                        st.error(f"Sign-up failed: {err_str}")
-
-    else:
-        st.subheader("Log In to Your Account")
-        with st.form("login_form"):
-            login_email = st.text_input("Email", placeholder="you@example.com")
-            login_password = st.text_input(
-                "Password", type="password", placeholder="Your password"
-            )
-            login_submitted = st.form_submit_button("Log In")
-
-        if login_submitted:
-            if not login_email.strip() or not login_password.strip():
-                st.error("Please provide both email and password.")
-            else:
-                try:
-                    client = get_client()
-                    res = client.auth.sign_in_with_password(
-                        {"email": login_email, "password": login_password}
-                    )
-                    if res.user and res.session:
-                        display_name = ""
-                        if res.user.user_metadata:
-                            display_name = res.user.user_metadata.get(
-                                "display_name", ""
+                    except Exception as e:
+                        err_str = str(e)
+                        if (
+                            "invalid" in err_str.lower()
+                            or "credentials" in err_str.lower()
+                            or "password" in err_str.lower()
+                            or "unauthorized" in err_str.lower()
+                        ):
+                            st.error(
+                                "Invalid email or password. Please check your credentials."
                             )
-                        st.session_state["user"] = {
-                            "id": res.user.id,
-                            "email": res.user.email,
-                            "display_name": display_name,
-                        }
-                        st.session_state["access_token"] = res.session.access_token
-                        st.session_state["refresh_token"] = res.session.refresh_token
-                        client.auth.set_session(
-                            res.session.access_token, res.session.refresh_token
-                        )
-                        st.success("Logged in successfully!")
-                        st.rerun()
-                except Exception as e:
-                    err_str = str(e)
-                    if (
-                        "invalid" in err_str.lower()
-                        or "credentials" in err_str.lower()
-                        or "password" in err_str.lower()
-                        or "unauthorized" in err_str.lower()
-                    ):
-                        st.error(
-                            "Invalid email or password. Please check your credentials."
-                        )
-                    else:
-                        st.error(f"Login failed: {err_str}")
+                        else:
+                            st.error(f"Login failed: {err_str}")
+
+    with col2:
+        st.subheader("GitHub Authentication")
+        st.write("Continue securely via GitHub OAuth. Supabase mediates the handshake.")
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        redirect_to = getattr(st.context, "url", None)
+        if redirect_to:
+            redirect_to = redirect_to.split("?")[0]
+        else:
+            redirect_to = "http://localhost:8501"
+
+        try:
+            client = get_client()
+            try:
+                oauth_res = client.auth.sign_in_with_oauth(
+                    {"provider": "github", "options": {"redirect_to": redirect_to}}
+                )
+            except TypeError:
+                oauth_res = client.auth.sign_in_with_oauth(
+                    provider="github", options={"redirect_to": redirect_to}
+                )
+
+            oauth_url = getattr(oauth_res, "url", None)
+            if not oauth_url and isinstance(oauth_res, dict):
+                oauth_url = oauth_res.get("url")
+
+            if oauth_url:
+                st.link_button(
+                    "Continue with GitHub", oauth_url, use_container_width=True
+                )
+        except Exception as e:
+            st.error(f"Could not generate GitHub OAuth link: {e}")
 
 elif page == "Home":
     st.title("CodeBreaker")
