@@ -1,5 +1,7 @@
 import streamlit as st
-from ai_engine import BlueprintError, generate_blueprint
+
+from ai_engine import (BlueprintError, generate_blueprint,
+                       render_blueprint_markdown, sanitize_filename)
 from supabase_client import ConfigError, get_client
 
 st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
@@ -210,7 +212,7 @@ if page == "Login":
     with col2:
         st.subheader("GitHub Authentication")
         st.write("Continue securely via GitHub OAuth. Supabase mediates the handshake.")
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("")
 
         redirect_to = getattr(st.context, "url", None)
         if redirect_to:
@@ -309,9 +311,21 @@ elif page == "Blueprint":
             "No blueprint generated yet. Please submit a project analysis on the 'Analyze' page."
         )
     else:
-        st.subheader(
-            f"Blueprint for: {blueprint.get('project_name', 'Untitled Project')}"
-        )
+        col_title, col_download = st.columns([3, 1])
+        with col_title:
+            st.subheader(
+                f"Blueprint for: {blueprint.get('project_name', 'Untitled Project')}"
+            )
+        with col_download:
+            md_content = render_blueprint_markdown(blueprint)
+            safe_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
+            st.download_button(
+                label="📥 Export as README.md",
+                data=md_content,
+                file_name=safe_fname,
+                mime="text/markdown",
+                use_container_width=True,
+            )
 
         tab_tech, tab_folder, tab_edges, tab_roadmap, tab_summary = st.tabs(
             ["Tech Stack", "Folder Structure", "Edge Cases", "Roadmap", "Summary"]
@@ -423,15 +437,50 @@ elif page == "Engineering Log":
         entries = getattr(response, "data", [])
         if entries:
             for entry in entries:
-                with st.container():
-                    st.markdown(f"**Timestamp:** {entry.get('created_at', 'N/A')}")
+                entry_id = entry.get("id")
+                created_at = entry.get("created_at", "N/A")
+                date_display = (
+                    created_at.split("T")[0]
+                    if "T" in str(created_at)
+                    else str(created_at)
+                )
+                progress_text = str(entry.get("progress", "Milestone"))
+                progress_preview = (
+                    progress_text.split("\n")[0][:40] if progress_text else "Milestone"
+                )
+
+                expander_label = f"📅 [{date_display}] {progress_preview}"
+                with st.expander(expander_label, expanded=False):
+                    st.markdown(f"**Timestamp:** `{created_at}`")
                     if entry.get("progress"):
-                        st.markdown(f"- **Progress:** {entry.get('progress')}")
+                        st.markdown(
+                            f"**Progress / Milestone:**\n{entry.get('progress')}"
+                        )
                     if entry.get("bugs"):
-                        st.markdown(f"- **Bugs:** {entry.get('bugs')}")
+                        st.markdown(f"**Bugs / Challenges:**\n{entry.get('bugs')}")
                     if entry.get("learnings"):
-                        st.markdown(f"- **Learnings:** {entry.get('learnings')}")
-                    st.markdown("---")
+                        st.markdown(
+                            f"**Learnings / Insights:**\n{entry.get('learnings')}"
+                        )
+
+                    col_space, col_btn = st.columns([4, 1])
+                    with col_btn:
+                        if st.button("🗑️ Delete", key=f"del_log_{entry_id}"):
+                            try:
+                                client = get_client()
+                                if "access_token" in st.session_state:
+                                    client.auth.set_session(
+                                        st.session_state["access_token"],
+                                        st.session_state.get("refresh_token", ""),
+                                    )
+                                # Delete matching entry id and user_id (RLS + application safeguard)
+                                client.table("engineering_log").delete().eq(
+                                    "id", entry_id
+                                ).eq("user_id", user["id"]).execute()
+                                st.success("Log entry deleted successfully.")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Failed to delete log entry: {e}")
         else:
             st.info(
                 "No engineering log entries found yet. Submit your first entry above."

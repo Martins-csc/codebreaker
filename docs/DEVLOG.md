@@ -58,3 +58,15 @@
 3. **Redirect URL Integrity**: `redirect_to` is dynamically built from the app's own URL (`st.context.url` with fallback).
 4. **Session Consistency**: Session storage and synchronization (`client.auth.set_session`) are identical to the email authentication flow.
 5. **Zero-Network Unit Testing**: Tested with mocked client methods and simulated query params, verifying clean query-param cleanup.
+
+## Entry 006: Export & Habit Design (v0.4.0)
+- **Date**: 2026-09-14
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v0.4.0 Export & Habit
+
+### Design Notes & Architectural Decisions
+1. **Client-Side Export**: Used `st.download_button` over server filesystem writes to avoid cluttering local disk storage and ensure zero filesystem side-effects in cloud/serverless deployments.
+2. **Sanitized Filenames**: Implemented rigorous filename sanitization (`sanitize_filename`) stripping path separators (`/`, `\`), null bytes, directory traversal patterns (`../`), and special characters to prevent path traversal vulnerabilities.
+3. **Markdown Architecture**: Structured blueprint export with clear Markdown sections (title, summary, tech stack bullets, fenced folder tree, edge cases, numbered roadmap, and dynamic footer) with robust safeguards ensuring `None` values never leak as literal `"None"`.
+4. **Engineering Log Habit & RLS Deletion**: Polished Engineering Log entries with styled expanders, timestamp date badges, and a delete button per entry executing client-side ownership verification (`user_id` match) in addition to Supabase RLS policies.
+5. **UI Cleanup**: Replaced literal `<br>` artifact on the Login page with proper Markdown spacing.
