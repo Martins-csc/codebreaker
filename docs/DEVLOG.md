@@ -40,3 +40,9 @@
 3. **Session Management**: Session state (`access_token`, `refresh_token`, `user`) is securely managed inside Streamlit's `st.session_state` and synchronized with the Supabase client via `client.auth.set_session(...)`.
 4. **Error Sanitization**: Authentication exceptions (such as invalid credentials or duplicate emails) are caught and presented as clean, sanitized `st.error` notifications without leaking internal exception strings or environment secrets.
 5. **Email Confirmation**: Assumed email confirmation is disabled in Supabase development project settings for immediate account activation upon sign-up.
+
+## Entry 004 Addendum: The Two-Layer Lesson
+- **Date:** 2026-09-14
+- **Event:** First live login hit 42501 on engineering_log despite perfect RLS policies.
+- **Cause:** Table-level GRANTs for the authenticated role were missing; RLS governs rows, GRANTs govern roles.
+- **Fix:** GRANT select/insert/update/delete on engineering_log and select/update on profiles TO authenticated.
