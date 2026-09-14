@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-14
+
+### Added
+- Supabase authentication integration (`supabase_client.py`) with environment-only configuration and lazy singleton client.
+- Complete Streamlit auth gate (signup with email, password, and display name; login; sidebar sign-out).
+- Session gate protecting all application modules (Home, Analyze, Blueprint, Engineering Log) when unauthenticated (`st.warning` + `st.stop()`).
+- Engineering Log page with form submission (progress, bugs, learnings) and current-user entry listing ordered newest-first, relying on Row Level Security (RLS).
+- Unit tests (`tests/test_supabase_client.py`) and live smoke test script (`scripts/smoke_supabase.py`).
+
 ## [0.2.1] - 2026-09-13
 
 ### Added
