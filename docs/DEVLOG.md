@@ -1,5 +1,16 @@
 # CodeBreaker Development Log
 
+## Entry 009: Email Confirmation & Production Safety (v1.0.0)
+- **Date**: 2026-09-15
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.0.0 Email Confirmation
+
+### Design Notes & Architectural Decisions
+1. **Separation of Concerns**: Supabase handles email delivery and token generation during `auth.sign_up`, whereas CodeBreaker manages UX state transitions, blocking login gates for unconfirmed users (`confirmed_at is None` or empty identities), and displaying clear guidance (`st.info("Check your email to confirm your account")`).
+2. **Resend Confirmation Workflow**: Added "Resend confirmation email" button on the Login page, invoking `supabase.auth.resend({"type": "signup", "email": email})`. Code comments note server-side rate limits and future client-side debounce considerations.
+3. **Security & Error Sanitization**: Audited email templates and error handling to ensure zero secrets are exposed and no sensitive user data leaks in exception messages.
+4. **Test Coverage**: Verified robust unit test suite (`tests/test_auth_confirmation.py`) with zero network calls and all 24 tests passing successfully.
+
 ## Entry 007: Deployment Readiness & Unified Config Loader (v0.5.0)
 - **Date**: 2026-09-15
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents

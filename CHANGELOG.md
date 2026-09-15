@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-09-15
+
+### Added
+- Email Confirmation flow: Supabase handles delivery (`auth.sign_up`), while the application manages UX states (`st.info("Check your email to confirm your account")`, blocking login gate for unconfirmed users).
+- "Resend confirmation email" button on the Login page (visible when an unconfirmed user exists), calling `supabase.auth.resend({"type": "signup", "email": email})` with future rate-limit note.
+- Success confirmation notice ("Confirmation email sent to {email}. Check your inbox (and spam folder).") upon signup.
+- Comprehensive unit tests (`tests/test_auth_confirmation.py`) with mocked Supabase covering unconfirmed user blocking, resend call, and confirmed user success.
+- Production safety: Dev convenience flags removed in favor of strict email confirmation validation.
+
 ## [0.5.0] - 2026-09-15
 
 ### Added

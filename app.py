@@ -1,5 +1,4 @@
 import streamlit as st
-
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_text, sanitize_filename)
@@ -115,37 +114,57 @@ if page == "Login":
                         client = get_client()
                         res = client.auth.sign_up(
                             {
-                                "email": signup_email,
-                                "password": signup_password,
+                                "email": signup_email.strip(),
+                                "password": signup_password.strip(),
                                 "options": {
-                                    "data": {"display_name": signup_display_name}
+                                    "data": {
+                                        "display_name": signup_display_name.strip()
+                                    }
                                 },
                             }
                         )
-                        if res.user:
-                            if res.session:
+                        user_obj = getattr(res, "user", None)
+                        session_obj = getattr(res, "session", None)
+
+                        if user_obj:
+                            identities = getattr(user_obj, "identities", None)
+                            confirmed_at = getattr(user_obj, "confirmed_at", None)
+
+                            if (
+                                not identities
+                                or confirmed_at is None
+                                or not session_obj
+                            ):
+                                st.info("Check your email to confirm your account")
+                                st.success(
+                                    f"Confirmation email sent to {signup_email.strip()}. Check your inbox (and spam folder)."
+                                )
+                                st.session_state["unconfirmed_email"] = (
+                                    signup_email.strip()
+                                )
+                            else:
+                                display_name = (
+                                    signup_display_name.strip()
+                                    or signup_email.strip().split("@")[0]
+                                )
                                 st.session_state["user"] = {
-                                    "id": res.user.id,
-                                    "email": res.user.email,
-                                    "display_name": signup_display_name,
+                                    "id": user_obj.id,
+                                    "email": user_obj.email,
+                                    "display_name": display_name,
                                 }
                                 st.session_state["access_token"] = (
-                                    res.session.access_token
+                                    session_obj.access_token
                                 )
                                 st.session_state["refresh_token"] = (
-                                    res.session.refresh_token
+                                    session_obj.refresh_token
                                 )
                                 client.auth.set_session(
-                                    res.session.access_token, res.session.refresh_token
+                                    session_obj.access_token, session_obj.refresh_token
                                 )
                                 st.success(
                                     "Account created and logged in successfully!"
                                 )
                                 st.rerun()
-                            else:
-                                st.success(
-                                    "Account created successfully! Please log in."
-                                )
                     except Exception as e:
                         err_str = str(e)
                         if (
@@ -174,17 +193,32 @@ if page == "Login":
                     try:
                         client = get_client()
                         res = client.auth.sign_in_with_password(
-                            {"email": login_email, "password": login_password}
+                            {
+                                "email": login_email.strip(),
+                                "password": login_password.strip(),
+                            }
                         )
-                        if res.user and res.session:
+                        user_obj = getattr(res, "user", None)
+                        session_obj = getattr(res, "session", None)
+
+                        if user_obj and (
+                            getattr(user_obj, "confirmed_at", None) is None
+                            or not session_obj
+                        ):
+                            st.info("Check your email to confirm your account")
+                            st.session_state["unconfirmed_email"] = login_email.strip()
+                            st.error(
+                                "Email not confirmed. Please check your email to confirm your account."
+                            )
+                        elif user_obj and session_obj:
                             display_name = ""
-                            if res.user.user_metadata:
-                                display_name = res.user.user_metadata.get(
+                            if user_obj.user_metadata:
+                                display_name = user_obj.user_metadata.get(
                                     "display_name", ""
                                 )
                             st.session_state["user"] = {
-                                "id": res.user.id,
-                                "email": res.user.email,
+                                "id": user_obj.id,
+                                "email": user_obj.email,
                                 "display_name": display_name,
                             }
                             st.session_state["access_token"] = res.session.access_token
@@ -199,6 +233,15 @@ if page == "Login":
                     except Exception as e:
                         err_str = str(e)
                         if (
+                            "not confirmed" in err_str.lower()
+                            or "email not confirmed" in err_str.lower()
+                        ):
+                            st.info("Check your email to confirm your account")
+                            st.session_state["unconfirmed_email"] = login_email.strip()
+                            st.error(
+                                "Email not confirmed. Please check your email to confirm your account."
+                            )
+                        elif (
                             "invalid" in err_str.lower()
                             or "credentials" in err_str.lower()
                             or "password" in err_str.lower()
@@ -209,6 +252,22 @@ if page == "Login":
                             )
                         else:
                             st.error(f"Login failed: {err_str}")
+
+            if st.session_state.get("unconfirmed_email"):
+                st.markdown("---")
+                st.write("Didn't receive the confirmation email?")
+                resend_email = st.session_state["unconfirmed_email"]
+                if st.button("Resend confirmation email"):
+                    try:
+                        client = get_client()
+                        # NOTE: Production rate-limit consideration: Supabase enforces server-side rate limits
+                        # on auth resend endpoints to prevent abuse. Future enhancements may add client-side cooldowns.
+                        client.auth.resend({"type": "signup", "email": resend_email})
+                        st.success(
+                            f"Confirmation email sent to {resend_email}. Check your inbox (and spam folder)."
+                        )
+                    except Exception as e:
+                        st.error(f"Failed to resend confirmation email: {e}")
 
     with col2:
         st.subheader("GitHub Authentication")
