@@ -104,3 +104,10 @@
 - **Decisions:** repo stays public (Cloud free tier reads public repos only; zero secrets in repo, audited twice); owner-only toolbar vs public view clarified (dev controls invisible to visitors); analytics anonymize viewers by default.
 - **Mechanics:** git push = deploy via GitHub webhook; secrets live only in Cloud dashboard (st.secrets) and local .env; config.py loads os.environ first, st.secrets as fallback.
 - **Lesson:** platform constraints (OAuth scopes) decide repo visibility, not preference — evidence over assumption.
+
+## Entry 008: Launch Day
+- **Date:** 2026-09-15
+- **Event:** CodeBreaker deployed to Streamlit Community Cloud: https://martins-codebreaker.streamlit.app
+- **Decisions:** repo stays public (Cloud free tier reads public repos only; zero secrets in repo, audited twice); owner-only toolbar vs public view clarified (dev controls invisible to visitors); analytics anonymize viewers by default.
+- **Mechanics:** git push = deploy via GitHub webhook; secrets live only in Cloud dashboard (st.secrets) and local .env; config.py loads os.environ first, st.secrets as fallback.
+- **Lesson:** platform constraints (OAuth scopes) decide repo visibility, not preference — evidence over assumption.
