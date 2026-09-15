@@ -5,6 +5,7 @@ import re
 
 import markdown
 import requests
+from config import get_config
 
 
 class BlueprintError(Exception):
@@ -80,14 +81,14 @@ def _parse_json_response(content: str) -> dict:
 
 
 def _call_groq(system_prompt: str, user_prompt: str) -> dict:
-    api_key = os.environ.get("GROQ_API_KEY")
+    api_key = get_config("GROQ_API_KEY")
     if not api_key:
-        raise BlueprintError("GROQ_API_KEY not found in environment.")
+        raise BlueprintError("GROQ_API_KEY not found in environment or secrets.")
 
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    groq_model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+    groq_model = get_config("GROQ_MODEL", "openai/gpt-oss-120b")
     models_to_try = [groq_model]
     for m in ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"]:
         if m not in models_to_try:
@@ -117,9 +118,9 @@ def _call_groq(system_prompt: str, user_prompt: str) -> dict:
 
 
 def _call_gemini(system_prompt: str, user_prompt: str) -> dict:
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = get_config("GEMINI_API_KEY")
     if not api_key:
-        raise BlueprintError("GEMINI_API_KEY not found in environment.")
+        raise BlueprintError("GEMINI_API_KEY not found in environment or secrets.")
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
@@ -139,7 +140,7 @@ def _call_gemini(system_prompt: str, user_prompt: str) -> dict:
 def generate_blueprint(analysis: dict) -> dict:
     """
     Generate a system blueprint from project analysis dict.
-    Tries Groq (configurable via GROQ_MODEL env var, default openai/gpt-oss-120b),
+    Tries Groq (configurable via GROQ_MODEL config, default openai/gpt-oss-120b),
     then falls back to Gemini (gemini-2.0-flash).
     Timeout set to 10 seconds. Raises BlueprintError on failure without leaking secrets.
     """
@@ -162,8 +163,8 @@ Analyze the following project requirements and build a comprehensive system arch
     except Exception as e:
         err_msg = str(e)
         for secret in [
-            os.environ.get("GROQ_API_KEY"),
-            os.environ.get("GEMINI_API_KEY"),
+            get_config("GROQ_API_KEY"),
+            get_config("GEMINI_API_KEY"),
         ]:
             if secret:
                 err_msg = err_msg.replace(secret, "[REDACTED]")
@@ -175,8 +176,8 @@ Analyze the following project requirements and build a comprehensive system arch
     except Exception as e:
         err_msg = str(e)
         for secret in [
-            os.environ.get("GROQ_API_KEY"),
-            os.environ.get("GEMINI_API_KEY"),
+            get_config("GROQ_API_KEY"),
+            get_config("GEMINI_API_KEY"),
         ]:
             if secret:
                 err_msg = err_msg.replace(secret, "[REDACTED]")

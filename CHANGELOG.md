@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-15
+
+### Added
+- Unified config loader (`config.py`) implementing a robust two-tier resolution order: `os.environ` first, falling back to Streamlit `st.secrets` (with runtime and exception guards for Streamlit Community Cloud).
+- Integrated config loader across `supabase_client.py` and `ai_engine.py` for seamless environment and cloud secret retrieval.
+- Comprehensive unit test suite (`tests/test_config.py`) verifying environment precedence, `st.secrets` fallback, required config validation, and zero network calls.
+- Verified `requirements.txt` containing `streamlit`, `requests`, `supabase`, `markdown`, and `pytest`.
+- "Deploy on Streamlit Community Cloud" section in `README.md` listing required secret names (`GROQ_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`) and step-by-step deployment instructions.
+- Full pre-deploy security audit confirming zero secret patterns (`gsk_`, `eyJ`, `password=`), clean documentation, and intact RLS reliance.
+- CHANGELOG v0.5.0 and DEVLOG Entry 007 documenting deployment architecture and design decisions.
+
 ## [0.4.1] - 2026-09-15
 
 ### Added

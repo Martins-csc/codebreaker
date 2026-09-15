@@ -1,5 +1,20 @@
 # CodeBreaker Development Log
 
+## Entry 007: Deployment Readiness & Unified Config Loader (v0.5.0)
+- **Date**: 2026-09-15
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v0.5.0 Deployment Readiness
+
+### Design Notes & Architectural Decisions
+1. **Secrets Live in Cloud Dashboard Only**: All sensitive credentials (`GROQ_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`) are strictly excluded from version control and configured exclusively via Streamlit Community Cloud's Secret Management dashboard (`st.secrets`).
+2. **Unified Config Loader & Fallback Order**: Implemented a robust config loader (`config.py`) following a strict resolution order:
+   - Priority 1: `os.environ` (local development via `.env` or CI environments).
+   - Priority 2: `st.secrets` (Streamlit Cloud runtime environment).
+   - Priority 3: Optional default value or `ConfigError` raised for required configurations.
+   - Guarded safely against missing Streamlit runtime environments or uninitialized secrets files.
+3. **Repo Visibility & Security Rationale**: CodeBreaker repository is designed as a secure, public-ready open-source codebase. By strictly relying on public anon keys (`SUPABASE_ANON_KEY`), secure OAuth mediation, and PostgreSQL Row Level Security (RLS), the codebase contains zero hardcoded secrets and can be safely open-sourced without credential exposure.
+4. **Pre-Deploy Audit & Test Suite**: Verified complete requirements (`streamlit`, `requests`, `supabase`, `markdown`, `pytest`), full test suite pass rate (21 tests green), and absence of risky regex patterns (`gsk_`, `eyJ`, `password=`).
+
 ## Entry 001: Initial Scaffold, Quota Interruption & Resume-by-Audit
 - **Date**: 2026-09-13
 - **Author**: Engineering Team / Orchestrator Agent
