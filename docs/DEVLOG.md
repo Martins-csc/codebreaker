@@ -70,3 +70,15 @@
 3. **Markdown Architecture**: Structured blueprint export with clear Markdown sections (title, summary, tech stack bullets, fenced folder tree, edge cases, numbered roadmap, and dynamic footer) with robust safeguards ensuring `None` values never leak as literal `"None"`.
 4. **Engineering Log Habit & RLS Deletion**: Polished Engineering Log entries with styled expanders, timestamp date badges, and a delete button per entry executing client-side ownership verification (`user_id` match) in addition to Supabase RLS policies.
 5. **UI Cleanup**: Replaced literal `<br>` artifact on the Login page with proper Markdown spacing.
+
+## Entry 006 Addendum: Export for Real Humans (v0.4.1)
+- **Date**: 2026-09-15
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v0.4.1 Export Formats for Real Humans
+
+### Export Rationale
+1. **Markdown (.md)**: Tailored for repositories (`README.md`), serving as the project's instant front page on GitHub and Git platforms.
+2. **HTML (.html)**: Self-contained, cleanly styled web page featuring rendered headings and footer, optimized for human reading on mobile devices and browsers ("Open with Chrome/Safari").
+3. **Plain Text (.txt)**: Universal fallback format ensuring compatibility with any text editor or AI coding assistant spec without formatting barriers.
+4. **Origin Story**: Born from the founder's own Android "Open with" confusion when attempting to view architecture specs on mobile.
+5. **Security & Sanitization**: Reused rigorous `sanitize_filename` across all three export formats with zero secret leakage.

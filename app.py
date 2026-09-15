@@ -1,7 +1,8 @@
 import streamlit as st
 
 from ai_engine import (BlueprintError, generate_blueprint,
-                       render_blueprint_markdown, sanitize_filename)
+                       render_blueprint_html, render_blueprint_markdown,
+                       render_blueprint_text, sanitize_filename)
 from supabase_client import ConfigError, get_client
 
 st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
@@ -311,19 +312,53 @@ elif page == "Blueprint":
             "No blueprint generated yet. Please submit a project analysis on the 'Analyze' page."
         )
     else:
-        col_title, col_download = st.columns([3, 1])
+        st.info(
+            "**What do I do with this file?**\n\n"
+            "- Drop it in your GitHub repo as README.md — it becomes your project's front page.\n"
+            "- Hand it to any AI coding assistant as your spec.\n"
+            "- .html opens in any browser, .txt in any editor, .md renders on GitHub."
+        )
+
+        col_title, col_export = st.columns([2, 2])
         with col_title:
             st.subheader(
                 f"Blueprint for: {blueprint.get('project_name', 'Untitled Project')}"
             )
-        with col_download:
-            md_content = render_blueprint_markdown(blueprint)
-            safe_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
+        with col_export:
+            export_format = st.selectbox(
+                "Export Format",
+                ["Markdown (.md)", "Plain text (.txt)", "HTML (.html)"],
+                key="blueprint_export_format",
+            )
+            base_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
+            if base_fname.endswith(".md"):
+                txt_fname = base_fname[:-3] + ".txt"
+                html_fname = base_fname[:-3] + ".html"
+            else:
+                txt_fname = base_fname + ".txt"
+                html_fname = base_fname + ".html"
+
+            if "Markdown" in export_format:
+                content = render_blueprint_markdown(blueprint)
+                fname = base_fname
+                mime = "text/markdown"
+                btn_label = "📥 Export as Markdown (.md)"
+            elif "Plain text" in export_format:
+                content = render_blueprint_text(blueprint)
+                fname = txt_fname
+                mime = "text/plain"
+                btn_label = "📥 Export as Plain Text (.txt)"
+            else:
+                content = render_blueprint_html(blueprint)
+                fname = html_fname
+                mime = "text/html"
+                btn_label = "📥 Export as HTML (.html)"
+
             st.download_button(
-                label="📥 Export as README.md",
-                data=md_content,
-                file_name=safe_fname,
-                mime="text/markdown",
+                label=btn_label,
+                data=content,
+                file_name=fname,
+                mime=mime,
                 use_container_width=True,
             )
 
