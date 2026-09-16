@@ -1,5 +1,16 @@
 # CodeBreaker Development Log
 
+## Entry 010: Admin Pulse & Owner-Only Visibility (v1.0.1)
+- **Date**: 2026-09-16
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.0.1 Admin Pulse
+
+### Design Notes & Architectural Decisions
+1. **Owner-Only Visibility**: Implemented `ADMIN_EMAIL` configuration checking in `config.py` (supporting `os.environ` and `st.secrets` fallback) to restrict administrative metrics visibility exclusively to the site owner.
+2. **Efficient Counting**: Leveraged Supabase `select("id", count="exact")` queries to fetch exact counts of registered users (`profiles` table) and engineering log entries without downloading unnecessary row payloads.
+3. **Environment Configuration**: Added `ADMIN_EMAIL` entry to `.env.example` and local `.env` file without exposing or printing secrets.
+4. **Test Coverage**: Added dedicated unit tests (`tests/test_admin_pulse.py`) ensuring owners see counts and non-admins see nothing, with zero network calls and all tests passing successfully.
+
 ## Entry 009: Email Confirmation & Production Safety (v1.0.0)
 - **Date**: 2026-09-15
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents

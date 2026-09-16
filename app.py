@@ -1,7 +1,9 @@
 import streamlit as st
+
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_text, sanitize_filename)
+from config import ADMIN_EMAIL
 from supabase_client import ConfigError, get_client
 
 st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
@@ -72,6 +74,40 @@ if user:
             del st.session_state[key]
         st.success("Signed out successfully.")
         st.rerun()
+
+    user_email = user.get("email", "")
+    if (
+        ADMIN_EMAIL
+        and user_email
+        and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
+    ):
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🛡️ Admin Pulse")
+        try:
+            client = get_client()
+            if "access_token" in st.session_state:
+                client.auth.set_session(
+                    st.session_state["access_token"],
+                    st.session_state.get("refresh_token", ""),
+                )
+            res_users = client.table("profiles").select("id", count="exact").execute()
+            users_count = getattr(res_users, "count", None)
+            if users_count is None:
+                data_users = getattr(res_users, "data", [])
+                users_count = len(data_users) if isinstance(data_users, list) else 0
+
+            res_logs = (
+                client.table("engineering_log").select("id", count="exact").execute()
+            )
+            logs_count = getattr(res_logs, "count", None)
+            if logs_count is None:
+                data_logs = getattr(res_logs, "data", [])
+                logs_count = len(data_logs) if isinstance(data_logs, list) else 0
+
+            st.sidebar.metric("Registered Users", users_count)
+            st.sidebar.metric("Engineering Logs", logs_count)
+        except Exception as e:
+            st.sidebar.warning(f"Could not load Admin Pulse: {e}")
 
     page = st.sidebar.radio(
         "Navigation", ["Home", "Analyze", "Blueprint", "Engineering Log"]

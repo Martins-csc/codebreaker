@@ -35,3 +35,6 @@ def get_config(key: str, default: str = None, required: bool = False) -> str:
         raise ConfigError(f"Missing required configuration: {key}")
 
     return default
+
+
+ADMIN_EMAIL = get_config("ADMIN_EMAIL", default="")

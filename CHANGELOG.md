@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-09-16
+
+### Added
+- Admin Pulse feature in the sidebar showing total registered users count and total engineering log entries count, visible exclusively to the designated owner (`ADMIN_EMAIL`).
+- Secure config loader integration for `ADMIN_EMAIL` supporting `os.environ` with fallback to `st.secrets`.
+- Efficient Supabase counting using `select("id", count="exact")`.
+- Local `.env` and `.env.example` configuration entries for `ADMIN_EMAIL`.
+- Comprehensive unit tests (`tests/test_admin_pulse.py`) verifying admin sees counts and non-admin sees nothing, with zero network calls.
+
 ## [1.0.0] - 2026-09-15
 
 ### Added
