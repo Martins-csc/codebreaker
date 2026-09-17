@@ -1,5 +1,19 @@
 # CodeBreaker Development Log
 
+## Entry 013: Abuse Guards Family — Defense in Depth & Batching Rule (v1.0.4)
+- **Date**: 2026-09-17
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.0.4 Abuse Guards Family
+
+### Design Notes & Architectural Decisions
+1. **Defense in Depth Strategy**: Implemented a multi-layered security approach for abuse prevention:
+   - **Layer 1 (Platform)**: Supabase platform-layer rate limits and authentication security.
+   - **Layer 2 (Application Handlers & UI)**: Strict input length caps (email ≤254, password ≤128, display name ≤80, problem/idea ≤2000, log fields ≤5000) enforced both on UI input components (`max_chars`) and in server-side handlers returning sanitized generic error messages.
+   - **Layer 3 (Password Policy)**: Minimum 8 characters with at least one letter and one number, live `st.caption` hints, and sanitized rejection messages (preventing rule leakage).
+   - **Layer 4 (UX Cooldown)**: 30-second signup cooldown managed via `st.session_state` timestamps after any failed signup attempt, with explicit code comments noting server-side rate limits remain Supabase's responsibility.
+2. **Category Batching Rule Applied**: Applied the category batching rule to the security domain, batching password validation, input caps, and signup cooldown together into a cohesive **Abuse Guards Family** rather than scattering safeguards across random commits.
+3. **Security Audit & Test Coverage**: Verified zero user-enumeration vectors in error messages, identical limits in UI and handlers, and zero secrets in code. Added comprehensive unit tests in `tests/test_security.py` covering weak-password table rejection, handler input caps with mocked Supabase, cooldown session state logic, empty email/password checks, email format validation, and 7-character password rejection. All 38 unit tests passing successfully.
+
 ## Entry 012: First-Run Guidance, Onboarding Tour & The Category Batching Rule (v1.0.3)
 - **Date**: 2026-09-17
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents

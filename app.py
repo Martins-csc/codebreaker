@@ -1,9 +1,11 @@
 import streamlit as st
+
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
                        sanitize_filename)
 from config import ADMIN_EMAIL
+from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
 
 st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
@@ -147,21 +149,67 @@ if page == "Login":
     with col1:
         if auth_mode == "Sign Up":
             st.subheader("Create a New Account")
+            import time
+
+            cooldown_until = st.session_state.get("signup_cooldown_until", 0)
+            cooldown_active = time.time() < cooldown_until
+            if cooldown_active:
+                remaining = int(cooldown_until - time.time())
+                st.warning(
+                    f"Signup temporarily disabled due to recent failed attempt. Please wait {remaining}s."
+                )
+
             with st.form("signup_form"):
-                signup_email = st.text_input("Email", placeholder="you@example.com")
+                signup_email = st.text_input(
+                    "Email", placeholder="you@example.com", max_chars=254
+                )
                 signup_password = st.text_input(
-                    "Password", type="password", placeholder="Secure password"
+                    "Password",
+                    type="password",
+                    placeholder="Secure password",
+                    max_chars=128,
+                )
+                st.caption(
+                    "Password requirements: at least 8 characters with at least one letter and one number."
                 )
                 signup_display_name = st.text_input(
-                    "Display Name", placeholder="e.g. CodeBreaker Dev"
+                    "Display Name", placeholder="e.g. CodeBreaker Dev", max_chars=80
                 )
-                signup_submitted = st.form_submit_button("Sign Up")
+                signup_submitted = st.form_submit_button(
+                    "Sign Up", disabled=cooldown_active
+                )
 
             if signup_submitted:
-                if not signup_email.strip() or not signup_password.strip():
-                    st.error("Please provide both email and password.")
+                if not signup_email.strip():
+                    st.session_state["signup_cooldown_until"] = time.time() + 30
+                    st.error("Email cannot be empty.")
+                elif not signup_password.strip():
+                    st.session_state["signup_cooldown_until"] = time.time() + 30
+                    st.error("Password cannot be empty.")
                 else:
-                    try:
+                    email_format_valid, email_format_err = validate_email(signup_email.strip())
+                    email_len_valid, email_len_err = validate_input_length(
+                        "email", signup_email.strip()
+                    )
+                    pwd_valid, pwd_err = validate_password(signup_password)
+                    name_valid, name_err = validate_input_length(
+                        "display_name", signup_display_name.strip()
+                    )
+
+                    if not email_len_valid:
+                        st.session_state["signup_cooldown_until"] = time.time() + 30
+                        st.error(email_len_err)
+                    elif not email_format_valid:
+                        st.session_state["signup_cooldown_until"] = time.time() + 30
+                        st.error(email_format_err)
+                    elif not pwd_valid:
+                        st.session_state["signup_cooldown_until"] = time.time() + 30
+                        st.error(pwd_err)
+                    elif not name_valid:
+                        st.session_state["signup_cooldown_until"] = time.time() + 30
+                        st.error(name_err)
+                    else:
+                        try:
                         client = get_client()
                         res = client.auth.sign_up(
                             {
@@ -217,6 +265,9 @@ if page == "Login":
                                 )
                                 st.rerun()
                     except Exception as e:
+                        # Set 30s cooldown on failed signup attempt
+                        st.session_state["signup_cooldown_until"] = time.time() + 30
+                        # NOTE: Server-side rate limits remain Supabase's job (platform layer already enforced).
                         err_str = str(e)
                         if (
                             "already registered" in err_str.lower()
@@ -421,14 +472,17 @@ elif page == "Analyze":
 
     with st.form("analyze_form"):
         project_name = st.text_input(
-            "Project Name", placeholder="e.g., Real-time Chat App"
+            "Project Name", placeholder="e.g., Real-time Chat App", max_chars=100
         )
         problem = st.text_area(
             "Problem Description / Requirements",
             placeholder="What problem are you solving and what are the core requirements?",
+            max_chars=2000,
         )
         target_audience = st.text_input(
-            "Target Audience", placeholder="e.g., Developers, Enterprise, Consumers"
+            "Target Audience",
+            placeholder="e.g., Developers, Enterprise, Consumers",
+            max_chars=200,
         )
         skill_level = st.selectbox(
             "Your Skill Level", ["Beginner", "Intermediate", "Advanced", "Expert"]
@@ -437,7 +491,13 @@ elif page == "Analyze":
         submitted = st.form_submit_button("Generate Blueprint")
 
     if submitted:
-        if not project_name.strip() or not problem.strip():
+        pn_valid, pn_err = validate_input_length("project_name", project_name)
+        prob_valid, prob_err = validate_input_length("problem", problem)
+        ta_valid, ta_err = validate_input_length("target_audience", target_audience)
+
+        if not pn_valid or not prob_valid or not ta_valid:
+            st.error("Input exceeds maximum allowed length. Please shorten your input.")
+        elif not project_name.strip() or not problem.strip():
             st.error("Please provide at least a Project Name and Problem Description.")
         else:
             analysis_payload = {
@@ -579,18 +639,28 @@ elif page == "Engineering Log":
     st.subheader("New Engineering Log Entry")
     with st.form("engineering_log_form"):
         log_progress = st.text_area(
-            "Progress / Milestone", placeholder="What did you accomplish?"
+            "Progress / Milestone",
+            placeholder="What did you accomplish?",
+            max_chars=5000,
         )
         log_bugs = st.text_area(
-            "Bugs / Challenges", placeholder="What issues did you encounter?"
+            "Bugs / Challenges",
+            placeholder="What issues did you encounter?",
+            max_chars=5000,
         )
         log_learnings = st.text_area(
-            "Learnings / Insights", placeholder="What did you learn?"
+            "Learnings / Insights", placeholder="What did you learn?", max_chars=5000
         )
         log_submitted = st.form_submit_button("Submit Log Entry")
 
     if log_submitted:
-        if (
+        lp_valid, _ = validate_input_length("progress", log_progress)
+        lb_valid, _ = validate_input_length("bugs", log_bugs)
+        ll_valid, _ = validate_input_length("learnings", log_learnings)
+
+        if not lp_valid or not lb_valid or not ll_valid:
+            st.error("Input exceeds maximum allowed length. Please shorten your input.")
+        elif (
             not log_progress.strip()
             and not log_bugs.strip()
             and not log_learnings.strip()

@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-09-17
+
+### Added
+- Password strength enforcement at signup (minimum 8 characters with at least one letter and one number), live `st.caption` guidance, and sanitized rejection messages (preventing rule-by-rule leakage).
+- Enhanced signup validation UX addendum enforcing pre-Supabase per-field empty checks (email empty → `"Email cannot be empty."`, password empty → `"Password cannot be empty."`, both empty → email message first), app-side regex email format validation (`^[^@\s]+@[^@\s]+\.[^@\s]+$`), and verbatim 8-character password rule enforcement (`"Password must be at least 8 characters with at least one letter and one number."`), preventing raw platform error leakage.
+- Server-side input length caps enforced in handlers and UI inputs (`max_chars`): email ≤254, password ≤128, display name ≤80, project idea/problem ≤2000, and each engineering log field ≤5000 characters, returning generic sanitized errors on overlong input.
+- Signup cooldown mechanism disabling the signup button for 30 seconds via `st.session_state` timestamp after a failed signup attempt, with code comments noting server-side rate limits remain Supabase's job (platform layer already enforced).
+- Comprehensive unit test suite (`tests/test_security.py`) verifying weak-password rejection, input length caps with mocked Supabase, and cooldown session state logic (all 36 tests passing).
+- DEVLOG Entry 013 documenting the Abuse Guards family (defense in depth — Supabase platform limits + app caps + UX cooldown) and the application of the Category Batching Rule to the security family.
+
 ## [1.0.3] - 2026-09-17
 
 ### Added
