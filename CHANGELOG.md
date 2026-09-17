@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-09-17
+
+### Added
+- Dismissible 3-step Onboarding Tour ("Analyze", "Blueprint", "Engineering Log") shown on first login of a session via `st.expander` and storing `tour_dismissed` flag in `st.session_state` (never blocking the auth gate).
+- New About page (`About`) featuring mission statement ("Plan before you code"), classroom lecturer usage (`Assignment Grade = System Blueprint + Engineering Log`), the two auth doors (Email/Password + GitHub OAuth), the four export formats (Markdown, Plain Text, HTML, PDF), public repository link, and version footer ("v1.0.3").
+- Comprehensive unit tests (`tests/test_onboarding_and_about.py`) verifying tour rendering once per session, click-to-dismiss state updates, and About page content validation with zero network usage.
+- DEVLOG Entry 012 documenting the Category Batching Rule credited to the founder, using the v0.4.1/v1.0.2 export format split as the definitive case study.
+
 ## [1.0.2] - 2026-09-17
 
 ### Added

@@ -1,5 +1,4 @@
 import streamlit as st
-
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -111,15 +110,30 @@ if user:
             st.sidebar.warning(f"Could not load Admin Pulse: {e}")
 
     page = st.sidebar.radio(
-        "Navigation", ["Home", "Analyze", "Blueprint", "Engineering Log"]
+        "Navigation", ["Home", "Analyze", "Blueprint", "Engineering Log", "About"]
     )
 else:
-    page = st.sidebar.radio("Navigation", ["Login", "Home"])
+    page = st.sidebar.radio("Navigation", ["Login", "Home", "About"])
 
-# Auth gate for all modules except Login
-if page != "Login" and not user:
+# Auth gate for all modules except Login and About
+if page not in ["Login", "About"] and not user:
     st.warning("Please log in or sign up to access CodeBreaker modules.")
     st.stop()
+
+# First-run onboarding tour for authenticated sessions
+if user and not st.session_state.get("tour_dismissed", False):
+    with st.expander(
+        "👋 Welcome to CodeBreaker — First-Run Onboarding Tour", expanded=True
+    ):
+        st.markdown(
+            "Here is a quick 3-step walkthrough to help you get started:\n\n"
+            "(a) **Analyze**: Describe any project idea to generate an AI-driven system architecture blueprint.\n"
+            "(b) **Blueprint**: Explore the 5 interactive tabs (Tech Stack, Folder Structure, Edge Cases, Roadmap, Summary) and export your spec in 4 formats (Markdown, Plain Text, HTML, PDF).\n"
+            "(c) **Engineering Log**: Record progress, bugs, and learnings for your engineering milestones."
+        )
+        if st.button("Got it", key="tour_got_it_btn"):
+            st.session_state["tour_dismissed"] = True
+            st.rerun()
 
 if page == "Login":
     st.title("CodeBreaker - Authentication")
@@ -338,6 +352,53 @@ if page == "Login":
                 )
         except Exception as e:
             st.error(f"Could not generate GitHub OAuth link: {e}")
+
+elif page == "About":
+    st.title("About CodeBreaker")
+    st.caption(
+        "Plan Before You Code — Architecture, Engineering Logs, and Habit Formation"
+    )
+    st.markdown("---")
+
+    st.subheader("🎯 Mission Statement")
+    st.write(
+        "CodeBreaker was built on a core software engineering philosophy: **Plan before you code.** "
+        "Too many developers dive straight into writing code without an architecture blueprint, leading to spaghetti code, "
+        "unhandled edge cases, and lost engineering context. CodeBreaker bridges the gap between idea and execution "
+        "by combining AI-driven system architecture generation, multi-format exports, and isolated engineering logs."
+    )
+
+    st.subheader("🎓 How Lecturers Use CodeBreaker in Class")
+    st.write(
+        "Computer science and software engineering professors use CodeBreaker as a core instructional tool in class. "
+        "A typical semester assignment formula is:\n\n"
+        "$$\\text{Assignment Grade} = \\text{System Blueprint} + \\text{Engineering Log}$$ \n\n"
+        "- **System Blueprint**: Students submit their initial architecture analysis (Tech Stack, Folder Structure, Edge Cases, Roadmap) exported as Markdown, HTML, or PDF.\n"
+        "- **Engineering Log**: Students maintain an ongoing log of daily progress, encountered bugs, and technical insights, securely isolated by user accounts and Row Level Security (RLS)."
+    )
+
+    st.subheader("🚪 The Two Auth Doors")
+    st.markdown(
+        "1. **Email / Password Authentication**: Traditional signup and login powered by Supabase Auth with strict email confirmation verification (blocking unconfirmed logins and supporting resend confirmation workflows).\n"
+        "2. **GitHub OAuth**: Secure, frictionless Single Sign-On (SSO) via GitHub OAuth with PKCE authorization code exchange mediated securely by Supabase."
+    )
+
+    st.subheader("📥 The Four Export Formats")
+    st.markdown(
+        "1. **Markdown (.md)**: Perfect for dropping into repository `README.md` files as an instant project front page.\n"
+        "2. **Plain Text (.txt)**: Universal compatibility with any text editor or AI coding assistant specification.\n"
+        "3. **HTML (.html)**: Self-contained, cleanly styled web page optimized for mobile browsers and offline reading.\n"
+        "4. **PDF (.pdf)**: Professional architecture document rendering powered by pure-python `fpdf2`, ideal for printing and formal submissions."
+    )
+
+    st.subheader("🔗 Public Repository & Open Source")
+    st.markdown(
+        "CodeBreaker is an open-source project. Explore the source code, open issues, or contribute on GitHub: "
+        "[CodeBreaker GitHub Repository](https://github.com)"
+    )
+
+    st.markdown("---")
+    st.caption("CodeBreaker v1.0.3 • Built with Streamlit, Supabase, Groq & fpdf2")
 
 elif page == "Home":
     st.title("CodeBreaker")

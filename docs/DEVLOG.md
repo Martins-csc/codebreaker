@@ -1,5 +1,23 @@
 # CodeBreaker Development Log
 
+## Entry 012: First-Run Guidance, Onboarding Tour & The Category Batching Rule (v1.0.3)
+- **Date**: 2026-09-17
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.0.3 First-Run Guidance Family & About Page
+
+### The Category Batching Rule (Credited to Founder)
+- **Definition**: Group related capabilities by output category or functional domain rather than scattering them across disparate releases. Batching by category ensures cohesive user experience, unified documentation, and thorough domain-specific verification.
+- **Case Study (v0.4.1 / v1.0.2 PDF Split)**: 
+  - In v0.4.1, the export format category was established by batching Markdown (.md), Plain Text (.txt), and HTML (.html) exports together. 
+  - When PDF export was requested in v1.0.2, rather than scattering document rendering features across random releases, it was naturally batched into the existing export category family using pure-python `fpdf2`.
+  - Similarly, v1.0.3 establishes the **First-Run Guidance Family** by batching the dismissible onboarding tour and comprehensive About page together, rather than building them in isolated silos.
+
+### Design Notes & Architectural Decisions
+1. **Onboarding Tour**: A dismissible 3-step walkthrough (Analyze, Blueprint, Engineering Log) displayed on first login of a session via `st.expander` and managed via `st.session_state["tour_dismissed"]`. It displays once per session and never blocks the authentication gate.
+2. **About Page**: A dedicated navigation item (`About`) outlining the mission statement ("Plan before you code"), classroom lecturer usage (`Assignment Grade = System Blueprint + Engineering Log`), the two auth doors (Email/Password + GitHub OAuth), the four export formats, public repository link, and version footer (`v1.0.3`).
+3. **Security & Zero-Network Testing**: All tests run with zero network calls and zero secret dependencies. Tour state flags are isolated in session state.
+4. **Test Coverage**: Added dedicated unit tests in `tests/test_onboarding_and_about.py` covering tour rendering once per session, click-to-dismiss persistence, and About page content validation. All 32 unit tests passing successfully.
+
 ## Entry 011: PDF Export & Pure-Python Portability (v1.0.2)
 - **Date**: 2026-09-17
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents
