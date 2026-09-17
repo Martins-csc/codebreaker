@@ -187,7 +187,9 @@ if page == "Login":
                     st.session_state["signup_cooldown_until"] = time.time() + 30
                     st.error("Password cannot be empty.")
                 else:
-                    email_format_valid, email_format_err = validate_email(signup_email.strip())
+                    email_format_valid, email_format_err = validate_email(
+                        signup_email.strip()
+                    )
                     email_len_valid, email_len_err = validate_input_length(
                         "email", signup_email.strip()
                     )
@@ -210,74 +212,75 @@ if page == "Login":
                         st.error(name_err)
                     else:
                         try:
-                        client = get_client()
-                        res = client.auth.sign_up(
-                            {
-                                "email": signup_email.strip(),
-                                "password": signup_password.strip(),
-                                "options": {
-                                    "data": {
-                                        "display_name": signup_display_name.strip()
+                            client = get_client()
+                            res = client.auth.sign_up(
+                                {
+                                    "email": signup_email.strip(),
+                                    "password": signup_password.strip(),
+                                    "options": {
+                                        "data": {
+                                            "display_name": signup_display_name.strip()
+                                        }
+                                    },
+                                }
+                            )
+                            user_obj = getattr(res, "user", None)
+                            session_obj = getattr(res, "session", None)
+
+                            if user_obj:
+                                identities = getattr(user_obj, "identities", None)
+                                confirmed_at = getattr(user_obj, "confirmed_at", None)
+
+                                if (
+                                    not identities
+                                    or confirmed_at is None
+                                    or not session_obj
+                                ):
+                                    st.info("Check your email to confirm your account")
+                                    st.success(
+                                        f"Confirmation email sent to {signup_email.strip()}. Check your inbox (and spam folder)."
+                                    )
+                                    st.session_state["unconfirmed_email"] = (
+                                        signup_email.strip()
+                                    )
+                                else:
+                                    display_name = (
+                                        signup_display_name.strip()
+                                        or signup_email.strip().split("@")[0]
+                                    )
+                                    st.session_state["user"] = {
+                                        "id": user_obj.id,
+                                        "email": user_obj.email,
+                                        "display_name": display_name,
                                     }
-                                },
-                            }
-                        )
-                        user_obj = getattr(res, "user", None)
-                        session_obj = getattr(res, "session", None)
-
-                        if user_obj:
-                            identities = getattr(user_obj, "identities", None)
-                            confirmed_at = getattr(user_obj, "confirmed_at", None)
-
+                                    st.session_state["access_token"] = (
+                                        session_obj.access_token
+                                    )
+                                    st.session_state["refresh_token"] = (
+                                        session_obj.refresh_token
+                                    )
+                                    client.auth.set_session(
+                                        session_obj.access_token,
+                                        session_obj.refresh_token,
+                                    )
+                                    st.success(
+                                        "Account created and logged in successfully!"
+                                    )
+                                    st.rerun()
+                        except Exception as e:
+                            # Set 30s cooldown on failed signup attempt
+                            st.session_state["signup_cooldown_until"] = time.time() + 30
+                            # NOTE: Server-side rate limits remain Supabase's job (platform layer already enforced).
+                            err_str = str(e)
                             if (
-                                not identities
-                                or confirmed_at is None
-                                or not session_obj
+                                "already registered" in err_str.lower()
+                                or "already exists" in err_str.lower()
                             ):
-                                st.info("Check your email to confirm your account")
-                                st.success(
-                                    f"Confirmation email sent to {signup_email.strip()}. Check your inbox (and spam folder)."
-                                )
-                                st.session_state["unconfirmed_email"] = (
-                                    signup_email.strip()
+                                st.error(
+                                    "An account with this email already exists. Please log in."
                                 )
                             else:
-                                display_name = (
-                                    signup_display_name.strip()
-                                    or signup_email.strip().split("@")[0]
-                                )
-                                st.session_state["user"] = {
-                                    "id": user_obj.id,
-                                    "email": user_obj.email,
-                                    "display_name": display_name,
-                                }
-                                st.session_state["access_token"] = (
-                                    session_obj.access_token
-                                )
-                                st.session_state["refresh_token"] = (
-                                    session_obj.refresh_token
-                                )
-                                client.auth.set_session(
-                                    session_obj.access_token, session_obj.refresh_token
-                                )
-                                st.success(
-                                    "Account created and logged in successfully!"
-                                )
-                                st.rerun()
-                    except Exception as e:
-                        # Set 30s cooldown on failed signup attempt
-                        st.session_state["signup_cooldown_until"] = time.time() + 30
-                        # NOTE: Server-side rate limits remain Supabase's job (platform layer already enforced).
-                        err_str = str(e)
-                        if (
-                            "already registered" in err_str.lower()
-                            or "already exists" in err_str.lower()
-                        ):
-                            st.error(
-                                "An account with this email already exists. Please log in."
-                            )
-                        else:
-                            st.error(f"Sign-up failed: {err_str}")
+                                st.error(f"Sign-up failed: {err_str}")
 
         else:
             st.subheader("Log In to Your Account")

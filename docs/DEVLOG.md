@@ -1,5 +1,18 @@
 # CodeBreaker Development Log
 
+## Entry 014: First Outage Postmortem & Compile Gate Hotfix (v1.0.5)
+- **Date**: 2026-09-17
+- **Author**: Engineering Team / Builder, Reviewer & Orchestrator Agents
+- **Milestone**: v1.0.5 Hotfix & Pre-Seal Compile Gate
+
+### Outage Postmortem & Root Cause Analysis
+1. **Cause**: A broken `try:` block indentation in `app.py` (`client = get_client()` unindented relative to `try:`) was shipped via an automated commit, resulting in a production-down `IndentationError` when launching the Streamlit app.
+2. **Why Tests Missed It**: The existing unit test suite (`tests/`) tests individual modules (`security.py`, `config.py`, `supabase_client.py`, `ai_engine.py`) and component logic, but no test file imports `app.py` directly (as `app.py` is the top-level Streamlit entrypoint containing UI event loops and script execution code).
+3. **Fix**: 
+   - **Hotfix**: Restored correct `try/except` indentation and structure in `app.py` (~lines 212-280) preserving all intended signup error handling and 30-second cooldown logic.
+   - **Pre-Seal Compile Gate**: Instituted a mandatory pre-seal compile check (`python -m py_compile app.py`) across all delivery pipelines to catch syntax and indentation errors before code sealing.
+4. **Verification**: `python -m py_compile app.py` executed successfully with zero output, and all 38 pytest unit tests passed successfully.
+
 ## Entry 013: Abuse Guards Family — Defense in Depth & Batching Rule (v1.0.4)
 - **Date**: 2026-09-17
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents
