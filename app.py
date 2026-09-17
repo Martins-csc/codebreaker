@@ -2,7 +2,8 @@ import streamlit as st
 
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
-                       render_blueprint_text, sanitize_filename)
+                       render_blueprint_pdf, render_blueprint_text,
+                       sanitize_filename)
 from config import ADMIN_EMAIL
 from supabase_client import ConfigError, get_client
 
@@ -411,7 +412,7 @@ elif page == "Blueprint":
             "**What do I do with this file?**\n\n"
             "- Drop it in your GitHub repo as README.md — it becomes your project's front page.\n"
             "- Hand it to any AI coding assistant as your spec.\n"
-            "- .html opens in any browser, .txt in any editor, .md renders on GitHub."
+            "- .html opens in any browser, .txt in any editor, .pdf for human readers & printing, .md renders on GitHub."
         )
 
         col_title, col_export = st.columns([2, 2])
@@ -422,16 +423,18 @@ elif page == "Blueprint":
         with col_export:
             export_format = st.selectbox(
                 "Export Format",
-                ["Markdown (.md)", "Plain text (.txt)", "HTML (.html)"],
+                ["Markdown (.md)", "Plain text (.txt)", "HTML (.html)", "PDF (.pdf)"],
                 key="blueprint_export_format",
             )
             base_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
             if base_fname.endswith(".md"):
                 txt_fname = base_fname[:-3] + ".txt"
                 html_fname = base_fname[:-3] + ".html"
+                pdf_fname = base_fname[:-3] + ".pdf"
             else:
                 txt_fname = base_fname + ".txt"
                 html_fname = base_fname + ".html"
+                pdf_fname = base_fname + ".pdf"
 
             if "Markdown" in export_format:
                 content = render_blueprint_markdown(blueprint)
@@ -443,11 +446,16 @@ elif page == "Blueprint":
                 fname = txt_fname
                 mime = "text/plain"
                 btn_label = "📥 Export as Plain Text (.txt)"
-            else:
+            elif "HTML" in export_format:
                 content = render_blueprint_html(blueprint)
                 fname = html_fname
                 mime = "text/html"
                 btn_label = "📥 Export as HTML (.html)"
+            else:
+                content = render_blueprint_pdf(blueprint)
+                fname = pdf_fname
+                mime = "application/pdf"
+                btn_label = "📥 Export as PDF (.pdf)"
 
             st.download_button(
                 label=btn_label,

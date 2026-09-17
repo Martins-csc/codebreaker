@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 011: PDF Export & Pure-Python Portability (v1.0.2)
+- **Date**: 2026-09-17
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.0.2 PDF Export
+
+### Design Notes & Architectural Decisions
+1. **Pure-Python Portability**: Selected `fpdf2` as the PDF generation library because it is 100% pure Python, pip-installs cleanly on both Termux and Streamlit Community Cloud, and requires zero native binaries (such as wkhtmltopdf or pango).
+2. **In-Memory Generation**: All PDF documents are generated in-memory (`BytesIO` / `pdf.output()`) with zero temp files written to disk, ensuring high performance and zero filesystem clutter in serverless cloud environments.
+3. **Completing the Export Story**: Fulfills the multi-format export vision: Markdown (.md) for repositories, HTML (.html) for browsers, Plain text (.txt) for editors, and PDF (.pdf) for human readers and offline printing.
+4. **Security & Safety Guardrails**: Reused robust filename sanitization (`sanitize_filename`), ensured `None` values never leak as `"None"`, and verified zero secrets are present in PDF metadata or content.
+5. **Test Coverage**: Added comprehensive unit tests in `tests/test_ai_engine.py` verifying PDF format (`b"%PDF"`), minimum size (>1KB), safety, and zero network usage. All 28 tests passing successfully.
+
 ## Entry 010: Admin Pulse & Owner-Only Visibility (v1.0.1)
 - **Date**: 2026-09-16
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents

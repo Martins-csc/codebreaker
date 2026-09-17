@@ -3,3 +3,4 @@ requests
 supabase
 markdown
 pytest
+fpdf2
