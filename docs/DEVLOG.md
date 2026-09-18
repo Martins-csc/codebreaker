@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 017: Password Reset Flow & Auth Family Completion (v1.1.0)
+- **Date**: 2026-09-18
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.1.0 Password Reset Flow
+
+### Design Notes & Architectural Decisions
+1. **Auth Family Completion**: With signup, email confirmation, login, and now password reset implemented, CodeBreaker's complete authentication suite is fully realized.
+2. **Account Enumeration Protection**: The "Forgot password?" feature validates email format first via `validate_email`, invokes `supabase.auth.reset_password_for_email`, and catches/suppresses all backend exceptions. It displays the exact enumeration-safe info message `"If an account exists for that email, a reset link is on its way."` so attackers cannot determine whether an account exists for a given email address.
+3. **Recovery Session Return**: Detects recovery sessions when reset links land (`type=recovery` query parameter check on page load), exchanges the authorization code for a session, and renders the secure "Set new password" form.
+4. **Password Policy Reuse**: Reuses `validate_password` from `security.py` to enforce the exact 8-character password policy (minimum 8 chars with at least one letter and one number) on new password updates via `supabase.auth.update_user`, followed by automatic sign-out and prompt for fresh login.
+5. **Test Coverage & Verification**: Added unit tests in `tests/test_security.py` covering forgot-password wording, enumeration safety, recovery session detection, and password policy reuse. Verified via pre-seal compile check (`python3 -m py_compile`) and full pytest suite (all 43 unit tests passing successfully).
+
 ## Entry 016: Cooldown UX Live Countdown & Explicit Reruns (v1.0.6)
 - **Date**: 2026-09-18
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

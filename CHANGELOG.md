@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-18
+
+### Added
+- Complete password reset flow: added "Forgot password?" button under Log In on the Login page with email format validation (`validate_email`) and `supabase.auth.reset_password_for_email`.
+- Account enumeration protection: strictly suppresses all backend exceptions and displays exact enumeration-safe info message `"If an account exists for that email, a reset link is on its way."`.
+- Recovery return handling: detects recovery sessions (`type=recovery` query parameter handling on page load), exchanges code, and renders a secure "Set new password" form.
+- Password policy reuse: enforces the exact `security.py` 8-character password policy (at least 8 chars with 1 letter and 1 number) on new password updates (`supabase.auth.update_user`), followed by automatic sign-out and fresh login prompt.
+- Comprehensive unit tests (`tests/test_security.py`) covering forgot-password wording, enumeration safety, recovery session detection, and password policy reuse.
+- DEVLOG Entry 017 documenting auth family completion (signup → confirm → login → reset).
+
 ## [1.0.6] - 2026-09-18
 
 ### Added

@@ -13,38 +13,51 @@ st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
 try:
     client = get_client()
 
-    # Check for OAuth authorization code in query params on page load
+    # Check for OAuth authorization code or password reset recovery code in query params on page load
     code_param = st.query_params.get("code")
+    type_param = st.query_params.get("type")
     if code_param:
         code = code_param[0] if isinstance(code_param, list) else code_param
+        is_recovery = (isinstance(type_param, list) and "recovery" in type_param) or (
+            type_param == "recovery"
+        )
         try:
             try:
                 res = client.auth.exchange_code_for_session(code)
             except Exception:
                 res = client.auth.exchange_code_for_session({"auth_code": code})
 
-            if res and res.user and res.session:
-                display_name = ""
-                if res.user.user_metadata:
-                    display_name = (
-                        res.user.user_metadata.get("display_name", "")
-                        or res.user.email.split("@")[0]
-                    )
-                elif res.user.email:
-                    display_name = res.user.email.split("@")[0]
-                st.session_state["user"] = {
-                    "id": res.user.id,
-                    "email": res.user.email,
-                    "display_name": display_name,
-                }
-                st.session_state["access_token"] = res.session.access_token
-                st.session_state["refresh_token"] = res.session.refresh_token
+            if res and res.session:
                 client.auth.set_session(
                     res.session.access_token, res.session.refresh_token
                 )
-                st.success("Successfully logged in with GitHub!")
+                if is_recovery:
+                    st.session_state["recovery_mode"] = True
+                    st.success(
+                        "Recovery session established. Please set your new password."
+                    )
+                elif res.user:
+                    display_name = ""
+                    if res.user.user_metadata:
+                        display_name = (
+                            res.user.user_metadata.get("display_name", "")
+                            or res.user.email.split("@")[0]
+                        )
+                    elif res.user.email:
+                        display_name = res.user.email.split("@")[0]
+                    st.session_state["user"] = {
+                        "id": res.user.id,
+                        "email": res.user.email,
+                        "display_name": display_name,
+                    }
+                    st.session_state["access_token"] = res.session.access_token
+                    st.session_state["refresh_token"] = res.session.refresh_token
+                    st.success("Successfully logged in with GitHub!")
         except Exception as e:
-            st.error(f"GitHub OAuth authentication failed: {e}")
+            if is_recovery:
+                st.error(f"Password reset verification failed: {e}")
+            else:
+                st.error(f"GitHub OAuth authentication failed: {e}")
         finally:
             st.query_params.clear()
             st.rerun()
@@ -115,6 +128,54 @@ if user:
     )
 else:
     page = st.sidebar.radio("Navigation", ["Login", "Home", "About"])
+
+# Handle password recovery mode return
+if st.session_state.get("recovery_mode"):
+    st.title("CodeBreaker - Set New Password")
+    st.caption("Enter your new password below.")
+    st.markdown("---")
+
+    with st.form("set_new_password_form"):
+        new_pwd = st.text_input("New Password", type="password", placeholder="")
+        confirm_pwd = st.text_input(
+            "Confirm New Password", type="password", placeholder=""
+        )
+        update_submitted = st.form_submit_button("Update Password")
+
+    if update_submitted:
+        if not new_pwd.strip():
+            st.error("Password cannot be empty.")
+        elif new_pwd != confirm_pwd:
+            st.error("Passwords do not match.")
+        else:
+            pwd_valid, pwd_err = validate_password(new_pwd)
+            if not pwd_valid:
+                st.error(pwd_err)
+            else:
+                try:
+                    client = get_client()
+                    if "access_token" in st.session_state:
+                        client.auth.set_session(
+                            st.session_state["access_token"],
+                            st.session_state.get("refresh_token", ""),
+                        )
+                    client.auth.update_user({"password": new_pwd})
+                    try:
+                        client.auth.sign_out()
+                    except Exception:
+                        pass
+
+                    for key in list(st.session_state.keys()):
+                        del st.session_state[key]
+
+                    st.success(
+                        "Password updated successfully! Please log in with your new password."
+                    )
+                    st.session_state["password_reset_success"] = True
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to update password: {e}")
+    st.stop()
 
 # Auth gate for all modules except Login and About
 if page not in ["Login", "About"] and not user:
@@ -410,6 +471,50 @@ if page == "Login":
                         )
                     except Exception as e:
                         st.error(f"Failed to resend confirmation email: {e}")
+
+            if st.session_state.get("password_reset_success"):
+                st.success(
+                    "Password updated successfully! Please log in with your new password."
+                )
+                del st.session_state["password_reset_success"]
+
+            st.markdown("---")
+            if st.button("Forgot password?"):
+                st.session_state["show_forgot_password"] = True
+
+            if st.session_state.get("show_forgot_password"):
+                with st.form("forgot_password_form"):
+                    forgot_email = st.text_input(
+                        "Enter your account email", placeholder="you@example.com"
+                    )
+                    forgot_submitted = st.form_submit_button("Send Password Reset Link")
+
+                if forgot_submitted:
+                    if not forgot_email.strip():
+                        st.error("Email cannot be empty.")
+                    else:
+                        email_valid, email_err = validate_email(forgot_email.strip())
+                        if not email_valid:
+                            st.error(email_err)
+                        else:
+                            try:
+                                client = get_client()
+                                redirect_to = getattr(st.context, "url", None)
+                                if redirect_to:
+                                    redirect_to = redirect_to.split("?")[0]
+                                else:
+                                    redirect_to = "http://localhost:8501"
+
+                                client.auth.reset_password_for_email(
+                                    forgot_email.strip(),
+                                    options={"redirect_to": redirect_to},
+                                )
+                            except Exception:
+                                pass
+
+                            st.info(
+                                "If an account exists for that email, a reset link is on its way."
+                            )
 
     with col2:
         st.subheader("GitHub Authentication")
