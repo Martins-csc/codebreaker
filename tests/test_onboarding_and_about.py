@@ -61,6 +61,16 @@ def test_tour_button_dismisses():
     assert mock_session_state["tour_dismissed"] is True
 
 
+def test_tour_markdown_content():
+    """Test onboarding tour markdown contains vertical numbered 3-step list."""
+    with open("app.py", "r", encoding="utf-8") as f:
+        content = f.read()
+
+    assert "1. **Analyze**" in content
+    assert "2. **Blueprint**" in content
+    assert "3. **Engineering Log**" in content
+
+
 def test_about_page_content():
     """Test About page content contains mission statement, lecturer section, auth doors, and export formats."""
     with open("app.py", "r", encoding="utf-8") as f:

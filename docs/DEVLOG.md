@@ -1,5 +1,21 @@
 # CodeBreaker Development Log
 
+## Entry 015: UI Refinement, Vertical Numbered Tour & Test Updates (v1.0.5)
+- **Date**: 2026-09-18
+- **Author**: Engineering Team / Orchestrator & Builder Agents
+- **Milestone**: v1.0.5 UI Refinement & Tour Polish
+
+### Design Notes & Architectural Decisions
+1. **Auth Input Refinement**: Cleaned up authentication form inputs by removing explicit `max_chars` parameters, "Secure password" placeholders, and password requirement helper captions, relying on robust submit-time validation.
+2. **Onboarding Tour Refactor**: Streamlined the first-run onboarding tour body into a vertical numbered 3-step list via `st.markdown`:
+   - `1. **Analyze**: Describe any project idea to generate an AI-driven blueprint.`
+   - `2. **Blueprint**: Explore the 5 tabs and export your spec in 4 formats.`
+   - `3. **Engineering Log**: Record progress, bugs, and learnings.`
+   Retained the `"Got it"` dismissal button and once-per-session `tour_dismissed` session state logic without blocking authentication.
+3. **Login Validation**: Maintained per-field empty and format validation messages with combined error strings fully deleted.
+4. **Test Suite Updates**: Updated `tests/test_onboarding_and_about.py` with `test_tour_markdown_content()` verifying the vertical numbered 3-step list structure.
+5. **Verification**: Ran pre-seal compile check across all core modules and full pytest suite (all unit tests passing successfully).
+
 ## Entry 014: First Outage Postmortem & Compile Gate Hotfix (v1.0.5)
 - **Date**: 2026-09-17
 - **Author**: Engineering Team / Builder, Reviewer & Orchestrator Agents

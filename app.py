@@ -1,5 +1,4 @@
 import streamlit as st
-
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -128,10 +127,9 @@ if user and not st.session_state.get("tour_dismissed", False):
         "👋 Welcome to CodeBreaker — First-Run Onboarding Tour", expanded=True
     ):
         st.markdown(
-            "Here is a quick 3-step walkthrough to help you get started:\n\n"
-            "(a) **Analyze**: Describe any project idea to generate an AI-driven system architecture blueprint.\n"
-            "(b) **Blueprint**: Explore the 5 interactive tabs (Tech Stack, Folder Structure, Edge Cases, Roadmap, Summary) and export your spec in 4 formats (Markdown, Plain Text, HTML, PDF).\n"
-            "(c) **Engineering Log**: Record progress, bugs, and learnings for your engineering milestones."
+            "1. **Analyze**: Describe any project idea to generate an AI-driven blueprint.\n"
+            "2. **Blueprint**: Explore the 5 tabs and export your spec in 4 formats.\n"
+            "3. **Engineering Log**: Record progress, bugs, and learnings."
         )
         if st.button("Got it", key="tour_got_it_btn"):
             st.session_state["tour_dismissed"] = True
@@ -159,21 +157,27 @@ if page == "Login":
                     f"Signup temporarily disabled due to recent failed attempt. Please wait {remaining}s."
                 )
 
+            # Scoped CSS to hide any default form submit hint / character counter remnants
+            st.markdown(
+                """
+                <style>
+                .stForm [data-testid="InputInstructions"], div[data-baseweb="input"] + div {
+                    display: none !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
             with st.form("signup_form"):
-                signup_email = st.text_input(
-                    "Email", placeholder="you@example.com", max_chars=254
-                )
+                signup_email = st.text_input("Email", placeholder="you@example.com")
                 signup_password = st.text_input(
                     "Password",
                     type="password",
-                    placeholder="Secure password",
-                    max_chars=128,
-                )
-                st.caption(
-                    "Password requirements: at least 8 characters with at least one letter and one number."
+                    placeholder="",
                 )
                 signup_display_name = st.text_input(
-                    "Display Name", placeholder="e.g. CodeBreaker Dev", max_chars=80
+                    "Display Name", placeholder="e.g. CodeBreaker Dev"
                 )
                 signup_submitted = st.form_submit_button(
                     "Sign Up", disabled=cooldown_active
@@ -284,79 +288,103 @@ if page == "Login":
 
         else:
             st.subheader("Log In to Your Account")
+            st.markdown(
+                """
+                <style>
+                .stForm [data-testid="InputInstructions"], div[data-baseweb="input"] + div {
+                    display: none !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
             with st.form("login_form"):
                 login_email = st.text_input("Email", placeholder="you@example.com")
                 login_password = st.text_input(
-                    "Password", type="password", placeholder="Your password"
+                    "Password", type="password", placeholder=""
                 )
                 login_submitted = st.form_submit_button("Log In")
 
             if login_submitted:
-                if not login_email.strip() or not login_password.strip():
-                    st.error("Please provide both email and password.")
+                if not login_email.strip():
+                    st.error("Email cannot be empty.")
+                elif not login_password.strip():
+                    st.error("Password cannot be empty.")
                 else:
-                    try:
-                        client = get_client()
-                        res = client.auth.sign_in_with_password(
-                            {
-                                "email": login_email.strip(),
-                                "password": login_password.strip(),
-                            }
-                        )
-                        user_obj = getattr(res, "user", None)
-                        session_obj = getattr(res, "session", None)
+                    email_format_valid, email_format_err = validate_email(
+                        login_email.strip()
+                    )
+                    if not email_format_valid:
+                        st.error(email_format_err)
+                    else:
+                        try:
+                            client = get_client()
+                            res = client.auth.sign_in_with_password(
+                                {
+                                    "email": login_email.strip(),
+                                    "password": login_password.strip(),
+                                }
+                            )
+                            user_obj = getattr(res, "user", None)
+                            session_obj = getattr(res, "session", None)
 
-                        if user_obj and (
-                            getattr(user_obj, "confirmed_at", None) is None
-                            or not session_obj
-                        ):
-                            st.info("Check your email to confirm your account")
-                            st.session_state["unconfirmed_email"] = login_email.strip()
-                            st.error(
-                                "Email not confirmed. Please check your email to confirm your account."
-                            )
-                        elif user_obj and session_obj:
-                            display_name = ""
-                            if user_obj.user_metadata:
-                                display_name = user_obj.user_metadata.get(
-                                    "display_name", ""
+                            if user_obj and (
+                                getattr(user_obj, "confirmed_at", None) is None
+                                or not session_obj
+                            ):
+                                st.info("Check your email to confirm your account")
+                                st.session_state["unconfirmed_email"] = (
+                                    login_email.strip()
                                 )
-                            st.session_state["user"] = {
-                                "id": user_obj.id,
-                                "email": user_obj.email,
-                                "display_name": display_name,
-                            }
-                            st.session_state["access_token"] = res.session.access_token
-                            st.session_state["refresh_token"] = (
-                                res.session.refresh_token
-                            )
-                            client.auth.set_session(
-                                res.session.access_token, res.session.refresh_token
-                            )
-                            st.success("Logged in successfully!")
-                            st.rerun()
-                    except Exception as e:
-                        err_str = str(e)
-                        if (
-                            "not confirmed" in err_str.lower()
-                            or "email not confirmed" in err_str.lower()
-                        ):
-                            st.info("Check your email to confirm your account")
-                            st.session_state["unconfirmed_email"] = login_email.strip()
-                            st.error(
-                                "Email not confirmed. Please check your email to confirm your account."
-                            )
-                        elif (
-                            "invalid" in err_str.lower()
-                            or "credentials" in err_str.lower()
-                            or "password" in err_str.lower()
-                            or "unauthorized" in err_str.lower()
-                        ):
-                            st.error(
-                                "Invalid email or password. Please check your credentials."
-                            )
-                        else:
-                            st.error(f"Login failed: {err_str}")
+                                st.error(
+                                    "Email not confirmed. Please check your email to confirm your account."
+                                )
+                            elif user_obj and session_obj:
+                                display_name = ""
+                                if user_obj.user_metadata:
+                                    display_name = user_obj.user_metadata.get(
+                                        "display_name", ""
+                                    )
+                                st.session_state["user"] = {
+                                    "id": user_obj.id,
+                                    "email": user_obj.email,
+                                    "display_name": display_name,
+                                }
+                                st.session_state["access_token"] = (
+                                    res.session.access_token
+                                )
+                                st.session_state["refresh_token"] = (
+                                    res.session.refresh_token
+                                )
+                                client.auth.set_session(
+                                    res.session.access_token, res.session.refresh_token
+                                )
+                                st.success("Logged in successfully!")
+                                st.rerun()
+                        except Exception as e:
+                            err_str = str(e)
+                            if (
+                                "not confirmed" in err_str.lower()
+                                or "email not confirmed" in err_str.lower()
+                            ):
+                                st.info("Check your email to confirm your account")
+                                st.session_state["unconfirmed_email"] = (
+                                    login_email.strip()
+                                )
+                                st.error(
+                                    "Email not confirmed. Please check your email to confirm your account."
+                                )
+                            elif (
+                                "invalid" in err_str.lower()
+                                or "credentials" in err_str.lower()
+                                or "password" in err_str.lower()
+                                or "unauthorized" in err_str.lower()
+                            ):
+                                st.error(
+                                    "Invalid email or password. Please check your credentials."
+                                )
+                            else:
+                                st.error(f"Login failed: {err_str}")
 
             if st.session_state.get("unconfirmed_email"):
                 st.markdown("---")

@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-09-17
+
+### Added
+- Auth input form refinement: removed `max_chars`, placeholder text, and password helper captions from authentication inputs for a cleaner UI experience.
+- Onboarding tour polish: updated tour body to a clean vertical numbered 3-step list (`1. Analyze`, `2. Blueprint`, `3. Engineering Log`) via `st.markdown`, retaining `"Got it"` button and once-per-session dismissal logic.
+- Login validation update: per-field empty and format validation messages with combined error string deleted.
+- Pre-seal compile verification gate (`python -m py_compile`) and test suite updates covering tour markdown content.
+- DEVLOG Entry 015 documenting v1.0.5 release refinements.
+
 ## [1.0.4] - 2026-09-17
 
 ### Added
