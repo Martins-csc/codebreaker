@@ -1,5 +1,22 @@
 # CodeBreaker Development Log
 
+## Entry 019: Email Link Ownership & Identity Family (v1.1.2)
+- **Date**: 2026-09-18
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.1.2 Email Link Ownership & Identity Family
+
+### Design Notes & Architectural Decisions
+1. **Email Link Ownership**: Email verification and password recovery links now point directly at the application domain with server-side `verify_otp` execution (eliminating Supabase intermediate landing pages and `ref` parameters in email links).
+2. **Robust `verify_otp` & Fallback**: On page load, `st.query_params` is parsed for `type` (`signup`, `recovery`) and token (`token`, `token_hash`, `code`). The server calls `verify_otp` trying `token_hash=` first, falling back to `token=` per the installed `supabase-py` API.
+3. **Success & Error UX**: 
+   - Success + recovery establishes the recovery session (`recovery_mode = True`) and renders the secure set-new-password form.
+   - Success + signup displays `"Email confirmed — please log in."`.
+   - Expired or invalid links render `st.warning("This link has expired or is invalid. Please request a new one.")` with one-click resend/forgot password paths.
+   - Query parameters are strictly cleared after handling (`st.query_params.clear()`).
+4. **Cleanup of Dead Code**: Deleted the old PKCE/code-exchange recovery detection from v1.1.0 that caused login redirection failures, while retaining redirect-origin hygiene and GitHub OAuth code exchange.
+5. **Branding & Delivery**: Email branding is managed via Supabase email templates and custom SMTP paths (5-minute expiry). Residual OAuth redirection hop is noted until Pro custom domains are provisioned.
+6. **Test Coverage & Verification**: Verified via pre-seal compile gate (`python -m py_compile`) and full pytest suite (`.venv/bin/pytest tests/ -q` — all 47 unit tests passing green).
+
 ## Entry 017: Password Reset Flow & Auth Family Completion (v1.1.0)
 - **Date**: 2026-09-18
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

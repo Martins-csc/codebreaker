@@ -13,14 +13,66 @@ st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
 try:
     client = get_client()
 
-    # Check for OAuth authorization code or password reset recovery code in query params on page load
-    code_param = st.query_params.get("code")
+    # Check query parameters on page load for email verification (signup/recovery) or OAuth authorization code
     type_param = st.query_params.get("type")
-    if code_param:
-        code = code_param[0] if isinstance(code_param, list) else code_param
-        is_recovery = (isinstance(type_param, list) and "recovery" in type_param) or (
-            type_param == "recovery"
-        )
+    token_param = (
+        st.query_params.get("token")
+        or st.query_params.get("token_hash")
+        or st.query_params.get("code")
+    )
+    code_param = st.query_params.get("code")
+
+    if isinstance(type_param, list):
+        type_param = type_param[0] if type_param else None
+    if isinstance(token_param, list):
+        token_param = token_param[0] if token_param else None
+    if isinstance(code_param, list):
+        code_param = code_param[0] if code_param else None
+
+    # 1. Handle email link ownership verification (signup or recovery) via verify_otp
+    if type_param in ["signup", "recovery"] and (token_param or code_param):
+        otp_token = token_param or code_param
+        verified = False
+        res = None
+        # Try token_hash= first, fall back to token= per supabase-py API
+        try:
+            res = client.auth.verify_otp({"token_hash": otp_token, "type": type_param})
+            verified = True
+        except Exception:
+            try:
+                res = client.auth.verify_otp({"token": otp_token, "type": type_param})
+                verified = True
+            except Exception:
+                verified = False
+
+        if verified and res:
+            if type_param == "recovery":
+                st.session_state["recovery_mode"] = True
+                if res.session:
+                    st.session_state["access_token"] = res.session.access_token
+                    st.session_state["refresh_token"] = res.session.refresh_token
+                st.success(
+                    "Recovery session established. Please set your new password."
+                )
+            elif type_param == "signup":
+                st.success("Email confirmed — please log in.")
+                st.session_state["email_confirmed_success"] = True
+        else:
+            st.warning("This link has expired or is invalid. Please request a new one.")
+            col_res1, col_res2 = st.columns(2)
+            with col_res1:
+                if st.button("Resend confirmation email"):
+                    st.session_state["show_resend_link"] = True
+            with col_res2:
+                if st.button("Forgot password?"):
+                    st.session_state["show_forgot_password"] = True
+
+        st.query_params.clear()
+        st.rerun()
+
+    # 2. Handle GitHub OAuth authorization code exchange (old recovery detection deleted)
+    elif code_param:
+        code = code_param
         try:
             try:
                 res = client.auth.exchange_code_for_session(code)
@@ -31,12 +83,7 @@ try:
                 client.auth.set_session(
                     res.session.access_token, res.session.refresh_token
                 )
-                if is_recovery:
-                    st.session_state["recovery_mode"] = True
-                    st.success(
-                        "Recovery session established. Please set your new password."
-                    )
-                elif res.user:
+                if res.user:
                     display_name = ""
                     if res.user.user_metadata:
                         display_name = (
@@ -54,10 +101,7 @@ try:
                     st.session_state["refresh_token"] = res.session.refresh_token
                     st.success("Successfully logged in with GitHub!")
         except Exception as e:
-            if is_recovery:
-                st.error(f"Password reset verification failed: {e}")
-            else:
-                st.error(f"GitHub OAuth authentication failed: {e}")
+            st.error(f"GitHub OAuth authentication failed: {e}")
         finally:
             st.query_params.clear()
             st.rerun()

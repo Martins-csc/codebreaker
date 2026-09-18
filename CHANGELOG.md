@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-09-18
+
+### Added
+- Email link ownership & identity family: emails point directly at the app domain with server-side `verify_otp` (no Supabase intermediate hop, no `ref` parameter in email links).
+- Robust `verify_otp` handling for signup and recovery links with token parameter parsing and automatic fallback from `token_hash=` to `token=` per installed `supabase-py` API.
+- Clear success feedback (`"Email confirmed — please log in."` for signup; recovery session setup for password reset) and expired/invalid link warnings with one-click resend/forgot paths.
+- Deleted old PKCE/code-exchange recovery detection from v1.1.0 while maintaining redirect-origin hygiene.
+- Comprehensive zero-network unit tests (`tests/test_auth_confirmation.py`) covering verify_otp success, recovery session establishment, token_hash fallback, expired/invalid link handling, and query param cleanup.
+- DEVLOG Entry 019 documenting email link ownership architecture.
+
 ## [1.1.0] - 2026-09-18
 
 ### Added
