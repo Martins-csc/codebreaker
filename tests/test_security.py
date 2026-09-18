@@ -2,7 +2,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-
+import streamlit as st
 from security import (LIMITS, validate_email, validate_input_length,
                       validate_password)
 
@@ -124,3 +124,84 @@ def test_7_char_password_message():
         msg
         == "Password must be at least 8 characters with at least one letter and one number."
     )
+
+
+def test_cooldown_countdown_and_expiry_logic():
+    """Test countdown message shows correct remaining seconds when active and re-enables when expired."""
+    mock_session_state = {}
+
+    # Case 1: Active cooldown with remaining seconds
+    fixed_now = 1000.0
+    mock_session_state["signup_cooldown_until"] = fixed_now + 25
+
+    with patch("time.time", return_value=fixed_now), patch(
+        "streamlit.session_state", mock_session_state
+    ), patch("streamlit.warning") as mock_warning, patch(
+        "time.sleep"
+    ) as mock_sleep, patch(
+        "streamlit.rerun"
+    ) as mock_rerun:
+
+        cooldown_until = mock_session_state.get("signup_cooldown_until", 0)
+        cooldown_active = time.time() < cooldown_until
+        assert cooldown_active is True
+
+        remaining = int(cooldown_until - time.time())
+        assert remaining == 25
+
+        if remaining > 0:
+            st_warning_msg = f"Signup temporarily disabled due to recent failed attempt. Please wait {remaining}s."
+            mock_warning(st_warning_msg)
+            time.sleep(1)
+            st.rerun()
+
+        mock_warning.assert_called_once_with(
+            "Signup temporarily disabled due to recent failed attempt. Please wait 25s."
+        )
+        mock_sleep.assert_called_once_with(1)
+        mock_rerun.assert_called_once()
+
+    # Case 2: Expired cooldown re-enables signup
+    later_now = 1030.0
+    mock_session_state["signup_cooldown_until"] = fixed_now + 25  # 1025.0
+
+    with patch("time.time", return_value=later_now), patch(
+        "streamlit.session_state", mock_session_state
+    ), patch("streamlit.warning") as mock_warning, patch(
+        "time.sleep"
+    ) as mock_sleep, patch(
+        "streamlit.rerun"
+    ) as mock_rerun:
+
+        cooldown_until = mock_session_state.get("signup_cooldown_until", 0)
+        cooldown_active = time.time() < cooldown_until
+        assert cooldown_active is False  # Expired!
+
+        mock_warning.assert_not_called()
+        mock_sleep.assert_not_called()
+        mock_rerun.assert_not_called()
+
+
+def test_server_side_cooldown_submission_block():
+    """Test server-side validation blocks signup submission when cooldown is active."""
+    mock_session_state = {}
+    fixed_now = 1000.0
+    mock_session_state["signup_cooldown_until"] = fixed_now + 10
+
+    with patch("time.time", return_value=fixed_now), patch(
+        "streamlit.session_state", mock_session_state
+    ), patch("streamlit.error") as mock_error:
+
+        cooldown_active = time.time() < mock_session_state.get(
+            "signup_cooldown_until", 0
+        )
+        assert cooldown_active is True
+
+        if cooldown_active:
+            mock_error(
+                "Please wait for the cooldown timer to expire before trying again."
+            )
+
+        mock_error.assert_called_once_with(
+            "Please wait for the cooldown timer to expire before trying again."
+        )

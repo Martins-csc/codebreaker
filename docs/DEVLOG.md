@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 016: Cooldown UX Live Countdown & Explicit Reruns (v1.0.6)
+- **Date**: 2026-09-18
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.0.6 Cooldown UX Fix
+
+### Design Notes & Architectural Decisions
+1. **Cooldown UX Challenge**: Streamlit renders web pages exclusively upon user interaction. Previously, static cooldown timers left the warning and disabled Sign Up button stuck at their initial values unless the user interacted or triggered the mode-toggle workaround.
+2. **Live-Ticking Countdown**: Replaced the stuck-disabled cooldown state with an active countdown loop (`time.sleep(1); st.rerun()`) while cooldown is active. This visibly counts down remaining seconds every second and automatically re-enables the Sign Up button the instant the timer hits 0.
+3. **Strict Loop Bounds**: Bounded the rerun loop strictly by the stored session timestamp (`signup_cooldown_until`), guaranteeing that the loop terminates immediately upon expiration and can never spin infinitely.
+4. **Server-Side Protection**: Added a server-side submission check to block signup attempts during active cooldown periods even if bypassed client-side.
+5. **Test Coverage & Verification**: Added robust unit tests in `tests/test_security.py` covering remaining seconds calculation, cooldown expiry re-enabling, and server-side submission blocking. Verified via pre-seal compile check (`python3 -m py_compile`) and full pytest suite (all 41 tests passing successfully).
+
 ## Entry 015: UI Refinement, Vertical Numbered Tour & Test Updates (v1.0.5)
 - **Date**: 2026-09-18
 - **Author**: Engineering Team / Orchestrator & Builder Agents

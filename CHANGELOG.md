@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-09-18
+
+### Added
+- Live-ticking cooldown countdown UX: replaced the stuck-disabled cooldown state with a dynamic countdown loop (`time.sleep(1); st.rerun()`) while cooldown is active, visibly ticking down every second and instantly re-enabling the Sign Up button at 0 without requiring manual mode-toggling.
+- Bounded cooldown rerun loop strictly tied to the stored session timestamp (`signup_cooldown_until`) preventing infinite loops.
+- Server-side cooldown submission guard blocking signup attempts during active cooldown periods.
+- Comprehensive unit tests (`tests/test_security.py`) verifying countdown remaining seconds, cooldown expiry re-enabling, and server-side submission blocking.
+- DEVLOG Entry 016 documenting the cooldown UX challenge (Streamlit rendering model requiring explicit reruns for real-time timers).
+
 ## [1.0.5] - 2026-09-17
 
 ### Added

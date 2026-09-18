@@ -153,9 +153,14 @@ if page == "Login":
             cooldown_active = time.time() < cooldown_until
             if cooldown_active:
                 remaining = int(cooldown_until - time.time())
-                st.warning(
-                    f"Signup temporarily disabled due to recent failed attempt. Please wait {remaining}s."
-                )
+                if remaining > 0:
+                    st.warning(
+                        f"Signup temporarily disabled due to recent failed attempt. Please wait {remaining}s."
+                    )
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    cooldown_active = False
 
             # Scoped CSS to hide any default form submit hint / character counter remnants
             st.markdown(
@@ -183,7 +188,11 @@ if page == "Login":
                     "Sign Up", disabled=cooldown_active
                 )
 
-            if signup_submitted:
+            if time.time() < st.session_state.get("signup_cooldown_until", 0):
+                st.error(
+                    "Please wait for the cooldown timer to expire before trying again."
+                )
+            elif signup_submitted:
                 if not signup_email.strip():
                     st.session_state["signup_cooldown_until"] = time.time() + 30
                     st.error("Email cannot be empty.")
