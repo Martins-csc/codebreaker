@@ -5,6 +5,20 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-09-19
+
+### Added
+- Email saga closure batch (v1.1.4):
+  - **Token Handling**: Enhanced `verify_otp` parameter parsing (`?type+token`) with robust fallback chain (`token_hash=` -> sha256-hex of token as `token_hash` -> `token=`). Success + signup renders dedicated `"Email confirmed ✅ — please log in"` screen and login gate; success + recovery initiates password reset; expired/invalid links trigger warnings with resend/forgot paths; query parameters strictly cleared.
+  - **Duplicate Signup UX & Enumeration Trade-Off**: When `sign_up` returns empty identities (`identities=[]`), displays `st.warning("This email is already linked to an account. Please log in or reset your password.")` and sends nothing. Documented the enumeration trade-off as a founder decision in DEVLOG.
+  - **Forgot-Password Form Integration**: Integrated forgot-password inside the login form as a second `form_submit_button` under Log In, reusing the Email field value; external button and collapsible form removed.
+  - **Tour Persistence**: On dismiss, calls `supabase.auth.update_user(data={"tour_seen": True})`. Tour displays only when `user_metadata` lacks `tour_seen`; session-only flag removed.
+  - **Admin Pulse RPC Refactor**: Replaced direct table select counts with `rpc("count_registered_users")` and `rpc("count_engineering_logs")` leveraging server-side security definer functions with graceful error handling.
+  - **UI Refinement**: Removed Display Name placeholder entirely (empty string).
+  - **Audit & Security**: Asserted zero user-facing `supabase.co` redirects or links anywhere (OAuth authorize hop excluded, documented).
+  - **Zero-Network Tests & Compile Gate**: Added comprehensive unit tests in `tests/test_email_saga_closure.py` covering all six behaviors; enforced pre-seal compile check (`python3 -m py_compile`).
+  - **Documentation**: CHANGELOG v1.1.4 and DEVLOG Entry 020.
+
 ## [1.1.2] - 2026-09-18
 
 ### Added

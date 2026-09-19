@@ -34,16 +34,29 @@ try:
         otp_token = token_param or code_param
         verified = False
         res = None
-        # Try token_hash= first, fall back to token= per supabase-py API
+        # Try token_hash= first, fall back to sha256-hex of token as token_hash, then token=
         try:
             res = client.auth.verify_otp({"token_hash": otp_token, "type": type_param})
             verified = True
         except Exception:
             try:
-                res = client.auth.verify_otp({"token": otp_token, "type": type_param})
+                import hashlib
+
+                token_hash_sha256 = hashlib.sha256(
+                    otp_token.encode("utf-8")
+                ).hexdigest()
+                res = client.auth.verify_otp(
+                    {"token_hash": token_hash_sha256, "type": type_param}
+                )
                 verified = True
             except Exception:
-                verified = False
+                try:
+                    res = client.auth.verify_otp(
+                        {"token": otp_token, "type": type_param}
+                    )
+                    verified = True
+                except Exception:
+                    verified = False
 
         if verified and res:
             if type_param == "recovery":
@@ -55,7 +68,7 @@ try:
                     "Recovery session established. Please set your new password."
                 )
             elif type_param == "signup":
-                st.success("Email confirmed — please log in.")
+                st.success("Email confirmed ✅ — please log in")
                 st.session_state["email_confirmed_success"] = True
         else:
             st.warning("This link has expired or is invalid. Please request a new one.")
@@ -92,10 +105,12 @@ try:
                         )
                     elif res.user.email:
                         display_name = res.user.email.split("@")[0]
+                    user_metadata = getattr(res.user, "user_metadata", {}) or {}
                     st.session_state["user"] = {
                         "id": res.user.id,
                         "email": res.user.email,
                         "display_name": display_name,
+                        "user_metadata": user_metadata,
                     }
                     st.session_state["access_token"] = res.session.access_token
                     st.session_state["refresh_token"] = res.session.refresh_token
@@ -148,19 +163,11 @@ if user:
                     st.session_state["access_token"],
                     st.session_state.get("refresh_token", ""),
                 )
-            res_users = client.table("profiles").select("id", count="exact").execute()
-            users_count = getattr(res_users, "count", None)
-            if users_count is None:
-                data_users = getattr(res_users, "data", [])
-                users_count = len(data_users) if isinstance(data_users, list) else 0
+            res_users = client.rpc("count_registered_users").execute()
+            users_count = getattr(res_users, "data", 0)
 
-            res_logs = (
-                client.table("engineering_log").select("id", count="exact").execute()
-            )
-            logs_count = getattr(res_logs, "count", None)
-            if logs_count is None:
-                data_logs = getattr(res_logs, "data", [])
-                logs_count = len(data_logs) if isinstance(data_logs, list) else 0
+            res_logs = client.rpc("count_engineering_logs").execute()
+            logs_count = getattr(res_logs, "data", 0)
 
             st.sidebar.metric("Registered Users", users_count)
             st.sidebar.metric("Engineering Logs", logs_count)
@@ -227,7 +234,9 @@ if page not in ["Login", "About"] and not user:
     st.stop()
 
 # First-run onboarding tour for authenticated sessions
-if user and not st.session_state.get("tour_dismissed", False):
+user = st.session_state.get("user")
+user_meta = user.get("user_metadata", {}) if user else {}
+if user and not user_meta.get("tour_seen", False):
     with st.expander(
         "👋 Welcome to CodeBreaker — First-Run Onboarding Tour", expanded=True
     ):
@@ -237,7 +246,18 @@ if user and not st.session_state.get("tour_dismissed", False):
             "3. **Engineering Log**: Record progress, bugs, and learnings."
         )
         if st.button("Got it", key="tour_got_it_btn"):
-            st.session_state["tour_dismissed"] = True
+            try:
+                client = get_client()
+                if "access_token" in st.session_state:
+                    client.auth.set_session(
+                        st.session_state["access_token"],
+                        st.session_state.get("refresh_token", ""),
+                    )
+                client.auth.update_user({"data": {"tour_seen": True}})
+            except Exception:
+                pass
+            user_meta["tour_seen"] = True
+            st.session_state["user"]["user_metadata"] = user_meta
             st.rerun()
 
 if page == "Login":
@@ -286,9 +306,7 @@ if page == "Login":
                     type="password",
                     placeholder="",
                 )
-                signup_display_name = st.text_input(
-                    "Display Name", placeholder="e.g. CodeBreaker Dev"
-                )
+                signup_display_name = st.text_input("Display Name", placeholder="")
                 signup_submitted = st.form_submit_button(
                     "Sign Up", disabled=cooldown_active
                 )
@@ -349,7 +367,11 @@ if page == "Login":
                                 identities = getattr(user_obj, "identities", None)
                                 confirmed_at = getattr(user_obj, "confirmed_at", None)
 
-                                if (
+                                if identities is not None and len(identities) == 0:
+                                    st.warning(
+                                        "This email is already linked to an account. Please log in or reset your password."
+                                    )
+                                elif (
                                     not identities
                                     or confirmed_at is None
                                     or not session_obj
@@ -366,10 +388,14 @@ if page == "Login":
                                         signup_display_name.strip()
                                         or signup_email.strip().split("@")[0]
                                     )
+                                    user_metadata = (
+                                        getattr(user_obj, "user_metadata", {}) or {}
+                                    )
                                     st.session_state["user"] = {
                                         "id": user_obj.id,
                                         "email": user_obj.email,
                                         "display_name": display_name,
+                                        "user_metadata": user_metadata,
                                     }
                                     st.session_state["access_token"] = (
                                         session_obj.access_token
@@ -394,8 +420,8 @@ if page == "Login":
                                 "already registered" in err_str.lower()
                                 or "already exists" in err_str.lower()
                             ):
-                                st.error(
-                                    "An account with this email already exists. Please log in."
+                                st.warning(
+                                    "This email is already linked to an account. Please log in or reset your password."
                                 )
                             else:
                                 st.error(f"Sign-up failed: {err_str}")
@@ -417,7 +443,11 @@ if page == "Login":
                 login_password = st.text_input(
                     "Password", type="password", placeholder=""
                 )
-                login_submitted = st.form_submit_button("Log In")
+                col_lf1, col_lf2 = st.columns(2)
+                with col_lf1:
+                    login_submitted = st.form_submit_button("Log In")
+                with col_lf2:
+                    forgot_submitted = st.form_submit_button("Forgot Password")
 
             if login_submitted:
                 if not login_email.strip():
@@ -459,10 +489,14 @@ if page == "Login":
                                     display_name = user_obj.user_metadata.get(
                                         "display_name", ""
                                     )
+                                user_metadata = (
+                                    getattr(user_obj, "user_metadata", {}) or {}
+                                )
                                 st.session_state["user"] = {
                                     "id": user_obj.id,
                                     "email": user_obj.email,
                                     "display_name": display_name,
+                                    "user_metadata": user_metadata,
                                 }
                                 st.session_state["access_token"] = (
                                     res.session.access_token
@@ -500,65 +534,32 @@ if page == "Login":
                             else:
                                 st.error(f"Login failed: {err_str}")
 
-            if st.session_state.get("unconfirmed_email"):
-                st.markdown("---")
-                st.write("Didn't receive the confirmation email?")
-                resend_email = st.session_state["unconfirmed_email"]
-                if st.button("Resend confirmation email"):
-                    try:
-                        client = get_client()
-                        # NOTE: Production rate-limit consideration: Supabase enforces server-side rate limits
-                        # on auth resend endpoints to prevent abuse. Future enhancements may add client-side cooldowns.
-                        client.auth.resend({"type": "signup", "email": resend_email})
-                        st.success(
-                            f"Confirmation email sent to {resend_email}. Check your inbox (and spam folder)."
-                        )
-                    except Exception as e:
-                        st.error(f"Failed to resend confirmation email: {e}")
-
-            if st.session_state.get("password_reset_success"):
-                st.success(
-                    "Password updated successfully! Please log in with your new password."
-                )
-                del st.session_state["password_reset_success"]
-
-            st.markdown("---")
-            if st.button("Forgot password?"):
-                st.session_state["show_forgot_password"] = True
-
-            if st.session_state.get("show_forgot_password"):
-                with st.form("forgot_password_form"):
-                    forgot_email = st.text_input(
-                        "Enter your account email", placeholder="you@example.com"
-                    )
-                    forgot_submitted = st.form_submit_button("Send Password Reset Link")
-
-                if forgot_submitted:
-                    if not forgot_email.strip():
-                        st.error("Email cannot be empty.")
+            elif forgot_submitted:
+                if not login_email.strip():
+                    st.error("Email cannot be empty.")
+                else:
+                    email_valid, email_err = validate_email(login_email.strip())
+                    if not email_valid:
+                        st.error(email_err)
                     else:
-                        email_valid, email_err = validate_email(forgot_email.strip())
-                        if not email_valid:
-                            st.error(email_err)
-                        else:
-                            try:
-                                client = get_client()
-                                redirect_to = getattr(st.context, "url", None)
-                                if redirect_to:
-                                    redirect_to = redirect_to.split("?")[0]
-                                else:
-                                    redirect_to = "http://localhost:8501"
+                        try:
+                            client = get_client()
+                            redirect_to = getattr(st.context, "url", None)
+                            if redirect_to:
+                                redirect_to = redirect_to.split("?")[0]
+                            else:
+                                redirect_to = "http://localhost:8501"
 
-                                client.auth.reset_password_for_email(
-                                    forgot_email.strip(),
-                                    options={"redirect_to": redirect_to},
-                                )
-                            except Exception:
-                                pass
-
-                            st.info(
-                                "If an account exists for that email, a reset link is on its way."
+                            client.auth.reset_password_for_email(
+                                login_email.strip(),
+                                options={"redirect_to": redirect_to},
                             )
+                        except Exception:
+                            pass
+
+                        st.info(
+                            "If an account exists for that email, a reset link is on its way."
+                        )
 
     with col2:
         st.subheader("GitHub Authentication")
@@ -638,7 +639,7 @@ elif page == "About":
     )
 
     st.markdown("---")
-    st.caption("CodeBreaker v1.0.3 • Built with Streamlit, Supabase, Groq & fpdf2")
+    st.caption("CodeBreaker v1.1.4 • Built with Streamlit, Supabase, Groq & fpdf2")
 
 elif page == "Home":
     st.title("CodeBreaker")
@@ -646,7 +647,7 @@ elif page == "Home":
         "Deconstruct, Analyze, and Architect Systems with AI-Driven Engineering Insights"
     )
     st.markdown("---")
-    st.subheader("Welcome to CodeBreaker v0.3")
+    st.subheader("Welcome to CodeBreaker v1.1.4")
     st.write(
         "CodeBreaker is a lightweight, documented, and safe AI-powered code analysis, "
         "system blueprint, and engineering log tool backed by Supabase Auth and RLS. "

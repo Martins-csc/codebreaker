@@ -1,5 +1,19 @@
 # CodeBreaker Development Log
 
+## Entry 020: Email Saga Closure Batch (v1.1.4)
+- **Date**: 2026-09-19
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.1.4 Email Saga Closure Batch
+
+### Design Notes & Architectural Decisions
+1. **Token vs TokenHash Anatomy**: Supabase OTP verification handles raw tokens or hashed token representations (`token_hash`). Depending on GoTrue version / link parameters, tokens may be supplied as raw OTP codes/opaque strings or hashed strings. To ensure 100% reliability across GoTrue schema variations, `verify_otp` implements a robust fallback chain: raw `token_hash=`, sha256-hex digest of the token as `token_hash`, and raw `token=`.
+2. **Duplicate Signup & Enumeration Trade-Off**: When `sign_up` returns empty identities (`identities=[]`), indicating an existing account, CodeBreaker displays `st.warning("This email is already linked to an account. Please log in or reset your password.")` and sends no confirmation email. This was established as a deliberate founder trade-off balancing UX clarity against strict non-enumeration, prioritizing user support when trying to sign up with an existing address.
+3. **Forgot-Password Form Integration**: Integrated forgot-password directly inside the login form as a second `form_submit_button` under Log In, reusing the existing Email field value and eliminating extraneous buttons and collapsible forms.
+4. **Tour Persistence**: Onboarding tour state is persisted server-side via `supabase.auth.update_user(data={"tour_seen": True})` when dismissed. The tour renders only when `user_metadata` lacks `tour_seen`, replacing ephemeral session-only flags.
+5. **RLS-Walled Counts via Security Definer Functions**: Admin Pulse counts are retrieved via server-side RPC functions (`count_registered_users` and `count_engineering_logs`) rather than direct table queries, ensuring proper Row Level Security and security definer encapsulation with graceful error handling.
+6. **Residual OAuth Hop Note**: Audited all user-facing redirects and links. Confirmed zero hardcoded `supabase.co` URLs exist anywhere in application source code, with the sole exception of the mediated GitHub OAuth authorize hop handled by the Supabase client.
+7. **Test Coverage & Verification**: Verified via pre-seal compile check (`python3 -m py_compile`) and comprehensive zero-network unit tests in `tests/test_email_saga_closure.py` and the full pytest suite.
+
 ## Entry 019: Email Link Ownership & Identity Family (v1.1.2)
 - **Date**: 2026-09-18
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

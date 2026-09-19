@@ -82,4 +82,4 @@ def test_about_page_content():
     assert "Assignment Grade" in content
     assert "The Two Auth Doors" in content
     assert "The Four Export Formats" in content
-    assert "v1.0.3" in content
+    assert "v1.1.4" in content
