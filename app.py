@@ -2,6 +2,7 @@ import json
 import time
 
 import streamlit as st
+from streamlit.errors import StreamlitAPIException
 from streamlit_local_storage import LocalStorage
 
 from ai_engine import (BlueprintError, generate_blueprint,
@@ -121,31 +122,44 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                     st.session_state["refresh_token"] = (
                                         new_sess.refresh_token
                                     )
-                                    new_expires = getattr(
-                                        new_sess, "expires_at", time.time() + 3600
-                                    )
-                                    local_storage.setItem(
-                                        "cb_session",
-                                        {
-                                            "access_token": new_sess.access_token,
-                                            "refresh_token": new_sess.refresh_token,
-                                            "expires_at": new_expires,
-                                        },
-                                    )
-                                    restored = True
+                                     new_expires = getattr(
+                                         new_sess, "expires_at", time.time() + 3600
+                                     )
+                                     try:
+                                         local_storage.setItem(
+                                             "cb_session",
+                                             {
+                                                 "access_token": new_sess.access_token,
+                                                 "refresh_token": new_sess.refresh_token,
+                                                 "expires_at": new_expires,
+                                             },
+                                             key="ls_refresh_set",
+                                         )
+                                     except (StreamlitAPIException, Exception):
+                                         pass
+                                     restored = True
                         except Exception:
                             restored = False
 
                     if not restored:
-                        local_storage.deleteItem("cb_session")
+                        try:
+                            local_storage.deleteItem("cb_session", key="ls_boot_del_1")
+                        except (StreamlitAPIException, Exception):
+                            pass
                 else:
-                    local_storage.deleteItem("cb_session")
+                    try:
+                        local_storage.deleteItem("cb_session", key="ls_boot_del_2")
+                    except (StreamlitAPIException, Exception):
+                        pass
             else:
-                local_storage.deleteItem("cb_session")
+                try:
+                    local_storage.deleteItem("cb_session", key="ls_boot_del_3")
+                except (StreamlitAPIException, Exception):
+                    pass
     except Exception:
         try:
-            local_storage.deleteItem("cb_session")
-        except Exception:
+            local_storage.deleteItem("cb_session", key="ls_boot_del_4")
+        except (StreamlitAPIException, Exception):
             pass
 
 # Ensure Supabase client session is restored if access_token is in session_state
