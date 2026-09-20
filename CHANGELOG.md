@@ -5,6 +5,18 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-09-20
+
+### Added
+- Session Persistence & Navigation State (v1.1.5):
+  - **LocalStorage Session Bundle**: Both login doors and sign-up write the `cb_session` bundle (`access_token`, `refresh_token`, `expires_at`) to browser localStorage via `streamlit-local-storage`.
+  - **Boot Rehydration & Expiry Management**: Automatic session rehydration on app boot via `client.auth.set_session` and `client.auth.refresh_session`, with strict failure handling (deleting invalid/corrupt/expired keys and gating unauthenticated views).
+  - **Sign-Out Cleanup**: Sidebar Sign Out explicitly deletes `cb_session` and `cb_page` from localStorage and clears session state.
+  - **Navigation Persistence**: Sidebar active page persisted in localStorage as `cb_page` and restored automatically after browser refresh.
+  - **Zero-Network Unit Tests**: Added unit tests in `tests/test_session_and_nav_paths.py` covering valid restore, expired session refresh, corrupt session handling, sign-out deletion, and navigation persistence.
+  - **Indentation Repair**: Fixed syntax indentation error around line 547 in `app.py`.
+  - **Documentation**: CHANGELOG v1.1.5 and DEVLOG Entry 021.
+
 ## [1.1.4] - 2026-09-19
 
 ### Added

@@ -255,9 +255,15 @@
 - **Mechanics:** git push = deploy via GitHub webhook; secrets live only in Cloud dashboard (st.secrets) and local .env; config.py loads os.environ first, st.secrets as fallback.
 - **Lesson:** platform constraints (OAuth scopes) decide repo visibility, not preference — evidence over assumption.
 
-## Entry 008: Launch Day
-- **Date:** 2026-09-15
-- **Event:** CodeBreaker deployed to Streamlit Community Cloud: https://martins-codebreaker.streamlit.app
-- **Decisions:** repo stays public (Cloud free tier reads public repos only; zero secrets in repo, audited twice); owner-only toolbar vs public view clarified (dev controls invisible to visitors); analytics anonymize viewers by default.
-- **Mechanics:** git push = deploy via GitHub webhook; secrets live only in Cloud dashboard (st.secrets) and local .env; config.py loads os.environ first, st.secrets as fallback.
-- **Lesson:** platform constraints (OAuth scopes) decide repo visibility, not preference — evidence over assumption.
+## Entry 021: Session Persistence, LocalStorage Bundle & Navigation State (v1.1.5)
+- **Date**: 2026-09-20
+- **Author**: Engineering Team / Builder & Tester Agents
+- **Milestone**: v1.1.5 Session Persistence & Navigation State
+
+### Design Notes & Architectural Decisions
+1. **LocalStorage Session Bundle (`cb_session`)**: Both email/password login, OAuth, and sign-up flows synchronize authentication state by writing a session bundle containing `access_token`, `refresh_token`, and `expires_at` to browser localStorage via `streamlit-local-storage`.
+2. **Boot Rehydration & Expiry Guard**: On app startup when `session_state` lacks an active user, the app checks `cb_session`. If present, it validates expiration against `time.time()`. Valid sessions call `client.auth.set_session` and rehydrate `user` metadata via `get_user`. Expired sessions attempt `refresh_session`; any failure or corrupt JSON strictly deletes the key (`deleteItem("cb_session")`) and falls back to the login gate.
+3. **Sign-Out Cleanup**: Sidebar Sign Out explicitly invokes `client.auth.sign_out()`, deletes both `cb_session` and `cb_page` from localStorage, and clears `st.session_state`.
+4. **Navigation State Persistence (`cb_page`)**: Active sidebar radio selection is persisted to localStorage as `cb_page` and automatically restored on page reload/refresh.
+5. **Zero-Network Unit Testing**: Added comprehensive unit tests in `tests/test_session_and_nav_paths.py` covering valid restore, expired session refresh, corrupt session deletion, sign-out cleanup, and navigation persistence.
+6. **Syntax & Indentation Repair**: Resolved pre-existing indentation error around line 547 in `app.py` and verified complete compilation.
