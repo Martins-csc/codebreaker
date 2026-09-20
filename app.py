@@ -344,11 +344,18 @@ if st.session_state.get("recovery_mode"):
     st.markdown("---")
 
     with st.form("set_new_password_form"):
-        new_pwd = st.text_input("New Password", type="password", placeholder="")
-        confirm_pwd = st.text_input(
-            "Confirm New Password", type="password", placeholder=""
+        new_pwd = st.text_input(
+            "New Password", type="password", placeholder="", key="reset_pw_new"
         )
-        update_submitted = st.form_submit_button("Update Password")
+        confirm_pwd = st.text_input(
+            "Confirm New Password",
+            type="password",
+            placeholder="",
+            key="reset_pw_confirm",
+        )
+        update_submitted = st.form_submit_button(
+            "Update Password", key="reset_submit_btn"
+        )
 
     if update_submitted:
         if not new_pwd.strip():
@@ -462,15 +469,20 @@ if page == "Login":
             )
 
             with st.form("signup_form"):
-                signup_email = st.text_input("Email", placeholder="you@example.com")
+                signup_email = st.text_input(
+                    "Email", placeholder="you@example.com", key="signup_email"
+                )
                 signup_password = st.text_input(
                     "Password",
                     type="password",
                     placeholder="",
+                    key="signup_pw",
                 )
-                signup_display_name = st.text_input("Display Name", placeholder="")
+                signup_display_name = st.text_input(
+                    "Display Name", placeholder="", key="signup_display_name"
+                )
                 signup_submitted = st.form_submit_button(
-                    "Sign Up", disabled=cooldown_active
+                    "Sign Up", disabled=cooldown_active, key="signup_submit_btn"
                 )
 
             if time.time() < st.session_state.get("signup_cooldown_until", 0):
@@ -585,6 +597,11 @@ if page == "Login":
                                     )
                                     st.rerun()
                         except Exception as e:
+                            if (
+                                type(e).__name__.startswith("Streamlit")
+                                or "DuplicateElementKey" in type(e).__name__
+                            ):
+                                raise
                             # Set 30s cooldown on failed signup attempt
                             st.session_state["signup_cooldown_until"] = time.time() + 30
                             # NOTE: Server-side rate limits remain Supabase's job (platform layer already enforced).
@@ -612,15 +629,21 @@ if page == "Login":
                 unsafe_allow_html=True,
             )
             with st.form("login_form"):
-                login_email = st.text_input("Email", placeholder="you@example.com")
+                login_email = st.text_input(
+                    "Email", placeholder="you@example.com", key="login_email"
+                )
                 login_password = st.text_input(
-                    "Password", type="password", placeholder=""
+                    "Password", type="password", placeholder="", key="login_pw"
                 )
                 col_lf1, col_lf2 = st.columns(2)
                 with col_lf1:
-                    login_submitted = st.form_submit_button("Log In")
+                    login_submitted = st.form_submit_button(
+                        "Log In", key="login_submit_btn"
+                    )
                 with col_lf2:
-                    forgot_submitted = st.form_submit_button("Forgot Password")
+                    forgot_submitted = st.form_submit_button(
+                        "Forgot Password", key="forgot_submit_btn"
+                    )
 
             if login_submitted:
                 if not login_email.strip():
@@ -694,6 +717,11 @@ if page == "Login":
                                 st.success("Logged in successfully!")
                                 st.rerun()
                         except Exception as e:
+                            if (
+                                type(e).__name__.startswith("Streamlit")
+                                or "DuplicateElementKey" in type(e).__name__
+                            ):
+                                raise
                             err_str = str(e)
                             if (
                                 "not confirmed" in err_str.lower()
