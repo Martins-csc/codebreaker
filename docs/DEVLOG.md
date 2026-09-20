@@ -277,3 +277,26 @@
 4. **Navigation State Persistence (`cb_page`)**: Active sidebar radio selection is persisted to localStorage as `cb_page` and automatically restored on page reload/refresh.
 5. **Zero-Network Unit Testing**: Added comprehensive unit tests in `tests/test_session_and_nav_paths.py` covering valid restore, expired session refresh, corrupt session deletion, sign-out cleanup, and navigation persistence.
 6. **Syntax & Indentation Repair**: Resolved pre-existing indentation error around line 547 in `app.py` and verified complete compilation.
+
+## Entry 022: Auth Widget Key Namespacing & Exception Isolation (v1.1.5.1)
+- **Date**: 2026-09-20
+- **Author**: Engineering Team / Builder & Tester Agents
+- **Milestone**: v1.1.5.1 Production Login Hotfix
+
+### Design Notes & Architectural Decisions
+1. **Explicit Widget Key Namespacing**: Assigned unique, explicit `key=` attributes to all form inputs across login, signup, and recovery/password-reset forms (`signup_email`, `signup_pw`, `signup_display_name`, `signup_submit_btn`, `login_email`, `login_pw`, `login_submit_btn`, `forgot_submit_btn`, `reset_pw_new`, `reset_pw_confirm`, `reset_submit_btn`).
+2. **Exception Isolation**: Updated auth exception handlers to re-raise `StreamlitAPIException` / duplicate key errors instead of masking framework errors as auth failures.
+3. **Unit Testing**: Added `tests/test_auth_widget_keys.py` enforcing key uniqueness and exception non-masking.
+4. **Documentation**: CHANGELOG v1.1.5.1 and DEVLOG Entry 022.
+
+## Entry 023: LocalStorage Duplicate Element Key Hotfix & Invariant Audit (v1.1.5.2)
+- **Date**: 2026-09-21
+- **Author**: Engineering Team / Builder & Tester Agents
+- **Milestone**: v1.1.5.2 LocalStorage Hotfix
+
+### Design Notes & Architectural Decisions
+1. **Indentation Repair**: Fixed syntax IndentationError around line 125 in `app.py`.
+2. **LocalStorage Unique Key Namespacing**: Introspected `streamlit-local-storage` (`LocalStorage`) and provided unique explicit `key=` attributes (`ls_refresh_set`, `ls_oauth_set`, `ls_signout_del_sess`, `ls_signout_del_page`, `ls_page_set`, `ls_reset_del_sess`, `ls_reset_del_page`, `ls_signup_set`, `ls_login_set`) across all `setItem` and `deleteItem` call sites to prevent `StreamlitDuplicateElementKey` crashes.
+3. **Graceful Exception Wrapping**: Wrapped all local storage operations (`getAll`, `getItem`, `setItem`, `deleteItem`) in robust `try / except (StreamlitAPIException, Exception):` blocks ensuring graceful degradation if local storage components fail.
+4. **Regression Testing**: Added `test_storage_invariant_stream_api_exception_and_unique_keys` in `tests/test_session_and_nav_paths.py`.
+5. **Gates & Verification**: Verified clean core module compilation (`python3 -m py_compile`) and 100% test suite pass rate (`pytest tests/ -q`).

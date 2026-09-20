@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5.2] - 2026-09-21
+
+### Fixed
+- Hotfix v1.1.5.2 for `streamlit-local-storage` duplicate element key crash & syntax indentation error:
+  - **Indentation Repair**: Repaired syntax IndentationError around line 125 in `app.py`.
+  - **LocalStorage Unique Key Namespacing**: Assigned unique explicit `key=` attributes (`ls_refresh_set`, `ls_oauth_set`, `ls_signout_del_sess`, `ls_signout_del_page`, `ls_page_set`, `ls_reset_del_sess`, `ls_reset_del_page`, `ls_signup_set`, `ls_login_set`) to every `streamlit-local-storage` `setItem` and `deleteItem` call site.
+  - **Graceful Exception Wrapping**: Wrapped all local storage operations (`getAll`, `getItem`, `setItem`, `deleteItem`) in `try / except (StreamlitAPIException, Exception):` blocks preventing unhandled exceptions and component crashes.
+  - **Regression Testing**: Added regression test `test_storage_invariant_stream_api_exception_and_unique_keys` in `tests/test_session_and_nav_paths.py`.
+  - **Documentation**: CHANGELOG v1.1.5.2 and DEVLOG Entry 023.
+
 ## [1.1.5.1] - 2026-09-20
 
 ### Fixed

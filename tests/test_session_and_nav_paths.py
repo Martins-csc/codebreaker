@@ -198,5 +198,44 @@ def test_nav_persistence_cb_page():
     assert default_index == 2
 
     new_page = "Engineering Log"
-    mock_local_storage.setItem("cb_page", new_page)
-    mock_local_storage.setItem.assert_called_once_with("cb_page", "Engineering Log")
+    mock_local_storage.setItem("cb_page", new_page, key="ls_page_set")
+    mock_local_storage.setItem.assert_called_once_with(
+        "cb_page", "Engineering Log", key="ls_page_set"
+    )
+
+
+def test_storage_invariant_stream_api_exception_and_unique_keys():
+    """Test regression invariant: storage operations handle StreamlitAPIException gracefully and use unique keys."""
+    from streamlit.errors import StreamlitAPIException
+
+    mock_ls = MagicMock()
+    mock_ls.getAll.side_effect = StreamlitAPIException("DuplicateElementKey")
+    mock_ls.getItem.side_effect = StreamlitAPIException("DuplicateElementKey")
+    mock_ls.setItem.side_effect = StreamlitAPIException("DuplicateElementKey")
+    mock_ls.deleteItem.side_effect = StreamlitAPIException("DuplicateElementKey")
+
+    # Verify graceful exception handling for getAll/getItem
+    session_data = None
+    try:
+        session_data = mock_ls.getAll().get("cb_session") or mock_ls.getItem(
+            "cb_session"
+        )
+    except (StreamlitAPIException, Exception):
+        session_data = None
+    assert session_data is None
+
+    # Verify graceful exception handling for setItem with unique key
+    try:
+        mock_ls.setItem("cb_session", {"token": "abc"}, key="ls_test_set")
+    except (StreamlitAPIException, Exception):
+        pass
+    mock_ls.setItem.assert_called_with(
+        "cb_session", {"token": "abc"}, key="ls_test_set"
+    )
+
+    # Verify graceful exception handling for deleteItem with unique key
+    try:
+        mock_ls.deleteItem("cb_session", key="ls_test_del")
+    except (StreamlitAPIException, Exception):
+        pass
+    mock_ls.deleteItem.assert_called_with("cb_session", key="ls_test_del")

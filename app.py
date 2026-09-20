@@ -21,9 +21,12 @@ local_storage = LocalStorage(key="cb_local_storage")
 if "user" not in st.session_state or "access_token" not in st.session_state:
     try:
         client = get_client()
-        session_data = local_storage.getAll().get(
-            "cb_session"
-        ) or local_storage.getItem("cb_session")
+        try:
+            session_data = local_storage.getAll().get(
+                "cb_session"
+            ) or local_storage.getItem("cb_session")
+        except (StreamlitAPIException, Exception):
+            session_data = None
         if session_data:
             if isinstance(session_data, str):
                 try:
@@ -122,22 +125,22 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                     st.session_state["refresh_token"] = (
                                         new_sess.refresh_token
                                     )
-                                     new_expires = getattr(
-                                         new_sess, "expires_at", time.time() + 3600
-                                     )
-                                     try:
-                                         local_storage.setItem(
-                                             "cb_session",
-                                             {
-                                                 "access_token": new_sess.access_token,
-                                                 "refresh_token": new_sess.refresh_token,
-                                                 "expires_at": new_expires,
-                                             },
-                                             key="ls_refresh_set",
-                                         )
-                                     except (StreamlitAPIException, Exception):
-                                         pass
-                                     restored = True
+                                    new_expires = getattr(
+                                        new_sess, "expires_at", time.time() + 3600
+                                    )
+                                    try:
+                                        local_storage.setItem(
+                                            "cb_session",
+                                            {
+                                                "access_token": new_sess.access_token,
+                                                "refresh_token": new_sess.refresh_token,
+                                                "expires_at": new_expires,
+                                            },
+                                            key="ls_refresh_set",
+                                        )
+                                    except (StreamlitAPIException, Exception):
+                                        pass
+                                    restored = True
                         except Exception:
                             restored = False
 
@@ -268,14 +271,18 @@ try:
                     st.session_state["access_token"] = res.session.access_token
                     st.session_state["refresh_token"] = res.session.refresh_token
                     expires_at = getattr(res.session, "expires_at", time.time() + 3600)
-                    local_storage.setItem(
-                        "cb_session",
-                        {
-                            "access_token": res.session.access_token,
-                            "refresh_token": res.session.refresh_token,
-                            "expires_at": expires_at,
-                        },
-                    )
+                    try:
+                        local_storage.setItem(
+                            "cb_session",
+                            {
+                                "access_token": res.session.access_token,
+                                "refresh_token": res.session.refresh_token,
+                                "expires_at": expires_at,
+                            },
+                            key="ls_oauth_set",
+                        )
+                    except (StreamlitAPIException, Exception):
+                        pass
                     st.success("Successfully logged in with GitHub!")
         except Exception as e:
             st.error(f"GitHub OAuth authentication failed: {e}")
@@ -306,9 +313,9 @@ if user:
         except Exception:
             pass
         try:
-            local_storage.deleteItem("cb_session")
-            local_storage.deleteItem("cb_page")
-        except Exception:
+            local_storage.deleteItem("cb_session", key="ls_signout_del_sess")
+            local_storage.deleteItem("cb_page", key="ls_signout_del_page")
+        except (StreamlitAPIException, Exception):
             pass
         for key in list(st.session_state.keys()):
             del st.session_state[key]
@@ -345,11 +352,19 @@ if user:
 else:
     options = ["Login", "Home", "About"]
 
-saved_page = local_storage.getAll().get("cb_page") or local_storage.getItem("cb_page")
+try:
+    saved_page = local_storage.getAll().get("cb_page") or local_storage.getItem(
+        "cb_page"
+    )
+except (StreamlitAPIException, Exception):
+    saved_page = None
 default_index = options.index(saved_page) if saved_page in options else 0
 
 page = st.sidebar.radio("Navigation", options, index=default_index)
-local_storage.setItem("cb_page", page)
+try:
+    local_storage.setItem("cb_page", page, key="ls_page_set")
+except (StreamlitAPIException, Exception):
+    pass
 
 # Handle password recovery mode return
 if st.session_state.get("recovery_mode"):
@@ -394,9 +409,9 @@ if st.session_state.get("recovery_mode"):
                     except Exception:
                         pass
                     try:
-                        local_storage.deleteItem("cb_session")
-                        local_storage.deleteItem("cb_page")
-                    except Exception:
+                        local_storage.deleteItem("cb_session", key="ls_reset_del_sess")
+                        local_storage.deleteItem("cb_page", key="ls_reset_del_page")
+                    except (StreamlitAPIException, Exception):
                         pass
 
                     for key in list(st.session_state.keys()):
@@ -598,14 +613,18 @@ if page == "Login":
                                     expires_at = getattr(
                                         session_obj, "expires_at", time.time() + 3600
                                     )
-                                    local_storage.setItem(
-                                        "cb_session",
-                                        {
-                                            "access_token": session_obj.access_token,
-                                            "refresh_token": session_obj.refresh_token,
-                                            "expires_at": expires_at,
-                                        },
-                                    )
+                                    try:
+                                        local_storage.setItem(
+                                            "cb_session",
+                                            {
+                                                "access_token": session_obj.access_token,
+                                                "refresh_token": session_obj.refresh_token,
+                                                "expires_at": expires_at,
+                                            },
+                                            key="ls_signup_set",
+                                        )
+                                    except (StreamlitAPIException, Exception):
+                                        pass
                                     st.success(
                                         "Account created and logged in successfully!"
                                     )
@@ -720,14 +739,18 @@ if page == "Login":
                                 expires_at = getattr(
                                     res.session, "expires_at", time.time() + 3600
                                 )
-                                local_storage.setItem(
-                                    "cb_session",
-                                    {
-                                        "access_token": res.session.access_token,
-                                        "refresh_token": res.session.refresh_token,
-                                        "expires_at": expires_at,
-                                    },
-                                )
+                                try:
+                                    local_storage.setItem(
+                                        "cb_session",
+                                        {
+                                            "access_token": res.session.access_token,
+                                            "refresh_token": res.session.refresh_token,
+                                            "expires_at": expires_at,
+                                        },
+                                        key="ls_login_set",
+                                    )
+                                except (StreamlitAPIException, Exception):
+                                    pass
                                 st.success("Logged in successfully!")
                                 st.rerun()
                         except Exception as e:
