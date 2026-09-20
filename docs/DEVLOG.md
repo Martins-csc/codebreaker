@@ -1,5 +1,15 @@
 # CodeBreaker Development Log
 
+## Entry 022: Duplicate Widget Key Outage & Framework Exception Isolation (v1.1.5.1)
+- **Date**: 2026-09-20
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.1.5.1 Duplicate Widget Key Outage Hotfix
+
+### Outage Postmortem & Root Cause Analysis
+1. **Duplicate Widget Key Outage**: Streamlit keys are global per execution run. The recovery "set new password" form collided with login form keys (`'set'`), causing application crashes when rendering conditional forms. Conditional forms must strictly namespace keys.
+2. **Framework Exception Masking**: Login's broad `except Exception` block previously masked a `StreamlitAPIException` as an authentication failure (`"Invalid login credentials"`). Future code strictly catches framework exceptions separately and re-raises them rather than swallowing them.
+3. **Test Coverage & Verification**: Added comprehensive unit tests in `tests/test_auth_widget_keys.py` asserting auth widget key uniqueness across signup, login, and recovery forms, and verifying that framework exceptions are re-raised rather than masked. Verified via pre-seal compile check (`python3 -m py_compile`) and full pytest suite.
+
 ## Entry 020: Email Saga Closure Batch (v1.1.4)
 - **Date**: 2026-09-19
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
