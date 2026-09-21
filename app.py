@@ -29,6 +29,32 @@ except Exception as e:
     handle_storage_error(e)
     local_storage = None
 
+if "render_count" not in st.session_state:
+    st.session_state["render_count"] = 0
+st.session_state["render_count"] += 1
+
+if "boot_mount_triggered" not in st.session_state:
+    st.session_state["boot_mount_triggered"] = False
+
+# Storage round-trip probe
+try:
+    if local_storage:
+        probe_val = local_storage.getAll().get("cb_probe") or local_storage.getItem(
+            "cb_probe"
+        )
+        if probe_val:
+            st.session_state["persist_probe_last"] = (
+                f"present (len {len(str(probe_val))})"
+            )
+        else:
+            st.session_state["persist_probe_last"] = "None"
+        local_storage.setItem("cb_probe", "1", key="ls_probe_set")
+    else:
+        st.session_state["persist_probe_last"] = "LocalStorage unavailable"
+except (StreamlitAPIException, Exception) as e:
+    handle_storage_error(e)
+    st.session_state["persist_probe_last"] = f"error: {type(e).__name__}"
+
 # Boot session rehydration from localStorage if session_state has no active user
 if "user" not in st.session_state or "access_token" not in st.session_state:
     try:
@@ -43,6 +69,18 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
         except (StreamlitAPIException, Exception) as e:
             handle_storage_error(e)
             session_data = None
+
+        if session_data:
+            st.session_state["debug_boot_raw"] = (
+                f"present (len {len(str(session_data))})"
+            )
+        else:
+            st.session_state["debug_boot_raw"] = "None"
+
+        if session_data is None and not st.session_state.get("boot_mount_triggered"):
+            st.session_state["boot_mount_triggered"] = True
+            st.rerun()
+
         if session_data:
             if isinstance(session_data, str):
                 try:
@@ -331,6 +369,29 @@ if st.session_state.get("persist_debug"):
     st.sidebar.caption(f"persistence: degraded — {st.session_state['persist_debug']}")
 
 user = st.session_state.get("user")
+user_email = user.get("email", "") if user else ""
+pdebug_param = st.query_params.get("pdebug")
+if isinstance(pdebug_param, list):
+    pdebug_param = pdebug_param[0] if pdebug_param else None
+is_pdebug = pdebug_param == "1"
+
+is_admin = (
+    ADMIN_EMAIL
+    and user_email
+    and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
+) or is_pdebug
+
+if is_admin:
+    with st.sidebar.expander("Persistence Debug", expanded=False):
+        st.write(f"**Render Count**: {st.session_state.get('render_count', 0)}")
+        st.write(
+            f"**Mount Flag**: {st.session_state.get('boot_mount_triggered', False)}"
+        )
+        st.write(f"**Raw Boot-Read**: {st.session_state.get('debug_boot_raw', 'None')}")
+        st.write(f"**Persist Debug**: {st.session_state.get('persist_debug', 'None')}")
+        st.write(
+            f"**Round-Trip Probe**: {st.session_state.get('persist_probe_last', 'None')}"
+        )
 
 if user:
     st.sidebar.success(f"Logged in as: {user.get('display_name') or user.get('email')}")

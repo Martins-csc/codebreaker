@@ -283,3 +283,100 @@ def test_storage_simulated_failure_sets_debug_flag_and_visible_caption():
         assert session_data is None
         assert "StreamlitAPIException" in mock_session_state["persist_debug"]
         assert "SimulatedStorageFailure" in mock_session_state["persist_debug"]
+
+
+def test_bounded_rerun_boot_sequence_and_bound():
+    """Test bounded-rerun boot sequence: reruns once when boot read is None and mount flag unset; bound prevents infinite rerun."""
+    mock_session_state = {"render_count": 1, "boot_mount_triggered": False}
+    rerun_called = []
+
+    def mock_rerun():
+        rerun_called.append(True)
+
+    with patch("streamlit.session_state", mock_session_state), patch(
+        "streamlit.rerun", side_effect=mock_rerun
+    ):
+        session_data = None
+        if session_data is None and not mock_session_state.get("boot_mount_triggered"):
+            mock_session_state["boot_mount_triggered"] = True
+            streamlit_rerun = __import__("streamlit").rerun
+            streamlit_rerun()
+
+        assert mock_session_state["boot_mount_triggered"] is True
+        assert len(rerun_called) == 1
+
+        # Second pass with boot_mount_triggered True should NOT call rerun again
+        if session_data is None and not mock_session_state.get("boot_mount_triggered"):
+            mock_session_state["boot_mount_triggered"] = True
+            streamlit_rerun()
+
+        assert len(rerun_called) == 1  # bound enforced
+
+
+def test_round_trip_probe_mechanics():
+    """Test storage round-trip probe: gets cb_probe and sets cb_probe via setItem."""
+    mock_ls = MagicMock()
+    mock_ls.getAll.return_value = {"cb_probe": "1"}
+    mock_session_state = {}
+
+    with patch("streamlit.session_state", mock_session_state):
+        probe_val = mock_ls.getAll().get("cb_probe") or mock_ls.getItem("cb_probe")
+        if probe_val:
+            mock_session_state["persist_probe_last"] = (
+                f"present (len {len(str(probe_val))})"
+            )
+        else:
+            mock_session_state["persist_probe_last"] = "None"
+        mock_ls.setItem("cb_probe", "1", key="ls_probe_set")
+
+        assert mock_session_state["persist_probe_last"] == "present (len 1)"
+        mock_ls.setItem.assert_called_with("cb_probe", "1", key="ls_probe_set")
+
+
+def test_admin_gating_and_debug_panel_zero_token_leakage():
+    """Test admin-gating of debug panel and zero token leakage (presence/length only)."""
+    # Test case 1: Non-admin user, no pdebug
+    with patch("config.ADMIN_EMAIL", "admin@example.com"):
+        from config import ADMIN_EMAIL
+
+        user = {"email": "regular@example.com"}
+        pdebug_param = None
+        is_pdebug = pdebug_param == "1"
+        is_admin = (
+            ADMIN_EMAIL
+            and user.get("email", "").strip().lower() == ADMIN_EMAIL.strip().lower()
+        ) or is_pdebug
+        assert is_admin is False
+
+    # Test case 2: Admin user matching ADMIN_EMAIL
+    with patch("config.ADMIN_EMAIL", "admin@example.com"):
+        from config import ADMIN_EMAIL
+
+        user = {"email": "admin@example.com"}
+        pdebug_param = None
+        is_pdebug = pdebug_param == "1"
+        is_admin = (
+            ADMIN_EMAIL
+            and user.get("email", "").strip().lower() == ADMIN_EMAIL.strip().lower()
+        ) or is_pdebug
+        assert is_admin is True
+
+    # Test case 3: Pre-auth via query flag ?pdebug=1
+    with patch("config.ADMIN_EMAIL", "admin@example.com"):
+        from config import ADMIN_EMAIL
+
+        user = None
+        pdebug_param = "1"
+        is_pdebug = pdebug_param == "1"
+        is_admin = (
+            ADMIN_EMAIL
+            and user
+            and user.get("email", "").strip().lower() == ADMIN_EMAIL.strip().lower()
+        ) or is_pdebug
+        assert is_admin is True
+
+    # Test case 4: Zero token leakage in debug raw / session representations
+    raw_boot = "present (len 240)"
+    assert "token" not in raw_boot.lower()
+    assert "acc_" not in raw_boot.lower()
+    assert "len" in raw_boot

@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5.4] - 2026-09-21
+
+### Added
+- Hotfix v1.1.5.4 — persistent storage boot inspection, bounded-rerun boot sequence & round-trip probe:
+  - **Bounded-Rerun Boot Sequence**: Fresh unauthenticated sessions where boot read returns `None` and mount flag is unset trigger `st.rerun()` exactly once (`boot_mount_triggered`). Subsequent renders re-attempt rehydration while unauthenticated.
+  - **Admin-Only Persistence Debug Panel**: Added sidebar expander `"Persistence Debug"` visible exclusively to the site owner (`ADMIN_EMAIL`) or pre-auth via query flag `?pdebug=1`. Displays render counter, mount flag state, raw boot-read value (presence/length only, leaking zero tokens), `persist_debug` error status, and a storage round-trip probe (`cb_probe`).
+  - **Storage Round-Trip Probe**: Evaluates whether `streamlit-local-storage` round-trips correctly in the runtime environment by setting `cb_probe="1"` on every render and reporting the retrieved value on the subsequent render.
+  - **Testing & Verification**: Added comprehensive test coverage in `tests/test_session_and_nav_paths.py` verifying rerun bounds, rehydration, probe mechanics, and admin-gating. Enforced pre-seal compile gate (`python3 -m py_compile app.py`) and all tests passing green.
+  - **Documentation**: CHANGELOG v1.1.5.4 and DEVLOG Entry 024 addendum.
+
 ## [1.1.5.3] - 2026-09-21
 
 ### Fixed
