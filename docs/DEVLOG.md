@@ -325,3 +325,9 @@
 4. **Delete Exclusivity**: Restrict `deleteItem` calls exclusively to sign-out and reset paths.
 5. **Retirement of Pre-Auth `?pdebug=1`**: Retired `?pdebug=1` pre-auth path. Persistence Debug is now strictly admin-email-gated post-login, and round-trip probe execution is strictly gated to when the expander is expanded (`persistence_debug_expander`).
 6. **Testing & Verification**: Added comprehensive unit tests covering continuous-write emission, post-sign-out write silence, expander probe gating, and strict post-login admin checks. Enforced pre-seal compile gate (`python3 -m py_compile`) and 100% test pass rate (`pytest tests/ -q`).
+
+### Entry 025 Addendum (v1.1.6.1)
+- **Only Strings Cross Component Bridges**: Probe evidence confirmed that dict bundles passed across the component JS bridge serialize as `"[object Object]"`. Consequently, all session storage writes must explicitly `json.dumps(bundle)`, and reads must utilize `json.loads` with try/except error handling.
+- **Corrupt-Legacy Migration Path**: Any legacy `"[object Object]"` or parse failures on read immediately call `deleteItem("cb_session")`, route to clean login gate, and record exception class in `persist_debug`.
+- **Token-Write Sites Verification**: Verified all six token-write sites set `expires_at`.
+- **Temporary Flag Window**: Temporarily restored `?pdebug=1` pre-auth visibility for diagnosis window only (scheduled for retirement after acceptance).

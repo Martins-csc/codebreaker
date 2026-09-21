@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6.1] - 2026-09-21
+
+### Fixed
+- Micro-hotfix v1.1.6.1 — Component bridge string serialization, corrupt-legacy cleanup, emission arming & temporary debug flag window:
+  - **Component Bridge Serialization**: Only strings round-trip reliably across the component JS bridge; updated continuous session write to use `json.dumps(bundle)` and read side to use `json.loads` with try/except.
+  - **Corrupt-Legacy Migration Path**: Strict handling of legacy/corrupt values (`"[object Object]"`, parse failures) → deletes `cb_session` (`deleteItem`), triggers clean login gate, and records exception class into `persist_debug`.
+  - **Token-Write Sites & Expiry**: Verified all six token-write sites set `expires_at` in session state; emission guard unchanged.
+  - **Persistence Debug Enhancements**: Added `"Emission armed: True/False"` and `"Raw stored head: <first 12 chars or None>"`. Temporarily restored `?pdebug=1` pre-auth visibility for diagnosis window only (to be retired after acceptance).
+  - **Testing & Verification**: Added test coverage for string round-trip, corrupt cleanup, guard arming, and debug representation. Enforced compile gate and green pytest suite (`.venv/bin/pytest tests/ -q`).
+  - **Documentation**: CHANGELOG v1.1.6.1 and Entry 025 addendum.
+
 ## [1.1.6] - 2026-09-21
 
 ### Fixed

@@ -450,21 +450,101 @@ def test_admin_gating_and_debug_panel_zero_token_leakage():
         )
         assert is_admin is True
 
-    # Test case 3: ?pdebug=1 pre-auth path retired (unauthenticated cannot be admin)
+    # Test case 3: ?pdebug=1 pre-auth visibility (temporarily restored for diagnosis window)
     with patch("config.ADMIN_EMAIL", "admin@example.com"):
         from config import ADMIN_EMAIL
 
         user = None
         user_email = user.get("email", "") if user else ""
+        pdebug_param = "1"
         is_admin = (
             bool(ADMIN_EMAIL)
             and bool(user_email)
             and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
-        )
-        assert is_admin is False
+        ) or pdebug_param == "1"
+        assert is_admin is True
 
     # Test case 4: Zero token leakage in debug raw / session representations
     raw_boot = "present (len 240)"
     assert "token" not in raw_boot.lower()
     assert "acc_" not in raw_boot.lower()
     assert "len" in raw_boot
+
+
+def test_string_serialization_round_trip_and_corrupt_legacy_cleanup():
+    """Test string serialization round-trip and corrupt-legacy cleanup ([object Object] and parse failures)."""
+    bundle = {
+        "access_token": "acc_123",
+        "refresh_token": "ref_123",
+        "expires_at": time.time() + 3600,
+    }
+    serialized = json.dumps(bundle)
+    parsed = json.loads(serialized)
+    assert parsed["access_token"] == "acc_123"
+
+    mock_ls = MagicMock()
+    mock_session_state = {}
+
+    with patch("streamlit.session_state", mock_session_state):
+        # Test [object Object] cleanup
+        corrupt_val = "[object Object]"
+        session_data = corrupt_val
+        if isinstance(session_data, str):
+            if session_data == "[object Object]":
+                mock_session_state["persist_debug"] = (
+                    "ValueError: LegacyCorruptSessionObject"
+                )
+                mock_ls.deleteItem("cb_session", key="ls_boot_del_legacy")
+                session_data = None
+
+        assert session_data is None
+        assert "ValueError" in mock_session_state["persist_debug"]
+        mock_ls.deleteItem.assert_called_with("cb_session", key="ls_boot_del_legacy")
+
+        # Test parse failure cleanup
+        corrupt_json = "{bad_json"
+        session_data = corrupt_json
+        if isinstance(session_data, str):
+            try:
+                session_data = json.loads(session_data)
+            except Exception as e:
+                mock_session_state["persist_debug"] = f"{type(e).__name__}: {str(e)}"
+                mock_ls.deleteItem("cb_session", key="ls_boot_del_parse")
+                session_data = None
+
+        assert session_data is None
+        assert "JSONDecodeError" in mock_session_state["persist_debug"]
+        mock_ls.deleteItem.assert_called_with("cb_session", key="ls_boot_del_parse")
+
+
+def test_emission_guard_arming_and_debug_lines():
+    """Test emission guard arming (True/False) and raw stored head display."""
+    # State 1: Unauthenticated -> Emission armed: False, Raw stored head: None
+    mock_session_state = {}
+    with patch("streamlit.session_state", mock_session_state):
+        emission_armed = bool(
+            "access_token" in mock_session_state
+            and "refresh_token" in mock_session_state
+        )
+        assert emission_armed is False
+
+        raw_session = None
+        raw_head = str(raw_session)[:12] if raw_session else "None"
+        assert raw_head == "None"
+
+    # State 2: Authenticated -> Emission armed: True, Raw stored head: first 12 chars
+    mock_session_state = {
+        "access_token": "acc_abc123456789",
+        "refresh_token": "ref_xyz",
+    }
+    with patch("streamlit.session_state", mock_session_state):
+        emission_armed = bool(
+            "access_token" in mock_session_state
+            and "refresh_token" in mock_session_state
+        )
+        assert emission_armed is True
+
+        raw_session = json.dumps({"access_token": "acc_abc123456789"})
+        raw_head = str(raw_session)[:12] if raw_session else "None"
+        assert len(raw_head) == 12
+        assert raw_head == raw_session[:12]

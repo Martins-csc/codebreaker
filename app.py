@@ -74,8 +74,10 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
             st.session_state["debug_boot_raw"] = (
                 f"present (len {len(str(session_data))})"
             )
+            st.session_state["debug_raw_head"] = str(session_data)[:12]
         else:
             st.session_state["debug_boot_raw"] = "None"
+            st.session_state["debug_raw_head"] = "None"
 
         if session_data is None and not st.session_state.get("boot_mount_triggered"):
             st.session_state["boot_mount_triggered"] = True
@@ -83,10 +85,40 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
 
         if session_data:
             if isinstance(session_data, str):
-                try:
-                    session_data = json.loads(session_data)
-                except Exception:
+                if session_data == "[object Object]":
+                    try:
+                        handle_storage_error(ValueError("LegacyCorruptSessionObject"))
+                        if local_storage:
+                            local_storage.deleteItem(
+                                "cb_session", key="ls_boot_del_legacy"
+                            )
+                    except (StreamlitAPIException, Exception) as e:
+                        handle_storage_error(e)
                     session_data = None
+                else:
+                    try:
+                        session_data = json.loads(session_data)
+                    except Exception as e:
+                        handle_storage_error(e)
+                        try:
+                            if local_storage:
+                                local_storage.deleteItem(
+                                    "cb_session", key="ls_boot_del_parse"
+                                )
+                        except (StreamlitAPIException, Exception) as e2:
+                            handle_storage_error(e2)
+                        session_data = None
+
+            if not isinstance(session_data, dict):
+                try:
+                    handle_storage_error(TypeError("InvalidSessionTypeNonDict"))
+                    if local_storage:
+                        local_storage.deleteItem(
+                            "cb_session", key="ls_boot_del_nondict"
+                        )
+                except (StreamlitAPIException, Exception) as e:
+                    handle_storage_error(e)
+                session_data = None
 
             if isinstance(session_data, dict):
                 access_token = session_data.get("access_token")
@@ -130,6 +162,11 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                 }
                                 st.session_state["access_token"] = access_token
                                 st.session_state["refresh_token"] = refresh_token
+                                st.session_state["expires_at"] = (
+                                    expires_at
+                                    if expires_at is not None
+                                    else time.time() + 3600
+                                )
                                 restored = True
                         except Exception:
                             restored = False
@@ -182,6 +219,7 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                     new_expires = getattr(
                                         new_sess, "expires_at", time.time() + 3600
                                     )
+                                    st.session_state["expires_at"] = new_expires
                                     restored = True
                         except Exception:
                             restored = False
@@ -269,6 +307,9 @@ try:
                 if res.session:
                     st.session_state["access_token"] = res.session.access_token
                     st.session_state["refresh_token"] = res.session.refresh_token
+                    st.session_state["expires_at"] = getattr(
+                        res.session, "expires_at", time.time() + 3600
+                    )
                 st.success(
                     "Recovery session established. Please set your new password."
                 )
@@ -320,6 +361,7 @@ try:
                     st.session_state["access_token"] = res.session.access_token
                     st.session_state["refresh_token"] = res.session.refresh_token
                     expires_at = getattr(res.session, "expires_at", time.time() + 3600)
+                    st.session_state["expires_at"] = expires_at
                     st.success("Successfully logged in with GitHub!")
         except Exception as e:
             st.error(f"GitHub OAuth authentication failed: {e}")
@@ -345,11 +387,15 @@ if st.session_state.get("persist_debug"):
 user = st.session_state.get("user")
 user_email = user.get("email", "") if user else ""
 
+pdebug_param = st.query_params.get("pdebug")
+if isinstance(pdebug_param, list):
+    pdebug_param = pdebug_param[0] if pdebug_param else None
+
 is_admin = (
     bool(ADMIN_EMAIL)
     and bool(user_email)
     and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
-)
+) or pdebug_param == "1"
 
 if is_admin:
     with st.sidebar.expander(
@@ -381,6 +427,12 @@ if is_admin:
             f"**Mount Flag**: {st.session_state.get('boot_mount_triggered', False)}"
         )
         st.write(f"**Raw Boot-Read**: {st.session_state.get('debug_boot_raw', 'None')}")
+        st.write(
+            f"**Raw Stored Head**: {st.session_state.get('debug_raw_head', 'None')}"
+        )
+        st.write(
+            f"**Emission Armed**: {bool('access_token' in st.session_state and 'refresh_token' in st.session_state)}"
+        )
         st.write(f"**Persist Debug**: {st.session_state.get('persist_debug', 'None')}")
         st.write(
             f"**Round-Trip Probe**: {st.session_state.get('persist_probe_last', 'None')}"
@@ -456,13 +508,14 @@ if (
 ):
     try:
         expires_at = st.session_state.get("expires_at", time.time() + 3600)
+        bundle = {
+            "access_token": st.session_state["access_token"],
+            "refresh_token": st.session_state["refresh_token"],
+            "expires_at": expires_at,
+        }
         local_storage.setItem(
             "cb_session",
-            {
-                "access_token": st.session_state["access_token"],
-                "refresh_token": st.session_state["refresh_token"],
-                "expires_at": expires_at,
-            },
+            json.dumps(bundle),
             key="ls_continuous_session",
         )
         local_storage.setItem("cb_page", page, key="ls_continuous_page")
@@ -712,6 +765,9 @@ if page == "Login":
                                     st.session_state["refresh_token"] = (
                                         session_obj.refresh_token
                                     )
+                                    st.session_state["expires_at"] = getattr(
+                                        session_obj, "expires_at", time.time() + 3600
+                                    )
                                     client.auth.set_session(
                                         session_obj.access_token,
                                         session_obj.refresh_token,
@@ -823,6 +879,9 @@ if page == "Login":
                                 )
                                 st.session_state["refresh_token"] = (
                                     res.session.refresh_token
+                                )
+                                st.session_state["expires_at"] = getattr(
+                                    res.session, "expires_at", time.time() + 3600
                                 )
                                 client.auth.set_session(
                                     res.session.access_token, res.session.refresh_token
