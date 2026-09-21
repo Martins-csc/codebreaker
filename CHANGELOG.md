@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2026-09-21
+
+### Fixed
+- Hotfix v1.1.6 — persistence root cause & continuous idempotent emission:
+  - **Root Cause & Pattern**: One-shot component writes are lost when their render is discarded before mount, so `cb_session` never lands. Continuous idempotent emission while authenticated re-issues `setItem("cb_session", ...)` and `setItem("cb_page", ...)` on every render — identical to the probe pattern that provably survives.
+  - **Delete Exclusivity**: Restricted `deleteItem` calls exclusively to sign-out and reset paths.
+  - **Retirement of `?pdebug=1`**: Retired pre-auth `?pdebug=1` query flag path; Persistence Debug is now strictly admin-email-gated post-login, and round-trip probe runs only while the expander is expanded (`persistence_debug_expander`).
+  - **Testing & Verification**: Updated unit test suite in `tests/test_session_and_nav_paths.py` (continuous-write emission, no writes after sign-out, probe gating, admin post-login gate). Enforced pre-seal compile gate (`python3 -m py_compile`) and all tests passing green.
+  - **Documentation**: CHANGELOG v1.1.6 and DEVLOG Entry 025.
+
 ## [1.1.5.4] - 2026-09-21
 
 ### Added

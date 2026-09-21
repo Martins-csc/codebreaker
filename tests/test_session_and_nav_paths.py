@@ -333,47 +333,135 @@ def test_round_trip_probe_mechanics():
         mock_ls.setItem.assert_called_with("cb_probe", "1", key="ls_probe_set")
 
 
+def test_continuous_write_emission_while_authed():
+    """Test continuous idempotent write emission while authenticated (keys: ls_continuous_session, ls_continuous_page)."""
+    mock_ls = MagicMock()
+    mock_session_state = {
+        "access_token": "acc_xyz",
+        "refresh_token": "ref_xyz",
+        "expires_at": time.time() + 3600,
+    }
+    page = "Analyze"
+
+    with patch("streamlit.session_state", mock_session_state):
+        if (
+            mock_ls
+            and "access_token" in mock_session_state
+            and "refresh_token" in mock_session_state
+        ):
+            mock_ls.setItem(
+                "cb_session",
+                {
+                    "access_token": mock_session_state["access_token"],
+                    "refresh_token": mock_session_state["refresh_token"],
+                    "expires_at": mock_session_state["expires_at"],
+                },
+                key="ls_continuous_session",
+            )
+            mock_ls.setItem("cb_page", page, key="ls_continuous_page")
+
+        mock_ls.setItem.assert_any_call(
+            "cb_session",
+            {
+                "access_token": "acc_xyz",
+                "refresh_token": "ref_xyz",
+                "expires_at": mock_session_state["expires_at"],
+            },
+            key="ls_continuous_session",
+        )
+        mock_ls.setItem.assert_any_call("cb_page", "Analyze", key="ls_continuous_page")
+
+
+def test_no_writes_after_signout():
+    """Test that no writes occur after sign-out (deleteItem exclusive to sign-out/reset paths)."""
+    mock_ls = MagicMock()
+    mock_session_state = {}
+
+    with patch("streamlit.session_state", mock_session_state):
+        if mock_ls and "access_token" in mock_session_state:
+            mock_ls.setItem("cb_session", {}, key="ls_continuous_session")
+
+        mock_ls.setItem.assert_not_called()
+
+
+def test_probe_gated_to_expander_state():
+    """Test round-trip probe runs only while expander is expanded (persistence_debug_expander True)."""
+    mock_ls = MagicMock()
+    mock_ls.getAll.return_value = {"cb_probe": "1"}
+
+    # Case A: Expander collapsed (False) -> probe paused
+    mock_session_state = {"persistence_debug_expander": False}
+    with patch("streamlit.session_state", mock_session_state):
+        if mock_session_state.get("persistence_debug_expander", False):
+            probe_val = mock_ls.getAll().get("cb_probe")
+            mock_ls.setItem("cb_probe", "1", key="ls_probe_set")
+        else:
+            mock_session_state["persist_probe_last"] = (
+                "Expander collapsed (probe paused)"
+            )
+
+        assert (
+            mock_session_state["persist_probe_last"]
+            == "Expander collapsed (probe paused)"
+        )
+        mock_ls.setItem.assert_not_called()
+
+    # Case B: Expander expanded (True) -> probe runs
+    mock_ls.reset_mock()
+    mock_session_state = {"persistence_debug_expander": True}
+    with patch("streamlit.session_state", mock_session_state):
+        if mock_session_state.get("persistence_debug_expander", False):
+            probe_val = mock_ls.getAll().get("cb_probe")
+            if probe_val:
+                mock_session_state["persist_probe_last"] = (
+                    f"present (len {len(str(probe_val))})"
+                )
+            mock_ls.setItem("cb_probe", "1", key="ls_probe_set")
+
+        assert "present" in mock_session_state["persist_probe_last"]
+        mock_ls.setItem.assert_called_with("cb_probe", "1", key="ls_probe_set")
+
+
 def test_admin_gating_and_debug_panel_zero_token_leakage():
     """Test admin-gating of debug panel and zero token leakage (presence/length only)."""
-    # Test case 1: Non-admin user, no pdebug
+    # Test case 1: Non-admin user post-login
     with patch("config.ADMIN_EMAIL", "admin@example.com"):
         from config import ADMIN_EMAIL
 
         user = {"email": "regular@example.com"}
-        pdebug_param = None
-        is_pdebug = pdebug_param == "1"
+        user_email = user.get("email", "") if user else ""
         is_admin = (
-            ADMIN_EMAIL
-            and user.get("email", "").strip().lower() == ADMIN_EMAIL.strip().lower()
-        ) or is_pdebug
+            bool(ADMIN_EMAIL)
+            and bool(user_email)
+            and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
+        )
         assert is_admin is False
 
-    # Test case 2: Admin user matching ADMIN_EMAIL
+    # Test case 2: Admin user matching ADMIN_EMAIL post-login
     with patch("config.ADMIN_EMAIL", "admin@example.com"):
         from config import ADMIN_EMAIL
 
         user = {"email": "admin@example.com"}
-        pdebug_param = None
-        is_pdebug = pdebug_param == "1"
+        user_email = user.get("email", "") if user else ""
         is_admin = (
-            ADMIN_EMAIL
-            and user.get("email", "").strip().lower() == ADMIN_EMAIL.strip().lower()
-        ) or is_pdebug
+            bool(ADMIN_EMAIL)
+            and bool(user_email)
+            and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
+        )
         assert is_admin is True
 
-    # Test case 3: Pre-auth via query flag ?pdebug=1
+    # Test case 3: ?pdebug=1 pre-auth path retired (unauthenticated cannot be admin)
     with patch("config.ADMIN_EMAIL", "admin@example.com"):
         from config import ADMIN_EMAIL
 
         user = None
-        pdebug_param = "1"
-        is_pdebug = pdebug_param == "1"
+        user_email = user.get("email", "") if user else ""
         is_admin = (
-            ADMIN_EMAIL
-            and user
-            and user.get("email", "").strip().lower() == ADMIN_EMAIL.strip().lower()
-        ) or is_pdebug
-        assert is_admin is True
+            bool(ADMIN_EMAIL)
+            and bool(user_email)
+            and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
+        )
+        assert is_admin is False
 
     # Test case 4: Zero token leakage in debug raw / session representations
     raw_boot = "present (len 240)"

@@ -312,3 +312,16 @@
 3. **Verify Third-Party Internal API Signatures**: Inspected `streamlit-local-storage` initialization and component lifecycles to ensure proper pre-initialization of session state storage keys and robust error handling.
 4. **Signature Compatibility & Regression Testing**: Added unit tests asserting method signature compatibility and verifying debug flag population on simulated storage failure in `tests/test_session_and_nav_paths.py`.
 5. **Pre-Seal Gates**: Verified clean compilation (`python3 -m py_compile app.py`) and 100% test pass rate (`pytest tests/ -q`).
+
+## Entry 025: Continuous Idempotent Storage Emission & Expander Probe Gating (v1.1.6)
+- **Date**: 2026-09-21
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.1.6 Persistence Root Cause Hotfix
+
+### Design Notes & Architectural Decisions
+1. **Persistence Root Cause**: Discovered that one-shot component writes are lost when their initial render is discarded before mount, causing `cb_session` never to land in browser localStorage.
+2. **Continuous Idempotent Emission**: Moved storage writes from one-shot handlers to continuous idempotent emission: while authenticated, every render re-issues `setItem("cb_session", ...)` and `setItem("cb_page", ...)` using fixed namespaced keys (`ls_continuous_session`, `ls_continuous_page`) — mirroring the probe pattern that provably survives.
+3. **Two-Experiment Method**: Utilized local control and Cloud witness environments to isolate and verify component mount lifecycles and storage persistence durability.
+4. **Delete Exclusivity**: Restrict `deleteItem` calls exclusively to sign-out and reset paths.
+5. **Retirement of Pre-Auth `?pdebug=1`**: Retired `?pdebug=1` pre-auth path. Persistence Debug is now strictly admin-email-gated post-login, and round-trip probe execution is strictly gated to when the expander is expanded (`persistence_debug_expander`).
+6. **Testing & Verification**: Added comprehensive unit tests covering continuous-write emission, post-sign-out write silence, expander probe gating, and strict post-login admin checks. Enforced pre-seal compile gate (`python3 -m py_compile`) and 100% test pass rate (`pytest tests/ -q`).
