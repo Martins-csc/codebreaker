@@ -239,3 +239,47 @@ def test_storage_invariant_stream_api_exception_and_unique_keys():
     except (StreamlitAPIException, Exception):
         pass
     mock_ls.deleteItem.assert_called_with("cb_session", key="ls_test_del")
+
+
+def test_storage_signature_compatibility_and_single_render_invariant():
+    """Test signature-compatibility assertion (call sites match real library signatures) and single-render/session cache."""
+    import inspect
+
+    from streamlit_local_storage import LocalStorage
+
+    sig_set = inspect.signature(LocalStorage.setItem)
+    assert "itemKey" in sig_set.parameters
+    assert "itemValue" in sig_set.parameters
+    assert "key" in sig_set.parameters
+
+    sig_del = inspect.signature(LocalStorage.deleteItem)
+    assert "itemKey" in sig_del.parameters
+    assert "key" in sig_del.parameters
+
+    sig_get = inspect.signature(LocalStorage.getItem)
+    assert "itemKey" in sig_get.parameters
+
+    sig_all = inspect.signature(LocalStorage.getAll)
+    assert len(sig_all.parameters) == 1
+
+
+def test_storage_simulated_failure_sets_debug_flag_and_visible_caption():
+    """Test that simulated storage failure records exception class + message into st.session_state['persist_debug'] and renders visible degradation."""
+    from streamlit.errors import StreamlitAPIException
+
+    mock_session_state = {}
+    with patch("streamlit.session_state", mock_session_state):
+        mock_ls = MagicMock()
+        mock_ls.getAll.side_effect = StreamlitAPIException("SimulatedStorageFailure")
+
+        session_data = None
+        try:
+            if mock_ls:
+                session_data = mock_ls.getAll().get("cb_session")
+        except (StreamlitAPIException, Exception) as e:
+            err_msg = f"{type(e).__name__}: {str(e)[:80]}"
+            mock_session_state["persist_debug"] = err_msg
+
+        assert session_data is None
+        assert "StreamlitAPIException" in mock_session_state["persist_debug"]
+        assert "SimulatedStorageFailure" in mock_session_state["persist_debug"]

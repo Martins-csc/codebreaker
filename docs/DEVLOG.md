@@ -300,3 +300,15 @@
 3. **Graceful Exception Wrapping**: Wrapped all local storage operations (`getAll`, `getItem`, `setItem`, `deleteItem`) in robust `try / except (StreamlitAPIException, Exception):` blocks ensuring graceful degradation if local storage components fail.
 4. **Regression Testing**: Added `test_storage_invariant_stream_api_exception_and_unique_keys` in `tests/test_session_and_nav_paths.py`.
 5. **Gates & Verification**: Verified clean core module compilation (`python3 -m py_compile`) and 100% test suite pass rate (`pytest tests/ -q`).
+
+## Entry 024: Silent Degradation Anti-Pattern & Visible Graceful Fallback (v1.1.5.3)
+- **Date**: 2026-09-21
+- **Author**: Engineering Team / Builder & Tester Agents
+- **Milestone**: v1.1.5.3 Persistence Hotfix
+
+### Design Notes & Architectural Decisions
+1. **Silent Degradation Anti-Pattern**: Identified that bare/broad exception swallowing (`except Exception: pass`) masked underlying `LocalStorage.__init__` `KeyError` issues and next-run component value semantics (`None` on initial boot load), causing login to work in-memory but refresh to fail silently without crashing or notifying users.
+2. **Graceful Must Mean Visible**: Banned bare swallowing across storage operations. Every storage except-block now captures exception class and message into `st.session_state["persist_debug"]` and renders a discreet sidebar caption `st.sidebar.caption("persistence: degraded — ...")` so persistence degradation is always visible.
+3. **Verify Third-Party Internal API Signatures**: Inspected `streamlit-local-storage` initialization and component lifecycles to ensure proper pre-initialization of session state storage keys and robust error handling.
+4. **Signature Compatibility & Regression Testing**: Added unit tests asserting method signature compatibility and verifying debug flag population on simulated storage failure in `tests/test_session_and_nav_paths.py`.
+5. **Pre-Seal Gates**: Verified clean compilation (`python3 -m py_compile app.py`) and 100% test pass rate (`pytest tests/ -q`).

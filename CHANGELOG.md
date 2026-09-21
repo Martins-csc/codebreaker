@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5.3] - 2026-09-21
+
+### Fixed
+- Hotfix v1.1.5.3 — persistence silent failure & visible degradation anti-pattern:
+  - **Root Cause Resolution**: Addressed silent persistence failure where `LocalStorage.__init__` raised unhandled `KeyError` on missing session state keys and next-run component value semantics returned `None` on initial boot rehydration.
+  - **End Silence / Visible Degradation**: Eliminated bare swallowing of storage exceptions; every storage try/except block now records exception class and message into `st.session_state["persist_debug"]` and renders a discreet sidebar `st.sidebar.caption("persistence: degraded — ")`.
+  - **Robust Initialization**: Pre-initialized session state container for storage and wrapped initialization safely.
+  - **Testing**: Added signature-compatibility and debug-flag regression tests in `tests/test_session_and_nav_paths.py`.
+  - **Verification**: Enforced pre-seal compile gate and all tests passing green.
+
 ## [1.1.5.2] - 2026-09-21
 
 ### Fixed
