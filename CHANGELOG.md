@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-09-22
+
+### Added / Changed
+- Mission v1.2.3 — URL capability resume & abandonment of all client storage:
+  - **SQL Migration & Security Definers**: Created `public.resume_sessions` table with RLS (owners select/delete own rows only) and security-definer functions (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`, `prune_expired_resume_sessions`).
+  - **URL Capability Tokens (`?rt=...`)**: Abandoned all client storage (localStorage & cookies). Replaced with secure server-side session persistence via URL capability tokens (`rt = secrets.token_urlsafe(32)`).
+  - **Token Rotation & Revocation**: Automatic token rotation on each successful boot (new mint, revoke old hash, update URL query parameter) and sign-out row revocation + parameter clearing.
+  - **Persistence Debug Shrink**: Shrank Persistence Debug to site owners (`ADMIN_EMAIL`) showing `rt` present (bool), last verify result, and gate flags. Retired `?pdebug=1`.
+  - **Testing & Verification**: Zero-network unit tests for minting, verification, rotation, revocation, expired tokens, and admin persistence debug. Enforced pre-seal compile gate and green pytest suite (`80 passed`).
+  - **Documentation**: CHANGELOG v1.2.3 and DEVLOG Entry 030.
+
 ## [1.2.2] - 2026-09-22
 
 ### Added / Changed

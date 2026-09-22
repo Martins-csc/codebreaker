@@ -1,5 +1,21 @@
 # CodeBreaker Development Log
 
+## Entry 030: When Every Client-Storage Channel Fails: Capability URLs (v1.2.3)
+- **Date**: 2026-09-22
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.2.3 URL Capability Resume & Client Storage Abandonment
+
+### Design Notes & Architectural Decisions
+1. **The Client Storage Dead-End**: Across v1.1.5 to v1.2.2, CodeBreaker investigated localStorage and cookies (`streamlit-local-storage`, `streamlit-cookies-controller`). While cookies improved server-side read access, browser cross-site tracking policies, iframe sandboxing, third-party storage restrictions, and state synchronization across reruns introduced persistent fragility.
+2. **Capability URLs (`?rt=...`)**: Abandoned all client storage entirely. Replaced with cryptographically secure server-side session persistence via URL capability tokens (`rt = secrets.token_urlsafe(32)`).
+3. **Threat Model & Tradeoffs**: Capability URLs act as bearer tokens if shared or logged. To mitigate this risk, CodeBreaker implements:
+   - **One-Time Token Rotation**: On every successful boot, the consumed capability token is immediately revoked server-side, and a brand new token is minted and stamped into `st.query_params["rt"]`.
+   - **Explicit Revocation on Sign-Out**: Signing out explicitly revokes the token row in `public.resume_sessions` and strips `rt` from query parameters.
+   - **Short Expiry & Pruning**: Tokens expire after 7 days, with opportunistic pruning of expired rows.
+   - **Zero Token Leakage in Debug**: Tokens are never logged or rendered in full; debug panels display only presence/absence and verify results.
+4. **SQL Schema & Security Definers**: Created `public.resume_sessions` with RLS (owners may select/delete own rows only) and security-definer functions (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`, `prune_expired_resume_sessions`).
+5. **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and comprehensive zero-network unit tests in `tests/test_url_capability_resume.py` plus the full pytest suite (`80 passed`).
+
 ## Entry 022: Duplicate Widget Key Outage & Framework Exception Isolation (v1.1.5.1)
 - **Date**: 2026-09-20
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents

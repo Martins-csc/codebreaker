@@ -1,5 +1,8 @@
+import hashlib
 import json
+import secrets
 import time
+from datetime import datetime, timedelta, timezone
 
 import streamlit as st
 from ai_engine import (BlueprintError, generate_blueprint,
@@ -8,8 +11,6 @@ from ai_engine import (BlueprintError, generate_blueprint,
                        sanitize_filename)
 from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
-from streamlit.errors import StreamlitAPIException
-from streamlit_cookies_controller import CookieController
 from supabase_client import ConfigError, get_client
 
 st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
@@ -20,124 +21,51 @@ def handle_storage_error(e):
     st.session_state["persist_debug"] = err_msg
 
 
-try:
-    if "cb_cookie_controller" not in st.session_state:
-        st.session_state["cb_cookie_controller"] = {}
-    cookie_controller = CookieController(key="cb_cookie_controller")
-except Exception as e:
-    handle_storage_error(e)
-    cookie_controller = None
+def mint_and_set_rt(client, user_id, refresh_token):
+    try:
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        client.rpc(
+            "create_resume_token",
+            {
+                "uid": user_id,
+                "refresh_token": refresh_token,
+                "token_hash": token_hash,
+                "expires_at": expires_at.isoformat(),
+            },
+        ).execute()
+        st.query_params["rt"] = token
+    except Exception as e:
+        handle_storage_error(e)
+
 
 if "render_count" not in st.session_state:
     st.session_state["render_count"] = 0
 st.session_state["render_count"] += 1
 
-if "boot_mount_triggered" not in st.session_state:
-    st.session_state["boot_mount_triggered"] = False
-
-# Storage round-trip probe
-try:
-    if cookie_controller:
-        probe_val = cookie_controller.getAll().get("cb_probe") or cookie_controller.get(
-            "cb_probe"
-        )
-        if probe_val:
-            st.session_state["persist_probe_last"] = (
-                f"present (len {len(str(probe_val))})"
-            )
-        else:
-            st.session_state["persist_probe_last"] = "None"
-        cookie_controller.set("cb_probe", "1")
-    else:
-        st.session_state["persist_probe_last"] = "CookieController unavailable"
-except (StreamlitAPIException, Exception) as e:
-    handle_storage_error(e)
-    st.session_state["persist_probe_last"] = f"error: {type(e).__name__}"
-
-# Boot session rehydration from cookies if session_state has no active user
+# Boot session rehydration via URL capability token (?rt=...)
 if "user" not in st.session_state or "access_token" not in st.session_state:
     try:
         client = get_client()
-        session_data = None
-        server_cookies = (
-            getattr(st.context, "cookies", None) if hasattr(st, "context") else None
-        )
+        rt_param = st.query_params.get("rt")
+        if isinstance(rt_param, list):
+            rt_param = rt_param[0] if rt_param else None
 
-        if server_cookies and "cb_session" in server_cookies:
-            session_data = server_cookies["cb_session"]
-            st.session_state["debug_boot_source"] = "server_context"
-        else:
+        if rt_param:
+            token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
             try:
-                if cookie_controller:
-                    session_data = cookie_controller.getAll().get(
-                        "cb_session"
-                    ) or cookie_controller.get("cb_session")
-            except (StreamlitAPIException, Exception) as e:
-                handle_storage_error(e)
-                session_data = None
-            st.session_state["debug_boot_source"] = "client_component"
+                verify_res = client.rpc(
+                    "verify_resume_token", {"token_hash": token_hash}
+                ).execute()
+                verify_data = getattr(verify_res, "data", [])
+            except Exception:
+                verify_data = []
 
-        if session_data:
-            st.session_state["debug_boot_raw"] = (
-                f"present (len {len(str(session_data))})"
-            )
-            st.session_state["debug_raw_head"] = str(session_data)[:12]
-        else:
-            st.session_state["debug_boot_raw"] = "None"
-            st.session_state["debug_raw_head"] = "None"
-
-        # Bounded rerun logic retained only for the fallback path (client_component)
-        if (
-            session_data is None
-            and st.session_state.get("debug_boot_source") == "client_component"
-            and not st.session_state.get("boot_mount_triggered")
-        ):
-            st.session_state["boot_mount_triggered"] = True
-            st.rerun()
-
-        if session_data:
-            if isinstance(session_data, str):
-                if "%" in session_data:
-                    try:
-                        import urllib.parse
-
-                        session_data = urllib.parse.unquote(session_data)
-                    except Exception:
-                        pass
-
-                if session_data == "[object Object]":
-                    try:
-                        handle_storage_error(ValueError("LegacyCorruptSessionObject"))
-                        if cookie_controller:
-                            cookie_controller.remove("cb_session")
-                    except (StreamlitAPIException, Exception) as e:
-                        handle_storage_error(e)
-                    session_data = None
-                else:
-                    try:
-                        session_data = json.loads(session_data)
-                    except Exception as e:
-                        handle_storage_error(e)
-                        try:
-                            if cookie_controller:
-                                cookie_controller.remove("cb_session")
-                        except (StreamlitAPIException, Exception) as e2:
-                            handle_storage_error(e2)
-                        session_data = None
-
-            if not isinstance(session_data, dict):
-                try:
-                    handle_storage_error(TypeError("InvalidSessionTypeNonDict"))
-                    if cookie_controller:
-                        cookie_controller.remove("cb_session")
-                except (StreamlitAPIException, Exception) as e:
-                    handle_storage_error(e)
-                session_data = None
-
-            if isinstance(session_data, dict):
-                refresh_token = session_data.get("refresh_token")
-                expires_at = session_data.get("expires_at")
-
+            if verify_data and len(verify_data) > 0:
+                row = verify_data[0]
+                refresh_token = row.get("refresh_token")
+                user_id = row.get("user_id")
                 if refresh_token:
                     restored = False
                     try:
@@ -178,39 +106,72 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                 st.session_state["refresh_token"] = (
                                     new_sess.refresh_token
                                 )
-                                new_expires = getattr(
+                                st.session_state["expires_at"] = getattr(
                                     new_sess, "expires_at", time.time() + 3600
                                 )
-                                st.session_state["expires_at"] = new_expires
+                                st.session_state["last_verify_result"] = (
+                                    "Verified & Rotated ✅"
+                                )
                                 restored = True
+
+                                # Rotate token on each successful boot
+                                try:
+                                    client.rpc(
+                                        "revoke_resume_token",
+                                        {"token_hash": token_hash, "uid": user_obj.id},
+                                    ).execute()
+                                except Exception:
+                                    try:
+                                        client.rpc(
+                                            "revoke_resume_token",
+                                            {"token_hash": token_hash},
+                                        ).execute()
+                                    except Exception:
+                                        pass
+
+                                new_token = secrets.token_urlsafe(32)
+                                new_hash = hashlib.sha256(
+                                    new_token.encode("utf-8")
+                                ).hexdigest()
+                                new_expires = datetime.now(timezone.utc) + timedelta(
+                                    days=7
+                                )
+                                try:
+                                    client.rpc(
+                                        "create_resume_token",
+                                        {
+                                            "uid": user_obj.id,
+                                            "refresh_token": new_sess.refresh_token,
+                                            "token_hash": new_hash,
+                                            "expires_at": new_expires.isoformat(),
+                                        },
+                                    ).execute()
+                                except Exception:
+                                    pass
+                                st.query_params["rt"] = new_token
                     except Exception:
                         restored = False
 
                     if not restored:
-                        try:
-                            if cookie_controller:
-                                cookie_controller.remove("cb_session")
-                        except (StreamlitAPIException, Exception) as e:
-                            handle_storage_error(e)
+                        st.session_state["last_verify_result"] = "Refresh failed"
+                        if "rt" in st.query_params:
+                            del st.query_params["rt"]
                 else:
-                    try:
-                        if cookie_controller:
-                            cookie_controller.remove("cb_session")
-                    except (StreamlitAPIException, Exception) as e:
-                        handle_storage_error(e)
+                    st.session_state["last_verify_result"] = (
+                        "No refresh token in record"
+                    )
+                    if "rt" in st.query_params:
+                        del st.query_params["rt"]
             else:
-                try:
-                    if cookie_controller:
-                        cookie_controller.remove("cb_session")
-                except (StreamlitAPIException, Exception) as e:
-                    handle_storage_error(e)
+                st.session_state["last_verify_result"] = "Token not found or expired"
+                if "rt" in st.query_params:
+                    del st.query_params["rt"]
+        else:
+            st.session_state["last_verify_result"] = "None"
     except Exception as e:
         handle_storage_error(e)
-        try:
-            if cookie_controller:
-                cookie_controller.remove("cb_session")
-        except (StreamlitAPIException, Exception) as e2:
-            handle_storage_error(e2)
+        if "rt" in st.query_params:
+            del st.query_params["rt"]
 
 # Ensure Supabase client session is restored if access_token is in session_state
 try:
@@ -322,6 +283,7 @@ try:
                     st.session_state["refresh_token"] = res.session.refresh_token
                     expires_at = getattr(res.session, "expires_at", time.time() + 3600)
                     st.session_state["expires_at"] = expires_at
+                    mint_and_set_rt(client, res.user.id, res.session.refresh_token)
                     st.success("Successfully logged in with GitHub!")
         except Exception as e:
             st.error(f"GitHub OAuth authentication failed: {e}")
@@ -347,122 +309,42 @@ if st.session_state.get("persist_debug"):
 user = st.session_state.get("user")
 user_email = user.get("email", "") if user else ""
 
-pdebug_param = st.query_params.get("pdebug")
-if isinstance(pdebug_param, list):
-    pdebug_param = pdebug_param[0] if pdebug_param else None
-
 is_admin = (
     bool(ADMIN_EMAIL)
     and bool(user_email)
     and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
-) or pdebug_param == "1"
+)
 
 if is_admin:
     with st.sidebar.expander(
         "Persistence Debug", expanded=False, key="persistence_debug_expander"
     ):
-        if st.session_state.get("persistence_debug_expander", False):
-            try:
-                if cookie_controller:
-                    # 100-byte probe
-                    probe_100_val = "x" * 100
-                    cookie_controller.set(
-                        "cb_probe_100",
-                        probe_100_val,
-                        path="/",
-                        same_site="lax",
-                        secure=True,
-                        max_age=604800,
-                    )
-                    got_100 = cookie_controller.get("cb_probe_100")
-                    st.session_state["persist_probe_100"] = (
-                        f"ok (len {len(str(got_100))})"
-                        if got_100 == probe_100_val
-                        else "failed"
-                    )
+        rt_present = bool(st.query_params.get("rt"))
+        last_verify = st.session_state.get("last_verify_result", "None")
+        gate_flags = f"user={bool(user)}, access_token={bool(st.session_state.get('access_token'))}, refresh_token={bool(st.session_state.get('refresh_token'))}"
 
-                    # 4000-byte probe
-                    probe_4k_val = "y" * 4000
-                    cookie_controller.set(
-                        "cb_probe_4k",
-                        probe_4k_val,
-                        path="/",
-                        same_site="lax",
-                        secure=True,
-                        max_age=604800,
-                    )
-                    got_4k = cookie_controller.get("cb_probe_4k")
-                    st.session_state["persist_probe_4k"] = (
-                        f"ok (len {len(str(got_4k))})"
-                        if got_4k == probe_4k_val
-                        else "dropped/failed"
-                    )
-                else:
-                    st.session_state["persist_probe_100"] = "Unavailable"
-                    st.session_state["persist_probe_4k"] = "Unavailable"
-            except Exception as e:
-                st.session_state["persist_probe_100"] = f"error: {type(e).__name__}"
-                st.session_state["persist_probe_4k"] = f"error: {type(e).__name__}"
-        else:
-            st.session_state["persist_probe_100"] = "Expander collapsed (probe paused)"
-            st.session_state["persist_probe_4k"] = "Expander collapsed (probe paused)"
-
-        client = get_client()
-        client_instance_id = id(client)
-
-        server_cookies = getattr(st.context, "cookies", {}) or {}
-        server_cookie_info = [f"{k}: {len(str(v))}B" for k, v in server_cookies.items()]
-
-        try:
-            controller_cb_session = (
-                cookie_controller.getAll().get("cb_session")
-                or cookie_controller.get("cb_session")
-                if cookie_controller
-                else None
-            )
-            controller_head = (
-                f"present (len {len(str(controller_cb_session))}, head: {str(controller_cb_session)[:12]})"
-                if controller_cb_session
-                else "None"
-            )
-        except Exception:
-            controller_head = "Error reading controller"
-
-        st.write(f"**Client Instance ID**: {client_instance_id}")
-        st.write(f"**Render Count**: {st.session_state.get('render_count', 0)}")
-        st.write(
-            f"**Mount Flag**: {st.session_state.get('boot_mount_triggered', False)}"
-        )
-        st.write(
-            f"**Server Cookies (`st.context.cookies`)**: {', '.join(server_cookie_info) if server_cookie_info else 'None'}"
-        )
-        st.write(f"**Controller Read (`cb_session`)**: {controller_head}")
-        st.write(
-            f"**Gate Flags**: user={bool(user)}, access_token={bool(st.session_state.get('access_token'))}, refresh_token={bool(st.session_state.get('refresh_token'))}"
-        )
-        st.write("**LocalStorage Probe**: Migrated to Cookies (Deprecated)")
-        st.write(
-            f"**100B Cookie Probe**: {st.session_state.get('persist_probe_100', 'None')}"
-        )
-        st.write(
-            f"**4KB Cookie Probe**: {st.session_state.get('persist_probe_4k', 'None')}"
-        )
-        st.write(f"**Emission Armed**: {bool('refresh_token' in st.session_state)}")
-        st.write(f"**Last Exception**: {st.session_state.get('persist_debug', 'None')}")
+        st.write(f"**RT Present**: {rt_present}")
+        st.write(f"**Last Verify Result**: {last_verify}")
+        st.write(f"**Gate Flags**: {gate_flags}")
 
 if user:
     st.sidebar.success(f"Logged in as: {user.get('display_name') or user.get('email')}")
     if st.sidebar.button("Sign Out"):
         try:
-            client.auth.sign_out()
+            rt_param = st.query_params.get("rt")
+            if isinstance(rt_param, list):
+                rt_param = rt_param[0] if rt_param else None
+            if rt_param:
+                token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
+                client.rpc("revoke_resume_token", {"token_hash": token_hash}).execute()
         except Exception:
             pass
         try:
-            if cookie_controller:
-                cookie_controller.remove("cb_session")
-                cookie_controller.remove("cb_page")
-        except (StreamlitAPIException, Exception) as e:
-            handle_storage_error(e)
+            client.auth.sign_out()
+        except Exception:
+            pass
+        if "rt" in st.query_params:
+            del st.query_params["rt"]
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.success("Signed out successfully.")
@@ -498,51 +380,8 @@ if user:
 else:
     options = ["Login", "Home", "About"]
 
-try:
-    server_cookies = (
-        getattr(st.context, "cookies", None) if hasattr(st, "context") else None
-    )
-    if server_cookies and "cb_page" in server_cookies:
-        saved_page = server_cookies["cb_page"]
-    elif cookie_controller:
-        saved_page = cookie_controller.getAll().get("cb_page") or cookie_controller.get(
-            "cb_page"
-        )
-    else:
-        saved_page = None
-except (StreamlitAPIException, Exception) as e:
-    handle_storage_error(e)
-    saved_page = None
-default_index = options.index(saved_page) if saved_page in options else 0
-
+default_index = 0
 page = st.sidebar.radio("Navigation", options, index=default_index)
-
-# Continuous idempotent storage emission for authenticated sessions (thin bundle: refresh-only)
-if cookie_controller and "refresh_token" in st.session_state:
-    try:
-        expires_at = st.session_state.get("expires_at", time.time() + 3600)
-        bundle = {
-            "refresh_token": st.session_state["refresh_token"],
-            "expires_at": expires_at,
-        }
-        cookie_controller.set(
-            "cb_session",
-            json.dumps(bundle),
-            path="/",
-            same_site="lax",
-            secure=True,
-            max_age=604800,
-        )
-        cookie_controller.set(
-            "cb_page",
-            page,
-            path="/",
-            same_site="lax",
-            secure=True,
-            max_age=604800,
-        )
-    except (StreamlitAPIException, Exception) as e:
-        handle_storage_error(e)
 
 # Handle password recovery mode return
 if st.session_state.get("recovery_mode"):
@@ -583,15 +422,24 @@ if st.session_state.get("recovery_mode"):
                         )
                     client.auth.update_user({"password": new_pwd})
                     try:
-                        client.auth.sign_out()
+                        rt_param = st.query_params.get("rt")
+                        if isinstance(rt_param, list):
+                            rt_param = rt_param[0] if rt_param else None
+                        if rt_param:
+                            token_hash = hashlib.sha256(
+                                rt_param.encode("utf-8")
+                            ).hexdigest()
+                            client.rpc(
+                                "revoke_resume_token", {"token_hash": token_hash}
+                            ).execute()
                     except Exception:
                         pass
                     try:
-                        if cookie_controller:
-                            cookie_controller.remove("cb_session")
-                            cookie_controller.remove("cb_page")
-                    except (StreamlitAPIException, Exception) as e:
-                        handle_storage_error(e)
+                        client.auth.sign_out()
+                    except Exception:
+                        pass
+                    if "rt" in st.query_params:
+                        del st.query_params["rt"]
 
                     for key in list(st.session_state.keys()):
                         del st.session_state[key]
@@ -795,6 +643,9 @@ if page == "Login":
                                         session_obj.access_token,
                                         session_obj.refresh_token,
                                     )
+                                    mint_and_set_rt(
+                                        client, user_obj.id, session_obj.refresh_token
+                                    )
                                     st.success(
                                         "Account created and logged in successfully!"
                                     )
@@ -908,6 +759,9 @@ if page == "Login":
                                 )
                                 client.auth.set_session(
                                     res.session.access_token, res.session.refresh_token
+                                )
+                                mint_and_set_rt(
+                                    client, user_obj.id, res.session.refresh_token
                                 )
                                 st.success("Logged in successfully!")
                                 st.rerun()

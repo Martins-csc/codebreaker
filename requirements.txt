@@ -4,4 +4,3 @@ supabase
 markdown
 pytest
 fpdf2
-streamlit-cookies-controller
