@@ -4,4 +4,4 @@ supabase
 markdown
 pytest
 fpdf2
-streamlit-local-storage
+streamlit-cookies-controller

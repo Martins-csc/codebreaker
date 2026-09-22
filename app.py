@@ -2,15 +2,14 @@ import json
 import time
 
 import streamlit as st
-from streamlit.errors import StreamlitAPIException
-from streamlit_local_storage import LocalStorage
-
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
                        sanitize_filename)
 from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
+from streamlit.errors import StreamlitAPIException
+from streamlit_cookies_controller import CookieController
 from supabase_client import ConfigError, get_client
 
 st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
@@ -22,12 +21,12 @@ def handle_storage_error(e):
 
 
 try:
-    if "cb_local_storage" not in st.session_state:
-        st.session_state["cb_local_storage"] = {}
-    local_storage = LocalStorage(key="cb_local_storage")
+    if "cb_cookie_controller" not in st.session_state:
+        st.session_state["cb_cookie_controller"] = {}
+    cookie_controller = CookieController(key="cb_cookie_controller")
 except Exception as e:
     handle_storage_error(e)
-    local_storage = None
+    cookie_controller = None
 
 if "render_count" not in st.session_state:
     st.session_state["render_count"] = 0
@@ -38,8 +37,8 @@ if "boot_mount_triggered" not in st.session_state:
 
 # Storage round-trip probe
 try:
-    if local_storage:
-        probe_val = local_storage.getAll().get("cb_probe") or local_storage.getItem(
+    if cookie_controller:
+        probe_val = cookie_controller.getAll().get("cb_probe") or cookie_controller.get(
             "cb_probe"
         )
         if probe_val:
@@ -48,27 +47,35 @@ try:
             )
         else:
             st.session_state["persist_probe_last"] = "None"
-        local_storage.setItem("cb_probe", "1", key="ls_probe_set")
+        cookie_controller.set("cb_probe", "1")
     else:
-        st.session_state["persist_probe_last"] = "LocalStorage unavailable"
+        st.session_state["persist_probe_last"] = "CookieController unavailable"
 except (StreamlitAPIException, Exception) as e:
     handle_storage_error(e)
     st.session_state["persist_probe_last"] = f"error: {type(e).__name__}"
 
-# Boot session rehydration from localStorage if session_state has no active user
+# Boot session rehydration from cookies if session_state has no active user
 if "user" not in st.session_state or "access_token" not in st.session_state:
     try:
         client = get_client()
-        try:
-            if local_storage:
-                session_data = local_storage.getAll().get(
-                    "cb_session"
-                ) or local_storage.getItem("cb_session")
-            else:
+        session_data = None
+        server_cookies = (
+            getattr(st.context, "cookies", None) if hasattr(st, "context") else None
+        )
+
+        if server_cookies and "cb_session" in server_cookies:
+            session_data = server_cookies["cb_session"]
+            st.session_state["debug_boot_source"] = "server_context"
+        else:
+            try:
+                if cookie_controller:
+                    session_data = cookie_controller.getAll().get(
+                        "cb_session"
+                    ) or cookie_controller.get("cb_session")
+            except (StreamlitAPIException, Exception) as e:
+                handle_storage_error(e)
                 session_data = None
-        except (StreamlitAPIException, Exception) as e:
-            handle_storage_error(e)
-            session_data = None
+            st.session_state["debug_boot_source"] = "client_component"
 
         if session_data:
             st.session_state["debug_boot_raw"] = (
@@ -79,19 +86,30 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
             st.session_state["debug_boot_raw"] = "None"
             st.session_state["debug_raw_head"] = "None"
 
-        if session_data is None and not st.session_state.get("boot_mount_triggered"):
+        # Bounded rerun logic retained only for the fallback path (client_component)
+        if (
+            session_data is None
+            and st.session_state.get("debug_boot_source") == "client_component"
+            and not st.session_state.get("boot_mount_triggered")
+        ):
             st.session_state["boot_mount_triggered"] = True
             st.rerun()
 
         if session_data:
             if isinstance(session_data, str):
+                if "%" in session_data:
+                    try:
+                        import urllib.parse
+
+                        session_data = urllib.parse.unquote(session_data)
+                    except Exception:
+                        pass
+
                 if session_data == "[object Object]":
                     try:
                         handle_storage_error(ValueError("LegacyCorruptSessionObject"))
-                        if local_storage:
-                            local_storage.deleteItem(
-                                "cb_session", key="ls_boot_del_legacy"
-                            )
+                        if cookie_controller:
+                            cookie_controller.remove("cb_session")
                     except (StreamlitAPIException, Exception) as e:
                         handle_storage_error(e)
                     session_data = None
@@ -101,10 +119,8 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                     except Exception as e:
                         handle_storage_error(e)
                         try:
-                            if local_storage:
-                                local_storage.deleteItem(
-                                    "cb_session", key="ls_boot_del_parse"
-                                )
+                            if cookie_controller:
+                                cookie_controller.remove("cb_session")
                         except (StreamlitAPIException, Exception) as e2:
                             handle_storage_error(e2)
                         session_data = None
@@ -112,36 +128,34 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
             if not isinstance(session_data, dict):
                 try:
                     handle_storage_error(TypeError("InvalidSessionTypeNonDict"))
-                    if local_storage:
-                        local_storage.deleteItem(
-                            "cb_session", key="ls_boot_del_nondict"
-                        )
+                    if cookie_controller:
+                        cookie_controller.remove("cb_session")
                 except (StreamlitAPIException, Exception) as e:
                     handle_storage_error(e)
                 session_data = None
 
             if isinstance(session_data, dict):
-                access_token = session_data.get("access_token")
                 refresh_token = session_data.get("refresh_token")
                 expires_at = session_data.get("expires_at")
 
-                if access_token and refresh_token:
+                if refresh_token:
                     restored = False
-                    is_expired = False
-                    if expires_at is not None:
-                        try:
-                            if float(expires_at) <= time.time():
-                                is_expired = True
-                        except Exception:
-                            pass
-
-                    if not is_expired:
-                        try:
-                            client.auth.set_session(access_token, refresh_token)
-                            user_res = client.auth.get_user(access_token)
-                            user_obj = (
-                                getattr(user_res, "user", None) if user_res else None
+                    try:
+                        refresh_res = client.auth.refresh_session(refresh_token)
+                        if refresh_res and refresh_res.session:
+                            new_sess = refresh_res.session
+                            client.auth.set_session(
+                                new_sess.access_token, new_sess.refresh_token
                             )
+                            user_obj = getattr(refresh_res, "user", None)
+                            if not user_obj:
+                                user_res = client.auth.get_user(new_sess.access_token)
+                                user_obj = (
+                                    getattr(user_res, "user", None)
+                                    if user_res
+                                    else None
+                                )
+
                             if user_obj:
                                 display_name = ""
                                 if user_obj.user_metadata:
@@ -160,95 +174,41 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                     "display_name": display_name,
                                     "user_metadata": user_metadata,
                                 }
-                                st.session_state["access_token"] = access_token
-                                st.session_state["refresh_token"] = refresh_token
-                                st.session_state["expires_at"] = (
-                                    expires_at
-                                    if expires_at is not None
-                                    else time.time() + 3600
+                                st.session_state["access_token"] = new_sess.access_token
+                                st.session_state["refresh_token"] = (
+                                    new_sess.refresh_token
                                 )
+                                new_expires = getattr(
+                                    new_sess, "expires_at", time.time() + 3600
+                                )
+                                st.session_state["expires_at"] = new_expires
                                 restored = True
-                        except Exception:
-                            restored = False
+                    except Exception:
+                        restored = False
 
                     if not restored:
                         try:
-                            refresh_res = client.auth.refresh_session(refresh_token)
-                            if refresh_res and refresh_res.session:
-                                new_sess = refresh_res.session
-                                client.auth.set_session(
-                                    new_sess.access_token, new_sess.refresh_token
-                                )
-                                user_obj = getattr(refresh_res, "user", None)
-                                if not user_obj:
-                                    user_res = client.auth.get_user(
-                                        new_sess.access_token
-                                    )
-                                    user_obj = (
-                                        getattr(user_res, "user", None)
-                                        if user_res
-                                        else None
-                                    )
-
-                                if user_obj:
-                                    display_name = ""
-                                    if user_obj.user_metadata:
-                                        display_name = (
-                                            user_obj.user_metadata.get(
-                                                "display_name", ""
-                                            )
-                                            or user_obj.email.split("@")[0]
-                                        )
-                                    elif user_obj.email:
-                                        display_name = user_obj.email.split("@")[0]
-                                    user_metadata = (
-                                        getattr(user_obj, "user_metadata", {}) or {}
-                                    )
-                                    st.session_state["user"] = {
-                                        "id": user_obj.id,
-                                        "email": user_obj.email,
-                                        "display_name": display_name,
-                                        "user_metadata": user_metadata,
-                                    }
-                                    st.session_state["access_token"] = (
-                                        new_sess.access_token
-                                    )
-                                    st.session_state["refresh_token"] = (
-                                        new_sess.refresh_token
-                                    )
-                                    new_expires = getattr(
-                                        new_sess, "expires_at", time.time() + 3600
-                                    )
-                                    st.session_state["expires_at"] = new_expires
-                                    restored = True
-                        except Exception:
-                            restored = False
-
-                    if not restored:
-                        try:
-                            if local_storage:
-                                local_storage.deleteItem(
-                                    "cb_session", key="ls_boot_del_1"
-                                )
+                            if cookie_controller:
+                                cookie_controller.remove("cb_session")
                         except (StreamlitAPIException, Exception) as e:
                             handle_storage_error(e)
                 else:
                     try:
-                        if local_storage:
-                            local_storage.deleteItem("cb_session", key="ls_boot_del_2")
+                        if cookie_controller:
+                            cookie_controller.remove("cb_session")
                     except (StreamlitAPIException, Exception) as e:
                         handle_storage_error(e)
             else:
                 try:
-                    if local_storage:
-                        local_storage.deleteItem("cb_session", key="ls_boot_del_3")
+                    if cookie_controller:
+                        cookie_controller.remove("cb_session")
                 except (StreamlitAPIException, Exception) as e:
                     handle_storage_error(e)
     except Exception as e:
         handle_storage_error(e)
         try:
-            if local_storage:
-                local_storage.deleteItem("cb_session", key="ls_boot_del_4")
+            if cookie_controller:
+                cookie_controller.remove("cb_session")
         except (StreamlitAPIException, Exception) as e2:
             handle_storage_error(e2)
 
@@ -403,40 +363,92 @@ if is_admin:
     ):
         if st.session_state.get("persistence_debug_expander", False):
             try:
-                if local_storage:
-                    probe_val = local_storage.getAll().get(
-                        "cb_probe"
-                    ) or local_storage.getItem("cb_probe")
-                    if probe_val:
-                        st.session_state["persist_probe_last"] = (
-                            f"present (len {len(str(probe_val))})"
-                        )
-                    else:
-                        st.session_state["persist_probe_last"] = "None"
-                    local_storage.setItem("cb_probe", "1", key="ls_probe_set")
-                else:
-                    st.session_state["persist_probe_last"] = "LocalStorage unavailable"
-            except (StreamlitAPIException, Exception) as e:
-                handle_storage_error(e)
-                st.session_state["persist_probe_last"] = f"error: {type(e).__name__}"
-        else:
-            st.session_state["persist_probe_last"] = "Expander collapsed (probe paused)"
+                if cookie_controller:
+                    # 100-byte probe
+                    probe_100_val = "x" * 100
+                    cookie_controller.set(
+                        "cb_probe_100",
+                        probe_100_val,
+                        path="/",
+                        same_site="lax",
+                        secure=True,
+                        max_age=604800,
+                    )
+                    got_100 = cookie_controller.get("cb_probe_100")
+                    st.session_state["persist_probe_100"] = (
+                        f"ok (len {len(str(got_100))})"
+                        if got_100 == probe_100_val
+                        else "failed"
+                    )
 
+                    # 4000-byte probe
+                    probe_4k_val = "y" * 4000
+                    cookie_controller.set(
+                        "cb_probe_4k",
+                        probe_4k_val,
+                        path="/",
+                        same_site="lax",
+                        secure=True,
+                        max_age=604800,
+                    )
+                    got_4k = cookie_controller.get("cb_probe_4k")
+                    st.session_state["persist_probe_4k"] = (
+                        f"ok (len {len(str(got_4k))})"
+                        if got_4k == probe_4k_val
+                        else "dropped/failed"
+                    )
+                else:
+                    st.session_state["persist_probe_100"] = "Unavailable"
+                    st.session_state["persist_probe_4k"] = "Unavailable"
+            except Exception as e:
+                st.session_state["persist_probe_100"] = f"error: {type(e).__name__}"
+                st.session_state["persist_probe_4k"] = f"error: {type(e).__name__}"
+        else:
+            st.session_state["persist_probe_100"] = "Expander collapsed (probe paused)"
+            st.session_state["persist_probe_4k"] = "Expander collapsed (probe paused)"
+
+        client = get_client()
+        client_instance_id = id(client)
+
+        server_cookies = getattr(st.context, "cookies", {}) or {}
+        server_cookie_info = [f"{k}: {len(str(v))}B" for k, v in server_cookies.items()]
+
+        try:
+            controller_cb_session = (
+                cookie_controller.getAll().get("cb_session")
+                or cookie_controller.get("cb_session")
+                if cookie_controller
+                else None
+            )
+            controller_head = (
+                f"present (len {len(str(controller_cb_session))}, head: {str(controller_cb_session)[:12]})"
+                if controller_cb_session
+                else "None"
+            )
+        except Exception:
+            controller_head = "Error reading controller"
+
+        st.write(f"**Client Instance ID**: {client_instance_id}")
         st.write(f"**Render Count**: {st.session_state.get('render_count', 0)}")
         st.write(
             f"**Mount Flag**: {st.session_state.get('boot_mount_triggered', False)}"
         )
-        st.write(f"**Raw Boot-Read**: {st.session_state.get('debug_boot_raw', 'None')}")
         st.write(
-            f"**Raw Stored Head**: {st.session_state.get('debug_raw_head', 'None')}"
+            f"**Server Cookies (`st.context.cookies`)**: {', '.join(server_cookie_info) if server_cookie_info else 'None'}"
+        )
+        st.write(f"**Controller Read (`cb_session`)**: {controller_head}")
+        st.write(
+            f"**Gate Flags**: user={bool(user)}, access_token={bool(st.session_state.get('access_token'))}, refresh_token={bool(st.session_state.get('refresh_token'))}"
+        )
+        st.write("**LocalStorage Probe**: Migrated to Cookies (Deprecated)")
+        st.write(
+            f"**100B Cookie Probe**: {st.session_state.get('persist_probe_100', 'None')}"
         )
         st.write(
-            f"**Emission Armed**: {bool('access_token' in st.session_state and 'refresh_token' in st.session_state)}"
+            f"**4KB Cookie Probe**: {st.session_state.get('persist_probe_4k', 'None')}"
         )
-        st.write(f"**Persist Debug**: {st.session_state.get('persist_debug', 'None')}")
-        st.write(
-            f"**Round-Trip Probe**: {st.session_state.get('persist_probe_last', 'None')}"
-        )
+        st.write(f"**Emission Armed**: {bool('refresh_token' in st.session_state)}")
+        st.write(f"**Last Exception**: {st.session_state.get('persist_debug', 'None')}")
 
 if user:
     st.sidebar.success(f"Logged in as: {user.get('display_name') or user.get('email')}")
@@ -446,9 +458,9 @@ if user:
         except Exception:
             pass
         try:
-            if local_storage:
-                local_storage.deleteItem("cb_session", key="ls_signout_del_sess")
-                local_storage.deleteItem("cb_page", key="ls_signout_del_page")
+            if cookie_controller:
+                cookie_controller.remove("cb_session")
+                cookie_controller.remove("cb_page")
         except (StreamlitAPIException, Exception) as e:
             handle_storage_error(e)
         for key in list(st.session_state.keys()):
@@ -487,8 +499,13 @@ else:
     options = ["Login", "Home", "About"]
 
 try:
-    if local_storage:
-        saved_page = local_storage.getAll().get("cb_page") or local_storage.getItem(
+    server_cookies = (
+        getattr(st.context, "cookies", None) if hasattr(st, "context") else None
+    )
+    if server_cookies and "cb_page" in server_cookies:
+        saved_page = server_cookies["cb_page"]
+    elif cookie_controller:
+        saved_page = cookie_controller.getAll().get("cb_page") or cookie_controller.get(
             "cb_page"
         )
     else:
@@ -500,25 +517,30 @@ default_index = options.index(saved_page) if saved_page in options else 0
 
 page = st.sidebar.radio("Navigation", options, index=default_index)
 
-# Continuous idempotent storage emission for authenticated sessions
-if (
-    local_storage
-    and "access_token" in st.session_state
-    and "refresh_token" in st.session_state
-):
+# Continuous idempotent storage emission for authenticated sessions (thin bundle: refresh-only)
+if cookie_controller and "refresh_token" in st.session_state:
     try:
         expires_at = st.session_state.get("expires_at", time.time() + 3600)
         bundle = {
-            "access_token": st.session_state["access_token"],
             "refresh_token": st.session_state["refresh_token"],
             "expires_at": expires_at,
         }
-        local_storage.setItem(
+        cookie_controller.set(
             "cb_session",
             json.dumps(bundle),
-            key="ls_continuous_session",
+            path="/",
+            same_site="lax",
+            secure=True,
+            max_age=604800,
         )
-        local_storage.setItem("cb_page", page, key="ls_continuous_page")
+        cookie_controller.set(
+            "cb_page",
+            page,
+            path="/",
+            same_site="lax",
+            secure=True,
+            max_age=604800,
+        )
     except (StreamlitAPIException, Exception) as e:
         handle_storage_error(e)
 
@@ -565,11 +587,9 @@ if st.session_state.get("recovery_mode"):
                     except Exception:
                         pass
                     try:
-                        if local_storage:
-                            local_storage.deleteItem(
-                                "cb_session", key="ls_reset_del_sess"
-                            )
-                            local_storage.deleteItem("cb_page", key="ls_reset_del_page")
+                        if cookie_controller:
+                            cookie_controller.remove("cb_session")
+                            cookie_controller.remove("cb_page")
                     except (StreamlitAPIException, Exception) as e:
                         handle_storage_error(e)
 
@@ -620,6 +640,9 @@ if user and not user_meta.get("tour_seen", False):
 if page == "Login":
     st.title("CodeBreaker - Authentication")
     st.caption("Secure Access via Supabase Auth & Row Level Security (RLS)")
+    st.caption(
+        "Sessions reset on reload in this hosting tier — please log in to continue. Your work is always safe."
+    )
     st.markdown("---")
 
     auth_mode = st.radio("Mode", ["Log In", "Sign Up"], horizontal=True)

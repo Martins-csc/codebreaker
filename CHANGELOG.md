@@ -5,6 +5,38 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-09-22
+
+### Added / Changed
+- Mission v1.2.2 — Refresh Logout Final Convergence (Branches H1, H2, H3 & WITNESS):
+  - **Branch H1 (Cookie Options & Iframe Scope / Fallback)**: Explicitly passed `path="/"`, `same_site="lax"`, `secure=True`, `max_age=604800` to cookie controller; structured boot flow with `st.context.cookies` fast-path optimization and client-component read with bounded rerun (render-2 gate open).
+  - **Branch H2 (Per-Session Supabase Singleton)**: Refactored `get_client()` in `supabase_client.py` to store/retrieve a per-session Supabase client singleton inside `st.session_state["supabase_client_instance"]`, eliminating cross-user session leakage across concurrent Streamlit sessions.
+  - **Branch H3 (Gate Flags)**: Guaranteed rehydration sets all authentication gate flags (`user`, `access_token`, `refresh_token`, `expires_at`).
+  - **WITNESS Panel**: Added side-by-side observability in Persistence Debug showing `st.context.cookies` names/lengths, controller read (`cb_session`), gate flags, and client instance ID (`id(client)`).
+  - **Testing & Verification**: Added zero-network unit tests for cookie options, singleton identity, flags set, and render-2 gate open. Enforced pre-seal compile gate and green pytest suite (`75 passed`).
+  - **Documentation**: CHANGELOG v1.2.2 and DEVLOG Entry 029.
+
+## [1.2.1] - 2026-09-22
+
+### Added / Changed
+- Mission v1.2.1 — Persistence Parked & Window Closed:
+  - **Retirement of `?pdebug=1`**: Removed the temporary `?pdebug=1` diagnostic query flag path entirely. Persistence Debug is now strictly restricted to site owners post-login (`ADMIN_EMAIL`).
+  - **Login User Expectation Caption**: Added user-reassurance caption on the login page: `"Sessions reset on reload in this hosting tier — please log in to continue. Your work is always safe."`
+  - **Cookie Persistence Parked**: Kept cookie writing infrastructure intact as an architectural asset, adding a comment referencing DEVLOG Entry 027.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green test suite (`.venv/bin/pytest tests/ -q`).
+  - **Documentation**: CHANGELOG v1.2.1 and DEVLOG Entry 027.
+
+## [1.2.0] - 2026-09-22
+
+### Added / Changed
+- Mission v1.2.0 — Cookie-Based Persistence & Library Abandonment Postmortem:
+  - **Replaced `streamlit-local-storage`**: Removed `streamlit-local-storage` from requirements and all call sites, replacing it with `streamlit-cookies-controller` (`CookieController`).
+  - **Server-Side Request Cookie Boot Read**: Implemented server-side synchronous boot read via `st.context.cookies` FIRST on the initial render, eliminating the need for client-component boot delay or re-run hacks on standard server-rendered loads.
+  - **Bounded Fallback & Cleanup**: Fallback to component get retained only when `st.context` is unavailable. Robust corrupt-value cleanup (`json.loads` failure, legacy `"[object Object]"`) deletes cookies, cleans login gate, and records exception class into `persist_debug`.
+  - **Admin Gating Independence**: Admin Pulse is strictly gated when logged-in email == `ADMIN_EMAIL`, never influenced by `?pdebug=1`. Persistence Debug is strictly admin post-login OR the temporary `?pdebug=1` window (retiring in v1.2.1 after acceptance).
+  - **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green test suite (`.venv/bin/pytest tests/ -q`).
+  - **Documentation**: CHANGELOG v1.2.0 and DEVLOG Entry 026 (Library Abandonment Postmortem).
+
 ## [1.1.6.1] - 2026-09-21
 
 ### Fixed

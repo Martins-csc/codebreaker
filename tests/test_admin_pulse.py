@@ -74,8 +74,8 @@ def test_admin_pulse_admin_sees_counts():
     assert ("Engineering Logs", 150) in metrics_called
 
 
-def test_admin_pulse_non_admin_sees_nothing():
-    """Unit test with zero network: test that non-admin (non-matching email) does not see Admin Pulse metrics."""
+def test_admin_pulse_hidden_for_non_admin_with_pdebug_flag():
+    """Unit test: Admin Pulse is strictly when logged-in email == ADMIN_EMAIL, never influenced by ?pdebug=1."""
     mock_user = {
         "id": "user-456",
         "email": "regular@example.com",
@@ -95,11 +95,12 @@ def test_admin_pulse_non_admin_sees_nothing():
         from config import ADMIN_EMAIL
 
         user_email = mock_session_state["user"].get("email", "")
-        is_admin = bool(
+        # Admin pulse condition: strictly email match
+        is_admin_pulse = bool(
             ADMIN_EMAIL
             and user_email
             and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
         )
-        assert is_admin is False
+        assert is_admin_pulse is False
 
     assert len(metrics_called) == 0

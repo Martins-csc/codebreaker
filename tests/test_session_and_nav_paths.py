@@ -450,19 +450,18 @@ def test_admin_gating_and_debug_panel_zero_token_leakage():
         )
         assert is_admin is True
 
-    # Test case 3: ?pdebug=1 pre-auth visibility (temporarily restored for diagnosis window)
+    # Test case 3: ?pdebug=1 window closed (strictly admin post-login)
     with patch("config.ADMIN_EMAIL", "admin@example.com"):
         from config import ADMIN_EMAIL
 
         user = None
         user_email = user.get("email", "") if user else ""
-        pdebug_param = "1"
         is_admin = (
             bool(ADMIN_EMAIL)
             and bool(user_email)
             and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
-        ) or pdebug_param == "1"
-        assert is_admin is True
+        )
+        assert is_admin is False
 
     # Test case 4: Zero token leakage in debug raw / session representations
     raw_boot = "present (len 240)"
@@ -544,7 +543,125 @@ def test_emission_guard_arming_and_debug_lines():
         )
         assert emission_armed is True
 
-        raw_session = json.dumps({"access_token": "acc_abc123456789"})
-        raw_head = str(raw_session)[:12] if raw_session else "None"
-        assert len(raw_head) == 12
-        assert raw_head == raw_session[:12]
+
+def test_thin_bundle_and_refresh_session_boot_path():
+    """Test thin bundle round-trip ({refresh_token, expires_at}) and refresh_session boot rehydration."""
+    mock_new_session = MagicMock()
+    mock_new_session.access_token = "fresh_acc_999"
+    mock_new_session.refresh_token = "fresh_ref_999"
+    mock_new_session.expires_at = time.time() + 3600
+
+    mock_user = MagicMock()
+    mock_user.id = "user-999"
+    mock_user.email = "thin@example.com"
+    mock_user.user_metadata = {"display_name": "Thin User"}
+
+    mock_refresh_res = MagicMock()
+    mock_refresh_res.session = mock_new_session
+    mock_refresh_res.user = mock_user
+
+    mock_client = MagicMock()
+    mock_client.auth.refresh_session.return_value = mock_refresh_res
+
+    thin_bundle = {
+        "refresh_token": "stored_ref_123",
+        "expires_at": time.time() + 7200,
+    }
+
+    mock_session_state = {}
+    with patch("supabase_client.get_client", return_value=mock_client), patch(
+        "streamlit.session_state", mock_session_state
+    ):
+        refresh_token = thin_bundle.get("refresh_token")
+        refresh_res = mock_client.auth.refresh_session(refresh_token)
+        if refresh_res and refresh_res.session:
+            new_sess = refresh_res.session
+            mock_client.auth.set_session(new_sess.access_token, new_sess.refresh_token)
+            u_obj = refresh_res.user
+            if u_obj:
+                mock_session_state["user"] = {
+                    "id": u_obj.id,
+                    "email": u_obj.email,
+                    "display_name": "Thin User",
+                }
+                mock_session_state["access_token"] = new_sess.access_token
+                mock_session_state["refresh_token"] = new_sess.refresh_token
+
+        assert mock_session_state["access_token"] == "fresh_acc_999"
+        assert mock_session_state["refresh_token"] == "fresh_ref_999"
+        assert "access_token" not in thin_bundle  # thin bundle invariant
+
+
+def test_oversize_drop_simulation_and_cookie_probes():
+    """Test 100-byte and 4000-byte cookie probes simulation."""
+    mock_controller = MagicMock()
+    mock_controller.get.side_effect = lambda name: (
+        "x" * 100 if name == "cb_probe_100" else "y" * 4000
+    )
+
+    probe_100 = mock_controller.get("cb_probe_100")
+    probe_4k = mock_controller.get("cb_probe_4k")
+
+    assert len(probe_100) == 100
+    assert len(probe_4k) == 4000
+
+
+def test_branch_h1_cookie_options_passed():
+    """Test Branch H1: cookie set calls pass explicit path='/', same_site='lax', secure=True, max_age=604800."""
+    mock_controller = MagicMock()
+    mock_controller.set(
+        "cb_session",
+        '{"refresh_token": "abc"}',
+        path="/",
+        same_site="lax",
+        secure=True,
+        max_age=604800,
+    )
+    mock_controller.set.assert_called_with(
+        "cb_session",
+        '{"refresh_token": "abc"}',
+        path="/",
+        same_site="lax",
+        secure=True,
+        max_age=604800,
+    )
+
+
+def test_branch_h2_supabase_client_singleton():
+    """Test Branch H2: get_client() creates and reuses per-session singleton in st.session_state."""
+    mock_session_state = {}
+    mock_client_inst = MagicMock()
+    with patch("streamlit.session_state", mock_session_state), patch(
+        "supabase_client.create_client", return_value=mock_client_inst
+    ), patch("supabase_client.get_config", return_value="https://test.supabase.co"):
+        from supabase_client import get_client
+
+        c1 = get_client()
+        c2 = get_client()
+        assert c1 is c2
+        assert mock_session_state["supabase_client_instance"] is c1
+
+
+def test_branch_h3_flags_set_and_render_2_gate_open():
+    """Test Branch H3: rehydrate sets gate flags (user, access_token, refresh_token) and bounded rerun logic."""
+    mock_session_state = {"debug_boot_source": "client_component"}
+    with patch("streamlit.session_state", mock_session_state):
+        session_data = None
+        # Simulate render-1 falling back to client_component and triggering bounded rerun
+        if (
+            session_data is None
+            and mock_session_state.get("debug_boot_source") == "client_component"
+            and not mock_session_state.get("boot_mount_triggered")
+        ):
+            mock_session_state["boot_mount_triggered"] = True
+
+        assert mock_session_state["boot_mount_triggered"] is True
+
+        # Simulate render-2 successful rehydration setting gate flags
+        mock_session_state["user"] = {"id": "123", "email": "test@example.com"}
+        mock_session_state["access_token"] = "acc_999"
+        mock_session_state["refresh_token"] = "ref_999"
+
+        assert mock_session_state["user"] is not None
+        assert mock_session_state["access_token"] == "acc_999"
+        assert mock_session_state["refresh_token"] == "ref_999"

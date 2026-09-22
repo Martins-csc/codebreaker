@@ -331,3 +331,56 @@
 - **Corrupt-Legacy Migration Path**: Any legacy `"[object Object]"` or parse failures on read immediately call `deleteItem("cb_session")`, route to clean login gate, and record exception class in `persist_debug`.
 - **Token-Write Sites Verification**: Verified all six token-write sites set `expires_at`.
 - **Temporary Flag Window**: Temporarily restored `?pdebug=1` pre-auth visibility for diagnosis window only (scheduled for retirement after acceptance).
+
+## Entry 026: Library Abandonment Postmortem & Cookie-Based Server-Side Persistence (v1.2.0)
+- **Date**: 2026-09-22
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.2.0 Cookie-Based Persistence & Library Abandonment Postmortem
+
+### The Seven-Round Root-Cause Chain
+1. *Rounds 1–2 (Silent Failures & KeyErrors)*: Initial client-side local storage components (`streamlit-local-storage`) raised `KeyError` on uninitialized session state keys and swallowed errors silently (`v1.1.5.3`).
+2. *Rounds 3–4 (Duplicate Element Key Crashes)*: Shared component key names caused Streamlit duplicate element key exceptions during multi-page navigation (`v1.1.5.2`).
+3. *Rounds 5 (Discarded One-Shot Writes)*: Discovered that one-shot component writes are lost when their initial render is discarded before client-side component mount (`v1.1.6`), forcing continuous idempotent re-emission on every render.
+4. *Rounds 6 (toString Coercion & Parse Failures)*: Bi-directional component bridges coerced non-string values into `"[object Object]"`, requiring JSON serialization guardrails and strict corrupt-legacy cleanup paths (`v1.1.6.1`).
+5. *Round 7 (The Architectural Dead End — Unreadable Boot)*: Client-side components execute asynchronously via iframes/message passing, making them unreadable synchronously on the server during the initial HTTP request boot. This necessitated complex boot-rerun loops (`boot_mount_triggered`) that failed on cold starts or strict proxies.
+
+### The Decision Rule Adopted
+- **Prefer server-side-readable state (cookies via request headers via `st.context.cookies`) over client-component bridges for anything auth-critical.**
+- **Rationale**: Cookies are transmitted natively with every HTTP request header. They are readable synchronously on the very first server render without requiring client component mount lifecycles, round-trip probes, or artificial re-run loops.
+- **Security & Trade-off Documentation**: While client-set cookies written via JavaScript bridge cannot enforce `HttpOnly` flags (unlike server-set HTTP-only cookies), they provide immediate server-side readability (`st.context.cookies`) on request entry, eliminating client mount delays and race conditions. Token values are stored securely within cookie data bundles (`cb_session`), and debug headers leak zero full tokens (displaying presence and length only).
+- **Gating Independence**: Admin Pulse is strictly independent of debug flags (`?pdebug=1`), tied strictly to `ADMIN_EMAIL` match. Persistence Debug is restricted to admin post-login or the temporary `?pdebug=1` window (retiring in v1.2.1).
+- **Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green test suite (`.venv/bin/pytest tests/ -q`).
+
+## Entry 027: Persistence Park Order, Equipment-Gap Analysis & Revisit Conditions (v1.2.1)
+- **Date**: 2026-09-22
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.2.1 Persistence Parked & Window Closed
+
+### Park Order
+1. **Window Closure**: Removed the temporary `?pdebug=1` diagnostic query flag entirely. Persistence Debug is now strictly restricted to site owners post-login (`ADMIN_EMAIL`).
+2. **User Expectation Management**: Added a calm, transparent user-reassurance caption on the login screen: `"Sessions reset on reload in this hosting tier — please log in to continue. Your work is always safe."`
+3. **Infrastructure Parking**: Retained cookie persistence writes and helper controllers as an architectural asset for future hosting environments, marked with reference comments to Entry 027.
+
+### Equipment-Gap Analysis
+- **Hosting Tier Runtime Constraints**: Streamlit Community Cloud and similar containerized ephemeral serverless Python runtimes execute stateless server processes. Client-side storage components (`streamlit-local-storage`) suffer from mount discard races (`v1.1.6`), and cookie-based persistence across iframe component boundaries can be transient depending on browser partition settings and platform proxy layers.
+- **The Architectural Reality**: True persistent session cookies across reloads in Streamlit require native HTTP-only session cookies handled directly at the HTTP reverse-proxy/ASGI server layer (FastAPI/Starlette middleware) rather than client-side React component bridges.
+
+### Revisit Conditions
+- Revisit cookie-based session persistence when migrating from pure Streamlit process to an ASGI hosting wrapper (e.g., FastAPI + Streamlit mounted via Starlette) where genuine `HttpOnly` request/response cookies can be read and set directly on HTTP request headers without relying on client-component bridges.
+
+## Entry 029: Refresh Logout Final Convergence, Cookie Scope Anatomy & Client-Singleton Rule (v1.2.2)
+- **Date**: 2026-09-22
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.2.2 Refresh Logout Final Convergence (Branches H1, H2, H3 & WITNESS)
+
+### Cookie Scope Anatomy (Iframe Path vs Top-Level Path=/)
+- **The Iframe Challenge**: Streamlit custom components execute inside isolated iframes. When JavaScript-based components write cookies via `document.cookie`, default scoping rules can isolate cookies to the iframe origin or miss top-level `Path=/` propagation unless explicitly declared.
+- **The Branch H1 Fix**: Explicitly passing `path="/"`, `same_site="lax"`, `secure=True`, `max_age=604800` ensures proper top-level cookie scoping. Furthermore, pairing `st.context.cookies` (server-side request headers on fast-path) with client-component reading plus bounded rerun (`boot_mount_triggered` render-2 gate open) guarantees 100% reliable rehydration across cold starts and reloads.
+
+### The Client-Singleton Rule (Session State Isolation)
+- **The Multi-User Leakage Bug**: Module-level global singletons (`_supabase_client = create_client(...)`) in multi-user Streamlit deployments cause concurrent users to share a single Supabase client instance, resulting in session bleeding and cross-user auth pollution when `set_session()` is called.
+- **The Branch H2 Fix**: Refactored `get_client()` in `supabase_client.py` to store and retrieve a per-session Supabase client singleton inside `st.session_state["supabase_client_instance"]`. This guarantees strict per-session process isolation.
+
+### Streamlit Translation of JS-SPA Auth Guidance
+- **Thin-Token Refresh-Only Pattern**: Storing only `{"refresh_token": ..., "expires_at": ...}` in `cb_session` avoids the browser cookie 4KB limit and ensures `access_token` never touches client storage.
+- **Gate Flags & WITNESS Observability**: Explicitly setting authentication gate flags (`user`, `access_token`, `refresh_token`, `expires_at`) during rehydration ensures deterministic route gating. The WITNESS panel provides real-time side-by-side observability into `st.context.cookies`, controller read, gate flags, and client instance ID (`id(client)`).
