@@ -1,4 +1,6 @@
--- Mission v1.2.3: URL capability resume table and security-definer functions
+-- Mission v1.2.4 / Micro-Hotfix: URL capability resume table and security-definer functions
+-- Re-run safe: uses create table if not exists, create or replace function, and omits drop table.
+-- All function column references fully qualified with resume_sessions. to prevent Postgres 42702 ambiguities.
 
 create table if not exists public.resume_sessions (
     id uuid primary key default gen_random_uuid(),
@@ -15,12 +17,12 @@ alter table public.resume_sessions enable row level security;
 drop policy if exists "Users may select own resume sessions" on public.resume_sessions;
 create policy "Users may select own resume sessions"
     on public.resume_sessions for select
-    using (auth.uid() = user_id);
+    using (auth.uid() = resume_sessions.user_id);
 
 drop policy if exists "Users may delete own resume sessions" on public.resume_sessions;
 create policy "Users may delete own resume sessions"
     on public.resume_sessions for delete
-    using (auth.uid() = user_id);
+    using (auth.uid() = resume_sessions.user_id);
 
 create or replace function public.create_resume_token(
     uid uuid,
@@ -33,20 +35,20 @@ security definer
 set search_path = public
 as $$
 begin
-    -- Opportunistic prune of expired tokens
-    delete from public.resume_sessions where expires_at <= now();
+    -- Opportunistic prune of expired tokens (fully qualified column)
+    delete from public.resume_sessions where resume_sessions.expires_at <= now();
 
-    if token_hash is not null then
+    if create_resume_token.token_hash is not null then
         insert into public.resume_sessions (token_hash, user_id, refresh_token, expires_at)
-        values (token_hash, uid, refresh_token, expires_at)
+        values (create_resume_token.token_hash, create_resume_token.uid, create_resume_token.refresh_token, create_resume_token.expires_at)
         on conflict (token_hash) do update
-        set refresh_token = excluded.refresh_token,
-            expires_at = excluded.expires_at,
+        set resume_sessions.refresh_token = excluded.refresh_token,
+            resume_sessions.expires_at = excluded.expires_at,
             last_used_at = now();
     else
         -- If called with just uid and refresh_token, store with a generated hash or handle
         insert into public.resume_sessions (token_hash, user_id, refresh_token, expires_at)
-        values (gen_random_uuid()::text, uid, refresh_token, expires_at);
+        values (gen_random_uuid()::text, create_resume_token.uid, create_resume_token.refresh_token, create_resume_token.expires_at);
     end if;
 end;
 $$ language plpgsql;
@@ -64,7 +66,7 @@ set search_path = public
 as $$
 begin
     -- Prune expired tokens opportunistically
-    delete from public.resume_sessions where expires_at <= now();
+    delete from public.resume_sessions where resume_sessions.expires_at <= now();
 
     return query
     select rs.user_id, rs.refresh_token, rs.expires_at
@@ -88,7 +90,7 @@ security definer
 set search_path = public
 as $$
 begin
-    if uid is not null then
+    if revoke_resume_token.uid is not null then
         delete from public.resume_sessions
         where resume_sessions.token_hash = revoke_resume_token.token_hash 
           and resume_sessions.user_id = revoke_resume_token.uid;
@@ -105,6 +107,6 @@ security definer
 set search_path = public
 as $$
 begin
-    delete from public.resume_sessions where expires_at <= now();
+    delete from public.resume_sessions where resume_sessions.expires_at <= now();
 end;
 $$ language plpgsql;

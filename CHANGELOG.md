@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-09-23
+
+### Fixed
+- Micro-hotfix v1.2.4 — Postgres 42702 ambiguity in `resume_sessions` definer functions:
+  - **PL/pgSQL RETURNS TABLE Out-Params & Column Collisions**: PL/pgSQL `RETURNS TABLE` out-parameters act as local variables inside function bodies, causing Postgres error 42702 ("column reference is ambiguous") when unquoted/unqualified column names like `expires_at` match out-params/variables. Fully qualified all column references with `resume_sessions.` across all four security definer functions (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`, `prune_expired_resume_sessions`).
+  - **Re-Run Safe Migration**: Removed any DROP TABLE statements (retaining `create table if not exists` and `create or replace function`) so database re-runs never clear active sessions.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green pytest suite.
+  - **Documentation**: CHANGELOG v1.2.4 and Entry 030 addendum.
+
 ## [1.2.3] - 2026-09-22
 
 ### Added / Changed
