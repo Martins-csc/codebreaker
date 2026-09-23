@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-09-23
+
+### Fixed
+- Micro-hotfix v1.2.5 — 42702 on `"token_hash"` (PL/pgSQL parameter renaming class-wide):
+  - **Parameter & Out-Param Collision Class**: PL/pgSQL parameters and `RETURNS TABLE` out-parameters collide with table column names even on the comparison side of qualified expressions (`rs.token_hash = token_hash`).
+  - **Durable Fix (p_ prefix)**: Renamed ALL function parameters and `RETURNS TABLE` out-params with `p_` prefix (`p_token_hash`, `p_user_id`, `p_refresh_token`, `p_expires_at`, `p_uid`) across all four security-definer functions (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`, `prune_expired_resume_sessions`).
+  - **Variable_Conflict Pragmas Banned**: Enforced parameter renaming as the sole durable architectural fix (variable_conflict pragmas banned).
+  - **Re-Run Safe Migration**: Preserved re-run safety (omitting DROP TABLE).
+  - **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green pytest suite.
+  - **Documentation**: CHANGELOG v1.2.5 and Entry 030 addendum.
+
 ## [1.2.4] - 2026-09-23
 
 ### Fixed

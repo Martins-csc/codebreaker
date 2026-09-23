@@ -1,9 +1,9 @@
 # CodeBreaker Development Log
 
-## Entry 030: When Every Client-Storage Channel Fails: Capability URLs (v1.2.3 & v1.2.4 Micro-Hotfix)
+## Entry 030: When Every Client-Storage Channel Fails: Capability URLs (v1.2.3, v1.2.4 & v1.2.5 Micro-Hotfixes)
 - **Date**: 2026-09-22 / 2026-09-23
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
-- **Milestone**: v1.2.3 URL Capability Resume & v1.2.4 Postgres 42702 Ambiguity Hotfix
+- **Milestone**: v1.2.3 URL Capability Resume & v1.2.5 Postgres 42702 Parameter Renaming Hotfix
 
 ### Design Notes & Architectural Decisions
 1. **The Client Storage Dead-End**: Across v1.1.5 to v1.2.2, CodeBreaker investigated localStorage and cookies (`streamlit-local-storage`, `streamlit-cookies-controller`). While cookies improved server-side read access, browser cross-site tracking policies, iframe sandboxing, third-party storage restrictions, and state synchronization across reruns introduced persistent fragility.
@@ -14,10 +14,11 @@
    - **Short Expiry & Pruning**: Tokens expire after 7 days, with opportunistic pruning of expired rows.
    - **Zero Token Leakage in Debug**: Tokens are never logged or rendered in full; debug panels display only presence/absence and verify results.
 4. **SQL Schema & Security Definers**: Created `public.resume_sessions` with RLS (owners may select/delete own rows only) and security-definer functions (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`, `prune_expired_resume_sessions`).
-5. **v1.2.4 Micro-Hotfix (Postgres 42702 Ambiguity)**:
-   - **PL/pgSQL RETURNS TABLE Out-Params are Body Variables**: In PostgreSQL PL/pgSQL, `RETURNS TABLE` out-parameters act as local variables inside function bodies, causing Postgres error 42702 ("column reference is ambiguous") when unquoted/unqualified column names like `expires_at` match out-params/variables.
-   - **Remediation & Qualification**: Fully qualified all column references with `resume_sessions.` across all four security-definer functions (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`, `prune_expired_resume_sessions`).
-   - **Re-Run Safety**: Removed any DROP TABLE statements (`create table if not exists` and `create or replace function`) so database re-runs never clear active sessions.
+5. **v1.2.4 & v1.2.5 Micro-Hotfixes (Postgres 42702 Parameter Ambiguity)**:
+   - **The 42702 on "token_hash" Collision Class**: PL/pgSQL parameters and `RETURNS TABLE` out-parameters collide with table column names even on the comparison side of qualified expressions (`rs.token_hash = token_hash`).
+   - **Parameter Renaming as Durable Fix (`p_` prefix)**: Renamed ALL function parameters and `RETURNS TABLE` out-parameters with `p_` prefix (`p_token_hash`, `p_user_id`, `p_refresh_token`, `p_expires_at`, `p_uid`) across all four security-definer functions (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`, `prune_expired_resume_sessions`).
+   - **Variable_Conflict Pragmas Banned**: Established parameter renaming as the sole durable fix; `variable_conflict` pragmas are strictly banned.
+   - **Re-Run Safety**: Preserved re-run safety (omitting DROP TABLE).
    - **First Production Catch**: Caught by the degraded-caption visibility discipline and database migration verification.
 6. **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and comprehensive zero-network unit tests in `tests/test_url_capability_resume.py` plus the full pytest suite.
 
