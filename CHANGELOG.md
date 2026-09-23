@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2026-09-23
+
+### Fixed
+- Micro-hotfix v1.2.6 — RPC parameter-name drift:
+  - **API Contract Alignment**: Updated every RPC call site in `app.py` (`create_resume_token`, `verify_resume_token`, `revoke_resume_token`) to pass exactly the `p_`-prefixed parameter names (`p_uid`, `p_refresh_token`, `p_token_hash`, `p_expires_at`) as defined in `resume_sessions_migration.sql`.
+  - **Zero-Network Source-Consistency Test**: Added `tests/test_rpc_source_consistency.py` to statically parse migration function signatures and assert that every RPC parameter dictionary key in `app.py` matches its target database function.
+  - **API Change Governance**: Renaming DB function parameters is an API change; RPC callers migrate in the same release.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green test suite (`.venv/bin/pytest tests/ -q`).
+  - **Documentation**: CHANGELOG v1.2.6 and Entry 030 addendum.
+
 ## [1.2.5] - 2026-09-23
 
 ### Fixed

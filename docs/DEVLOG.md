@@ -22,6 +22,11 @@
    - **First Production Catch**: Caught by the degraded-caption visibility discipline and database migration verification.
 6. **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and comprehensive zero-network unit tests in `tests/test_url_capability_resume.py` plus the full pytest suite.
 
+### Entry 030 Addendum (v1.2.6 Micro-Hotfix — RPC Parameter-Name Drift)
+- **Renaming DB Function Parameters is an API Change**: Database function parameter names are part of the RPC API contract when passed via JSON dictionaries (`client.rpc("func", {"param": val})`).
+- **Same-Release Migration**: When definer parameters are updated (e.g., adding `p_` prefix for Postgres 42702 ambiguity resolution), all RPC caller sites in application code (`app.py`) must be migrated in the exact same release.
+- **Automated Source Consistency**: Instituted a zero-network source-consistency test (`tests/test_rpc_source_consistency.py`) that statically parses SQL migration function signatures and asserts that every RPC params dict key in `app.py` matches its target database function.
+
 ## Entry 022: Duplicate Widget Key Outage & Framework Exception Isolation (v1.1.5.1)
 - **Date**: 2026-09-20
 - **Author**: Engineering Team / Builder, Tester & Reviewer Agents

@@ -29,10 +29,10 @@ def mint_and_set_rt(client, user_id, refresh_token):
         client.rpc(
             "create_resume_token",
             {
-                "uid": user_id,
-                "refresh_token": refresh_token,
-                "token_hash": token_hash,
-                "expires_at": expires_at.isoformat(),
+                "p_uid": user_id,
+                "p_refresh_token": refresh_token,
+                "p_token_hash": token_hash,
+                "p_expires_at": expires_at.isoformat(),
             },
         ).execute()
         st.query_params["rt"] = token
@@ -56,7 +56,7 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
             token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
             try:
                 verify_res = client.rpc(
-                    "verify_resume_token", {"token_hash": token_hash}
+                    "verify_resume_token", {"p_token_hash": token_hash}
                 ).execute()
                 verify_data = getattr(verify_res, "data", [])
             except Exception:
@@ -118,13 +118,16 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                 try:
                                     client.rpc(
                                         "revoke_resume_token",
-                                        {"token_hash": token_hash, "uid": user_obj.id},
+                                        {
+                                            "p_token_hash": token_hash,
+                                            "p_uid": user_obj.id,
+                                        },
                                     ).execute()
                                 except Exception:
                                     try:
                                         client.rpc(
                                             "revoke_resume_token",
-                                            {"token_hash": token_hash},
+                                            {"p_token_hash": token_hash},
                                         ).execute()
                                     except Exception:
                                         pass
@@ -140,10 +143,10 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                     client.rpc(
                                         "create_resume_token",
                                         {
-                                            "uid": user_obj.id,
-                                            "refresh_token": new_sess.refresh_token,
-                                            "token_hash": new_hash,
-                                            "expires_at": new_expires.isoformat(),
+                                            "p_uid": user_obj.id,
+                                            "p_refresh_token": new_sess.refresh_token,
+                                            "p_token_hash": new_hash,
+                                            "p_expires_at": new_expires.isoformat(),
                                         },
                                     ).execute()
                                 except Exception:
@@ -336,7 +339,9 @@ if user:
                 rt_param = rt_param[0] if rt_param else None
             if rt_param:
                 token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
-                client.rpc("revoke_resume_token", {"token_hash": token_hash}).execute()
+                client.rpc(
+                    "revoke_resume_token", {"p_token_hash": token_hash}
+                ).execute()
         except Exception:
             pass
         try:
@@ -430,7 +435,7 @@ if st.session_state.get("recovery_mode"):
                                 rt_param.encode("utf-8")
                             ).hexdigest()
                             client.rpc(
-                                "revoke_resume_token", {"token_hash": token_hash}
+                                "revoke_resume_token", {"p_token_hash": token_hash}
                             ).execute()
                     except Exception:
                         pass

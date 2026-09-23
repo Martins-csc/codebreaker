@@ -49,7 +49,7 @@ def test_url_capability_resume_mint_and_verify():
         token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
 
         res = mock_client.rpc(
-            "verify_resume_token", {"token_hash": token_hash}
+            "verify_resume_token", {"p_token_hash": token_hash}
         ).execute()
         verify_data = res.data
         assert len(verify_data) == 1
@@ -76,7 +76,7 @@ def test_url_capability_resume_rotation_on_boot():
 
         # Revoke old
         mock_client.rpc(
-            "revoke_resume_token", {"token_hash": old_hash, "uid": "user-123"}
+            "revoke_resume_token", {"p_token_hash": old_hash, "p_uid": "user-123"}
         ).execute()
 
         # Mint new
@@ -85,10 +85,10 @@ def test_url_capability_resume_rotation_on_boot():
         mock_client.rpc(
             "create_resume_token",
             {
-                "uid": "user-123",
-                "refresh_token": "ref_123",
-                "token_hash": new_hash,
-                "expires_at": (
+                "p_uid": "user-123",
+                "p_refresh_token": "ref_123",
+                "p_token_hash": new_hash,
+                "p_expires_at": (
                     datetime.now(timezone.utc) + timedelta(days=7)
                 ).isoformat(),
             },
@@ -98,7 +98,7 @@ def test_url_capability_resume_rotation_on_boot():
 
         assert mock_query_params["rt"] != old_rt
         mock_client.rpc.assert_any_call(
-            "revoke_resume_token", {"token_hash": old_hash, "uid": "user-123"}
+            "revoke_resume_token", {"p_token_hash": old_hash, "p_uid": "user-123"}
         )
         mock_client.rpc.assert_any_call("create_resume_token", ANY)
 
@@ -120,7 +120,7 @@ def test_url_capability_resume_expired_token_clean_login_gate():
         rt_param = mock_query_params.get("rt")
         token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
         res = mock_client.rpc(
-            "verify_resume_token", {"token_hash": token_hash}
+            "verify_resume_token", {"p_token_hash": token_hash}
         ).execute()
 
         if not res.data:
@@ -145,7 +145,9 @@ def test_url_capability_resume_sign_out_clears_param_and_revokes():
         rt_param = mock_query_params.get("rt")
         if rt_param:
             token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
-            mock_client.rpc("revoke_resume_token", {"token_hash": token_hash}).execute()
+            mock_client.rpc(
+                "revoke_resume_token", {"p_token_hash": token_hash}
+            ).execute()
 
         mock_client.auth.sign_out()
         if "rt" in mock_query_params:
@@ -154,7 +156,7 @@ def test_url_capability_resume_sign_out_clears_param_and_revokes():
 
         mock_client.rpc.assert_called_with(
             "revoke_resume_token",
-            {"token_hash": hashlib.sha256(b"active_token_999").hexdigest()},
+            {"p_token_hash": hashlib.sha256(b"active_token_999").hexdigest()},
         )
         mock_client.auth.sign_out.assert_called_once()
         assert "rt" not in mock_query_params
