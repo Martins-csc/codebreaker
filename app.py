@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import streamlit as st
+
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -62,10 +63,16 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
             except Exception:
                 verify_data = []
 
-            if verify_data and len(verify_data) > 0:
+            v_len = len(verify_data)
+            if verify_data and v_len > 0:
                 row = verify_data[0]
+                r_keys = sorted(list(row.keys()))
                 refresh_token = row.get("refresh_token")
                 user_id = row.get("user_id")
+                has_rt = bool(refresh_token)
+                st.session_state["boot_debug"] = (
+                    f"len={v_len}, keys={r_keys}, has_rt={has_rt}"
+                )
                 if refresh_token:
                     restored = False
                     try:
@@ -152,27 +159,46 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                 except Exception:
                                     pass
                                 st.query_params["rt"] = new_token
-                    except Exception:
+                    except Exception as e:
+                        ex_msg = repr(e)[:200]
+                        st.session_state["boot_debug"] = (
+                            f"len={v_len}, keys={r_keys}, has_rt={has_rt}, ex={ex_msg}"
+                        )
                         restored = False
 
-                    if not restored:
+                    if restored:
+                        st.session_state["boot_debug"] = (
+                            f"len={v_len}, keys={r_keys}, has_rt={has_rt}, restored=True"
+                        )
+                    else:
+                        if "ex=" not in st.session_state["boot_debug"]:
+                            st.session_state["boot_debug"] = (
+                                f"len={v_len}, keys={r_keys}, has_rt={has_rt}"
+                            )
+                        st.session_state["boot_debug"] += ", restored=False"
                         st.session_state["last_verify_result"] = "Refresh failed"
                         if "rt" in st.query_params:
                             del st.query_params["rt"]
                 else:
+                    st.session_state["boot_debug"] = (
+                        f"len={v_len}, keys={r_keys}, has_rt={has_rt}, restored=False"
+                    )
                     st.session_state["last_verify_result"] = (
                         "No refresh token in record"
                     )
                     if "rt" in st.query_params:
                         del st.query_params["rt"]
             else:
+                st.session_state["boot_debug"] = f"len={v_len}, restored=False"
                 st.session_state["last_verify_result"] = "Token not found or expired"
                 if "rt" in st.query_params:
                     del st.query_params["rt"]
         else:
+            st.session_state["boot_debug"] = "None"
             st.session_state["last_verify_result"] = "None"
     except Exception as e:
         handle_storage_error(e)
+        st.session_state["boot_debug"] = f"exception={repr(e)[:200]}"
         if "rt" in st.query_params:
             del st.query_params["rt"]
 
@@ -491,6 +517,9 @@ if user and not user_meta.get("tour_seen", False):
             st.rerun()
 
 if page == "Login":
+    boot_debug = st.session_state.get("boot_debug", "")
+    if user is None and boot_debug and boot_debug != "None":
+        st.caption(f"BOOT-WITNESS: {boot_debug}")  # TEMP-BOOT-WITNESS
     st.title("CodeBreaker - Authentication")
     st.caption("Secure Access via Supabase Auth & Row Level Security (RLS)")
     st.caption(
