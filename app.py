@@ -65,7 +65,7 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
 
             v_len = len(verify_data)
             if verify_data and v_len > 0:
-                row = verify_data[0]
+                row = verify_data[0] if isinstance(verify_data, list) else verify_data
                 r_keys = sorted(list(row.keys()))
                 refresh_token = row.get("refresh_token")
                 user_id = row.get("user_id")
