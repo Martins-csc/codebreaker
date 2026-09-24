@@ -414,6 +414,8 @@ else:
 _pg = st.query_params.get("pg")
 if isinstance(_pg, list):
     _pg = _pg[0] if _pg else None
+if not st.session_state.get("user"):
+    _pg = None
 default_index = options.index(_pg) if _pg in options else 0
 page = st.sidebar.radio("Navigation", options, index=default_index)
 if st.session_state.get("user"):
