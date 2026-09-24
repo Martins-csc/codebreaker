@@ -202,10 +202,6 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
         if "rt" in st.query_params:
             del st.query_params["rt"]
 
-# TEMP-BOOT-WITNESS (remove in v1.2.9)
-if st.session_state.get("user") is None and st.session_state.get("last_verify_result") not in (None, "None", ""):
-    st.caption("BOOT-WITNESS: " + str(st.session_state.get("last_verify_result")))
-
 # Ensure Supabase client session is restored if access_token is in session_state
 try:
     client = get_client()
