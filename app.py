@@ -416,8 +416,11 @@ if isinstance(_pg, list):
     _pg = _pg[0] if _pg else None
 default_index = options.index(_pg) if _pg in options else 0
 page = st.sidebar.radio("Navigation", options, index=default_index)
-if page != _pg:
-    st.query_params["pg"] = page
+if st.session_state.get("user"):
+    if page != _pg:
+        st.query_params["pg"] = page
+elif "pg" in st.query_params:
+    del st.query_params["pg"]
 
 # Handle password recovery mode return
 if st.session_state.get("recovery_mode"):
