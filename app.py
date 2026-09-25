@@ -5,7 +5,6 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import streamlit as st
-
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -202,7 +201,7 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
         if "rt" in st.query_params:
             del st.query_params["rt"]
 
-# Ensure Supabase client session is restored if access_token is in session_state
+# Ensure client session is restored if access_token is in session_state
 try:
     client = get_client()
 
@@ -330,236 +329,30 @@ try:
 except ConfigError as ce:
     st.error(f"Configuration Error: {ce}")
 
-# Sidebar Navigation & Auth State
-st.sidebar.title("CodeBreaker Navigation")
-if st.session_state.get("persist_debug"):
-    st.sidebar.caption(f"persistence: degraded — {st.session_state['persist_debug']}")
-
 user = st.session_state.get("user")
-user_email = user.get("email", "") if user else ""
-
-is_admin = (
-    bool(ADMIN_EMAIL)
-    and bool(user_email)
-    and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
-)
-
-if is_admin:
-    with st.sidebar.expander(
-        "Persistence Debug", expanded=False, key="persistence_debug_expander"
-    ):
-        rt_present = bool(st.query_params.get("rt"))
-        last_verify = st.session_state.get("last_verify_result", "None")
-        gate_flags = f"user={bool(user)}, access_token={bool(st.session_state.get('access_token'))}, refresh_token={bool(st.session_state.get('refresh_token'))}"
-
-        st.write(f"**RT Present**: {rt_present}")
-        st.write(f"**Last Verify Result**: {last_verify}")
-        st.write(f"**Gate Flags**: {gate_flags}")
-
-if user:
-    st.sidebar.success(f"Logged in as: {user.get('display_name') or user.get('email')}")
-    if st.sidebar.button("Sign Out"):
-        try:
-            rt_param = st.query_params.get("rt")
-            if isinstance(rt_param, list):
-                rt_param = rt_param[0] if rt_param else None
-            if rt_param:
-                token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
-                client.rpc(
-                    "revoke_resume_token", {"p_token_hash": token_hash}
-                ).execute()
-        except Exception:
-            pass
-        try:
-            client.auth.sign_out()
-        except Exception:
-            pass
-        if "rt" in st.query_params:
-            del st.query_params["rt"]
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.success("Signed out successfully.")
-        st.rerun()
-
-    user_email = user.get("email", "")
-    if (
-        ADMIN_EMAIL
-        and user_email
-        and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
-    ):
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("🛡️ Admin Pulse")
-        try:
-            client = get_client()
-            if "access_token" in st.session_state:
-                client.auth.set_session(
-                    st.session_state["access_token"],
-                    st.session_state.get("refresh_token", ""),
-                )
-            res_users = client.rpc("count_registered_users").execute()
-            users_count = getattr(res_users, "data", 0)
-
-            res_logs = client.rpc("count_engineering_logs").execute()
-            logs_count = getattr(res_logs, "data", 0)
-
-            st.sidebar.metric("Registered Users", users_count)
-            st.sidebar.metric("Engineering Logs", logs_count)
-        except Exception as e:
-            st.sidebar.warning(f"Could not load Admin Pulse: {e}")
-
-    options = ["Home", "Analyze", "Blueprint", "Engineering Log", "About"]
-else:
-    options = ["Login", "Home", "About"]
-
-_pg = st.query_params.get("pg")
-if isinstance(_pg, list):
-    _pg = _pg[0] if _pg else None
-if not st.session_state.get("user"):
-    _pg = None
-default_index = options.index(_pg) if _pg in options else 0
-page = st.sidebar.radio("Navigation", options, index=default_index)
-if st.session_state.get("user"):
-    if page != _pg:
-        st.query_params["pg"] = page
-elif "pg" in st.query_params:
-    del st.query_params["pg"]
-
-# Handle password recovery mode return
-if st.session_state.get("recovery_mode"):
-    st.title("CodeBreaker - Set New Password")
-    st.caption("Enter your new password below.")
-    st.markdown("---")
-
-    with st.form("set_new_password_form"):
-        new_pwd = st.text_input(
-            "New Password", type="password", placeholder="", key="reset_pw_new"
-        )
-        confirm_pwd = st.text_input(
-            "Confirm New Password",
-            type="password",
-            placeholder="",
-            key="reset_pw_confirm",
-        )
-        update_submitted = st.form_submit_button(
-            "Update Password", key="reset_submit_btn"
-        )
-
-    if update_submitted:
-        if not new_pwd.strip():
-            st.error("Password cannot be empty.")
-        elif new_pwd != confirm_pwd:
-            st.error("Passwords do not match.")
-        else:
-            pwd_valid, pwd_err = validate_password(new_pwd)
-            if not pwd_valid:
-                st.error(pwd_err)
-            else:
-                try:
-                    client = get_client()
-                    if "access_token" in st.session_state:
-                        client.auth.set_session(
-                            st.session_state["access_token"],
-                            st.session_state.get("refresh_token", ""),
-                        )
-                    client.auth.update_user({"password": new_pwd})
-                    try:
-                        rt_param = st.query_params.get("rt")
-                        if isinstance(rt_param, list):
-                            rt_param = rt_param[0] if rt_param else None
-                        if rt_param:
-                            token_hash = hashlib.sha256(
-                                rt_param.encode("utf-8")
-                            ).hexdigest()
-                            client.rpc(
-                                "revoke_resume_token", {"p_token_hash": token_hash}
-                            ).execute()
-                    except Exception:
-                        pass
-                    try:
-                        client.auth.sign_out()
-                    except Exception:
-                        pass
-                    if "rt" in st.query_params:
-                        del st.query_params["rt"]
-
-                    for key in list(st.session_state.keys()):
-                        del st.session_state[key]
-
-                    st.success(
-                        "Password updated successfully! Please log in with your new password."
-                    )
-                    st.session_state["password_reset_success"] = True
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to update password: {e}")
-    st.stop()
-
-# Auth gate for all modules except Login and About
-if page not in ["Login", "About"] and not user:
-    st.warning("Please log in or sign up to access CodeBreaker modules.")
-    st.stop()
-
-# First-run onboarding tour for authenticated sessions
-user = st.session_state.get("user")
-user_meta = user.get("user_metadata", {}) if user else {}
-if user and not user_meta.get("tour_seen", False):
-    with st.expander(
-        "👋 Welcome to CodeBreaker — First-Run Onboarding Tour", expanded=True
-    ):
-        st.markdown(
-            "1. **Analyze**: Describe any project idea to generate an AI-driven blueprint.\n"
-            "2. **Blueprint**: Explore the 5 tabs and export your spec in 4 formats.\n"
-            "3. **Engineering Log**: Record progress, bugs, and learnings."
-        )
-        if st.button("Got it", key="tour_got_it_btn"):
-            try:
-                client = get_client()
-                if "access_token" in st.session_state:
-                    client.auth.set_session(
-                        st.session_state["access_token"],
-                        st.session_state.get("refresh_token", ""),
-                    )
-                client.auth.update_user({"data": {"tour_seen": True}})
-            except Exception:
-                pass
-            user_meta["tour_seen"] = True
-            st.session_state["user"]["user_metadata"] = user_meta
+if not user:
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.session_state.get("auth_view"):
+        if st.button("← Back to overview", key="auth_back_to_overview"):
+            del st.session_state["auth_view"]
             st.rerun()
 
-if page == "Login":
-    boot_debug = st.session_state.get("boot_debug", "")
-    if user is None and boot_debug and boot_debug != "None":
-        st.caption(f"BOOT-WITNESS: {boot_debug}")  # TEMP-BOOT-WITNESS
-    st.title("CodeBreaker - Authentication")
-    st.caption("Secure Access via Supabase Auth & Row Level Security (RLS)")
-    st.caption(
-        "Sessions reset on reload in this hosting tier — please log in to continue. Your work is always safe."
-    )
-    st.markdown("---")
+        st.markdown("---")
+        with st.container():
+            st.subheader("Account Access")
+            auth_mode = st.radio(
+                "Mode", ["Log In", "Sign Up"], horizontal=True, key="auth_card_mode"
+            )
 
-    auth_mode = st.radio("Mode", ["Log In", "Sign Up"], horizontal=True)
-
-    col1, col2 = st.columns([1, 1], gap="large")
-
-    with col1:
-        if auth_mode == "Sign Up":
-            st.subheader("Create a New Account")
-            import time
-
-            cooldown_until = st.session_state.get("signup_cooldown_until", 0)
-            cooldown_active = time.time() < cooldown_until
-            if cooldown_active:
-                remaining = int(cooldown_until - time.time())
-                if remaining > 0:
-                    st.warning(
-                        f"Signup temporarily disabled due to recent failed attempt. Please wait {remaining}s."
-                    )
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    cooldown_active = False
-
-            # Scoped CSS to hide any default form submit hint / character counter remnants
             st.markdown(
                 """
                 <style>
@@ -571,186 +364,54 @@ if page == "Login":
                 unsafe_allow_html=True,
             )
 
-            with st.form("signup_form"):
-                signup_email = st.text_input(
-                    "Email", placeholder="you@example.com", key="signup_email"
-                )
-                signup_password = st.text_input(
-                    "Password",
-                    type="password",
-                    placeholder="",
-                    key="signup_pw",
-                )
-                signup_display_name = st.text_input(
-                    "Display Name", placeholder="", key="signup_display_name"
-                )
-                signup_submitted = st.form_submit_button(
-                    "Sign Up", disabled=cooldown_active, key="signup_submit_btn"
-                )
-
-            if time.time() < st.session_state.get("signup_cooldown_until", 0):
-                st.error(
-                    "Please wait for the cooldown timer to expire before trying again."
-                )
-            elif signup_submitted:
-                if not signup_email.strip():
-                    st.session_state["signup_cooldown_until"] = time.time() + 30
-                    st.error("Email cannot be empty.")
-                elif not signup_password.strip():
-                    st.session_state["signup_cooldown_until"] = time.time() + 30
-                    st.error("Password cannot be empty.")
-                else:
-                    email_format_valid, email_format_err = validate_email(
-                        signup_email.strip()
-                    )
-                    email_len_valid, email_len_err = validate_input_length(
-                        "email", signup_email.strip()
-                    )
-                    pwd_valid, pwd_err = validate_password(signup_password)
-                    name_valid, name_err = validate_input_length(
-                        "display_name", signup_display_name.strip()
-                    )
-
-                    if not email_len_valid:
-                        st.session_state["signup_cooldown_until"] = time.time() + 30
-                        st.error(email_len_err)
-                    elif not email_format_valid:
-                        st.session_state["signup_cooldown_until"] = time.time() + 30
-                        st.error(email_format_err)
-                    elif not pwd_valid:
-                        st.session_state["signup_cooldown_until"] = time.time() + 30
-                        st.error(pwd_err)
-                    elif not name_valid:
-                        st.session_state["signup_cooldown_until"] = time.time() + 30
-                        st.error(name_err)
-                    else:
-                        try:
-                            client = get_client()
-                            res = client.auth.sign_up(
-                                {
-                                    "email": signup_email.strip(),
-                                    "password": signup_password.strip(),
-                                    "options": {
-                                        "data": {
-                                            "display_name": signup_display_name.strip()
-                                        }
-                                    },
-                                }
-                            )
-                            user_obj = getattr(res, "user", None)
-                            session_obj = getattr(res, "session", None)
-
-                            if user_obj:
-                                identities = getattr(user_obj, "identities", None)
-                                confirmed_at = getattr(user_obj, "confirmed_at", None)
-
-                                if identities is not None and len(identities) == 0:
-                                    st.warning(
-                                        "This email is already linked to an account. Please log in or reset your password."
-                                    )
-                                elif (
-                                    not identities
-                                    or confirmed_at is None
-                                    or not session_obj
-                                ):
-                                    st.info("Check your email to confirm your account")
-                                    st.success(
-                                        f"Confirmation email sent to {signup_email.strip()}. Check your inbox (and spam folder)."
-                                    )
-                                    st.session_state["unconfirmed_email"] = (
-                                        signup_email.strip()
-                                    )
-                                else:
-                                    display_name = (
-                                        signup_display_name.strip()
-                                        or signup_email.strip().split("@")[0]
-                                    )
-                                    user_metadata = (
-                                        getattr(user_obj, "user_metadata", {}) or {}
-                                    )
-                                    st.session_state["user"] = {
-                                        "id": user_obj.id,
-                                        "email": user_obj.email,
-                                        "display_name": display_name,
-                                        "user_metadata": user_metadata,
-                                    }
-                                    st.session_state["access_token"] = (
-                                        session_obj.access_token
-                                    )
-                                    st.session_state["refresh_token"] = (
-                                        session_obj.refresh_token
-                                    )
-                                    st.session_state["expires_at"] = getattr(
-                                        session_obj, "expires_at", time.time() + 3600
-                                    )
-                                    client.auth.set_session(
-                                        session_obj.access_token,
-                                        session_obj.refresh_token,
-                                    )
-                                    mint_and_set_rt(
-                                        client, user_obj.id, session_obj.refresh_token
-                                    )
-                                    st.success(
-                                        "Account created and logged in successfully!"
-                                    )
-                                    st.rerun()
-                        except Exception as e:
-                            if (
-                                type(e).__name__.startswith("Streamlit")
-                                or "DuplicateElementKey" in type(e).__name__
-                            ):
-                                raise
-                            # Set 30s cooldown on failed signup attempt
-                            st.session_state["signup_cooldown_until"] = time.time() + 30
-                            # NOTE: Server-side rate limits remain Supabase's job (platform layer already enforced).
-                            err_str = str(e)
-                            if (
-                                "already registered" in err_str.lower()
-                                or "already exists" in err_str.lower()
-                            ):
-                                st.warning(
-                                    "This email is already linked to an account. Please log in or reset your password."
-                                )
-                            else:
-                                st.error(f"Sign-up failed: {err_str}")
-
-        else:
-            st.subheader("Log In to Your Account")
-            st.markdown(
-                """
-                <style>
-                .stForm [data-testid="InputInstructions"], div[data-baseweb="input"] + div {
-                    display: none !important;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
+            auth_email = st.text_input(
+                "Email", placeholder="you@example.com", key="auth_card_email"
             )
-            with st.form("login_form"):
-                login_email = st.text_input(
-                    "Email", placeholder="you@example.com", key="login_email"
+            auth_password = st.text_input(
+                "Password", type="password", placeholder="", key="auth_card_password"
+            )
+
+            auth_display_name = ""
+            if auth_mode == "Sign Up":
+                auth_display_name = st.text_input(
+                    "Display Name", placeholder="", key="auth_card_display_name"
                 )
-                login_password = st.text_input(
-                    "Password", type="password", placeholder="", key="login_pw"
-                )
-                col_lf1, col_lf2 = st.columns(2)
-                with col_lf1:
-                    login_submitted = st.form_submit_button(
-                        "Log In", key="login_submit_btn"
+
+            col_b1, col_b2 = st.columns(2)
+            if auth_mode == "Log In":
+                with col_b1:
+                    login_submitted = st.button(
+                        "Log In",
+                        type="primary",
+                        use_container_width=True,
+                        key="card_login_btn",
                     )
-                with col_lf2:
-                    forgot_submitted = st.form_submit_button(
-                        "Forgot Password", key="forgot_submit_btn"
+                with col_b2:
+                    forgot_submitted = st.button(
+                        "Forgot Password",
+                        use_container_width=True,
+                        key="card_forgot_btn",
+                    )
+                signup_submitted = False
+            else:
+                login_submitted = False
+                forgot_submitted = False
+                with col_b1:
+                    signup_submitted = st.button(
+                        "Sign Up",
+                        type="primary",
+                        use_container_width=True,
+                        key="card_signup_btn",
                     )
 
             if login_submitted:
-                if not login_email.strip():
+                if not auth_email.strip():
                     st.error("Email cannot be empty.")
-                elif not login_password.strip():
+                elif not auth_password.strip():
                     st.error("Password cannot be empty.")
                 else:
                     email_format_valid, email_format_err = validate_email(
-                        login_email.strip()
+                        auth_email.strip()
                     )
                     if not email_format_valid:
                         st.error(email_format_err)
@@ -759,8 +420,8 @@ if page == "Login":
                             client = get_client()
                             res = client.auth.sign_in_with_password(
                                 {
-                                    "email": login_email.strip(),
-                                    "password": login_password.strip(),
+                                    "email": auth_email.strip(),
+                                    "password": auth_password.strip(),
                                 }
                             )
                             user_obj = getattr(res, "user", None)
@@ -772,7 +433,7 @@ if page == "Login":
                             ):
                                 st.info("Check your email to confirm your account")
                                 st.session_state["unconfirmed_email"] = (
-                                    login_email.strip()
+                                    auth_email.strip()
                                 )
                                 st.error(
                                     "Email not confirmed. Please check your email to confirm your account."
@@ -808,30 +469,18 @@ if page == "Login":
                                     client, user_obj.id, res.session.refresh_token
                                 )
                                 st.success("Logged in successfully!")
+                                del st.session_state["auth_view"]
                                 st.rerun()
                         except Exception as e:
-                            if (
-                                type(e).__name__.startswith("Streamlit")
-                                or "DuplicateElementKey" in type(e).__name__
-                            ):
-                                raise
                             err_str = str(e)
-                            if (
-                                "not confirmed" in err_str.lower()
-                                or "email not confirmed" in err_str.lower()
-                            ):
+                            if "not confirmed" in err_str.lower():
                                 st.info("Check your email to confirm your account")
-                                st.session_state["unconfirmed_email"] = (
-                                    login_email.strip()
-                                )
                                 st.error(
                                     "Email not confirmed. Please check your email to confirm your account."
                                 )
                             elif (
                                 "invalid" in err_str.lower()
                                 or "credentials" in err_str.lower()
-                                or "password" in err_str.lower()
-                                or "unauthorized" in err_str.lower()
                             ):
                                 st.error(
                                     "Invalid email or password. Please check your credentials."
@@ -840,10 +489,10 @@ if page == "Login":
                                 st.error(f"Login failed: {err_str}")
 
             elif forgot_submitted:
-                if not login_email.strip():
+                if not auth_email.strip():
                     st.error("Email cannot be empty.")
                 else:
-                    email_valid, email_err = validate_email(login_email.strip())
+                    email_valid, email_err = validate_email(auth_email.strip())
                     if not email_valid:
                         st.error(email_err)
                     else:
@@ -856,7 +505,7 @@ if page == "Login":
                                 redirect_to = "http://localhost:8501"
 
                             client.auth.reset_password_for_email(
-                                login_email.strip(),
+                                auth_email.strip(),
                                 options={"redirect_to": redirect_to},
                             )
                         except Exception:
@@ -866,40 +515,315 @@ if page == "Login":
                             "If an account exists for that email, a reset link is on its way."
                         )
 
-    with col2:
-        st.subheader("GitHub Authentication")
-        st.write("Continue securely via GitHub OAuth. Supabase mediates the handshake.")
-        st.markdown("")
+            elif signup_submitted:
+                if not auth_email.strip():
+                    st.error("Email cannot be empty.")
+                elif not auth_password.strip():
+                    st.error("Password cannot be empty.")
+                else:
+                    email_format_valid, email_format_err = validate_email(
+                        auth_email.strip()
+                    )
+                    email_len_valid, email_len_err = validate_input_length(
+                        "email", auth_email.strip()
+                    )
+                    pwd_valid, pwd_err = validate_password(auth_password)
+                    name_valid, name_err = validate_input_length(
+                        "display_name", auth_display_name.strip()
+                    )
 
-        redirect_to = getattr(st.context, "url", None)
-        if redirect_to:
-            redirect_to = redirect_to.split("?")[0]
-        else:
-            redirect_to = "http://localhost:8501"
+                    if not email_len_valid:
+                        st.error(email_len_err)
+                    elif not email_format_valid:
+                        st.error(email_format_err)
+                    elif not pwd_valid:
+                        st.error(pwd_err)
+                    elif not name_valid:
+                        st.error(name_err)
+                    else:
+                        try:
+                            client = get_client()
+                            res = client.auth.sign_up(
+                                {
+                                    "email": auth_email.strip(),
+                                    "password": auth_password.strip(),
+                                    "options": {
+                                        "data": {
+                                            "display_name": auth_display_name.strip()
+                                        }
+                                    },
+                                }
+                            )
+                            user_obj = getattr(res, "user", None)
+                            session_obj = getattr(res, "session", None)
 
+                            if user_obj:
+                                identities = getattr(user_obj, "identities", None)
+                                confirmed_at = getattr(user_obj, "confirmed_at", None)
+
+                                if identities is not None and len(identities) == 0:
+                                    st.warning(
+                                        "This email is already linked to an account. Please log in or reset your password."
+                                    )
+                                elif (
+                                    not identities
+                                    or confirmed_at is None
+                                    or not session_obj
+                                ):
+                                    st.info("Check your email to confirm your account")
+                                    st.success(
+                                        f"Confirmation email sent to {auth_email.strip()}. Check your inbox."
+                                    )
+                                else:
+                                    display_name = (
+                                        auth_display_name.strip()
+                                        or auth_email.strip().split("@")[0]
+                                    )
+                                    user_metadata = (
+                                        getattr(user_obj, "user_metadata", {}) or {}
+                                    )
+                                    st.session_state["user"] = {
+                                        "id": user_obj.id,
+                                        "email": user_obj.email,
+                                        "display_name": display_name,
+                                        "user_metadata": user_metadata,
+                                    }
+                                    st.session_state["access_token"] = (
+                                        session_obj.access_token
+                                    )
+                                    st.session_state["refresh_token"] = (
+                                        session_obj.refresh_token
+                                    )
+                                    st.session_state["expires_at"] = getattr(
+                                        session_obj, "expires_at", time.time() + 3600
+                                    )
+                                    client.auth.set_session(
+                                        session_obj.access_token,
+                                        session_obj.refresh_token,
+                                    )
+                                    mint_and_set_rt(
+                                        client, user_obj.id, session_obj.refresh_token
+                                    )
+                                    st.success(
+                                        "Account created and logged in successfully!"
+                                    )
+                                    del st.session_state["auth_view"]
+                                    st.rerun()
+                        except Exception as e:
+                            err_str = str(e)
+                            if (
+                                "already registered" in err_str.lower()
+                                or "already exists" in err_str.lower()
+                            ):
+                                st.warning(
+                                    "This email is already linked to an account. Please log in or reset your password."
+                                )
+                            else:
+                                st.error(f"Sign-up failed: {err_str}")
+
+            st.markdown("or")
+
+            redirect_to = getattr(st.context, "url", None)
+            if redirect_to:
+                redirect_to = redirect_to.split("?")[0]
+            else:
+                redirect_to = "http://localhost:8501"
+
+            try:
+                client = get_client()
+                try:
+                    oauth_res = client.auth.sign_in_with_oauth(
+                        {"provider": "github", "options": {"redirect_to": redirect_to}}
+                    )
+                except TypeError:
+                    oauth_res = client.auth.sign_in_with_oauth(
+                        provider="github", options={"redirect_to": redirect_to}
+                    )
+
+                oauth_url = getattr(oauth_res, "url", None)
+                if not oauth_url and isinstance(oauth_res, dict):
+                    oauth_url = oauth_res.get("url")
+
+                if oauth_url:
+                    st.link_button(
+                        "Continue with GitHub",
+                        oauth_url,
+                        use_container_width=True,
+                        key="card_github_link_btn",
+                    )
+            except Exception as e:
+                st.error(f"Could not generate GitHub OAuth link: {e}")
+    else:
+        st.title("Deconstruct, Analyze, and Architect Systems")
+        st.write(
+            "CodeBreaker is a streamlined engineering workspace designed to help developers plan, "
+            "structure, and document robust software systems before writing code. Transform complex "
+            "project requirements into clean architecture blueprints, structured documentation, and "
+            "reliable engineering logs."
+        )
+        st.markdown("---")
+
+        st.subheader("How It Works")
+        col_s1, col_s2, col_s3 = st.columns(3)
+        with col_s1:
+            st.markdown(
+                "**1. Analyze**\n\nDefine project specifications and core requirements."
+            )
+        with col_s2:
+            st.markdown(
+                "**2. Blueprint**\n\nGenerate comprehensive architecture specs and roadmaps."
+            )
+        with col_s3:
+            st.markdown(
+                "**3. Engineering Log**\n\nTrack progress, milestones, and daily insights."
+            )
+
+        st.markdown("---")
+        st.subheader("Workspace Modules")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            st.info(
+                "🔍 **Analyze**\n\nTransform project requirements into structured technical specs."
+            )
+        with col_m2:
+            st.info(
+                "📐 **Blueprint**\n\nExplore multi-tab system architecture, tech stacks, and exportable documentation."
+            )
+        with col_m3:
+            st.info(
+                "📝 **Engineering Log**\n\nMaintain a secure, chronological record of daily progress and technical insights."
+            )
+
+        st.markdown("---")
+        col_cta1, col_cta2 = st.columns(2)
+        with col_cta1:
+            if st.button(
+                "Log In",
+                type="primary",
+                use_container_width=True,
+                key="landing_login_cta",
+            ):
+                st.session_state["auth_view"] = "login"
+                st.rerun()
+        with col_cta2:
+            if st.button(
+                "Create Account", use_container_width=True, key="landing_signup_cta"
+            ):
+                st.session_state["auth_view"] = "signup"
+                st.rerun()
+
+    st.stop()
+else:
+    # Authenticated sidebar contract:
+    # 1. Admin Pulse (admin only)
+    # 2. section radios with NO "Navigation" caption
+    # 3. Persistence Debug (admin only)
+    # 4. Sign Out LAST
+    user_email = user.get("email", "") if user else ""
+    is_admin = (
+        bool(ADMIN_EMAIL)
+        and bool(user_email)
+        and ADMIN_EMAIL.strip().lower() == user_email.strip().lower()
+    )
+
+    if is_admin:
+        st.sidebar.subheader("🛡️ Admin Pulse")
         try:
             client = get_client()
-            try:
-                oauth_res = client.auth.sign_in_with_oauth(
-                    {"provider": "github", "options": {"redirect_to": redirect_to}}
+            if "access_token" in st.session_state:
+                client.auth.set_session(
+                    st.session_state["access_token"],
+                    st.session_state.get("refresh_token", ""),
                 )
-            except TypeError:
-                oauth_res = client.auth.sign_in_with_oauth(
-                    provider="github", options={"redirect_to": redirect_to}
-                )
+            res_users = client.rpc("count_registered_users").execute()
+            users_count = getattr(res_users, "data", 0)
 
-            oauth_url = getattr(oauth_res, "url", None)
-            if not oauth_url and isinstance(oauth_res, dict):
-                oauth_url = oauth_res.get("url")
+            res_logs = client.rpc("count_engineering_logs").execute()
+            logs_count = getattr(res_logs, "data", 0)
 
-            if oauth_url:
-                st.link_button(
-                    "Continue with GitHub", oauth_url, use_container_width=True
-                )
+            st.sidebar.metric("Registered Users", users_count)
+            st.sidebar.metric("Engineering Logs", logs_count)
         except Exception as e:
-            st.error(f"Could not generate GitHub OAuth link: {e}")
+            st.sidebar.warning(f"Could not load Admin Pulse: {e}")
+        st.sidebar.markdown("---")
 
-elif page == "About":
+    options = ["Home", "Analyze", "Blueprint", "Engineering Log", "About"]
+    _pg = st.query_params.get("pg")
+    if isinstance(_pg, list):
+        _pg = _pg[0] if _pg else None
+    default_index = options.index(_pg) if _pg in options else 0
+    page = st.sidebar.radio(
+        "", options, index=default_index, label_visibility="collapsed"
+    )
+    if page != _pg:
+        st.query_params["pg"] = page
+
+    if is_admin:
+        st.sidebar.markdown("---")
+        with st.sidebar.expander(
+            "Persistence Debug", expanded=False, key="persistence_debug_expander"
+        ):
+            rt_present = bool(st.query_params.get("rt"))
+            last_verify = st.session_state.get("last_verify_result", "None")
+            gate_flags = f"user={bool(user)}, access_token={bool(st.session_state.get('access_token'))}, refresh_token={bool(st.session_state.get('refresh_token'))}"
+
+            st.write(f"**RT Present**: {rt_present}")
+            st.write(f"**Last Verify Result**: {last_verify}")
+            st.write(f"**Gate Flags**: {gate_flags}")
+
+    st.sidebar.markdown("---")
+    if st.sidebar.button("Sign Out", key="sidebar_sign_out_btn"):
+        try:
+            rt_param = st.query_params.get("rt")
+            if isinstance(rt_param, list):
+                rt_param = rt_param[0] if rt_param else None
+            if rt_param:
+                token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
+                client.rpc(
+                    "revoke_resume_token", {"p_token_hash": token_hash}
+                ).execute()
+        except Exception:
+            pass
+        try:
+            client.auth.sign_out()
+        except Exception:
+            pass
+        if "rt" in st.query_params:
+            del st.query_params["rt"]
+        if "pg" in st.query_params:
+            del st.query_params["pg"]
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.success("Signed out successfully.")
+        st.rerun()
+
+# First-run onboarding tour for authenticated sessions
+user_meta = user.get("user_metadata", {}) if user else {}
+if user and not user_meta.get("tour_seen", False):
+    with st.expander(
+        "👋 Welcome to CodeBreaker — First-Run Onboarding Tour", expanded=True
+    ):
+        st.markdown(
+            "1. **Analyze**: Describe any project idea to generate an automated blueprint.\n"
+            "2. **Blueprint**: Explore the 5 tabs and export your spec in 4 formats.\n"
+            "3. **Engineering Log**: Record progress, bugs, and learnings."
+        )
+        if st.button("Got it", key="tour_got_it_btn"):
+            try:
+                client = get_client()
+                if "access_token" in st.session_state:
+                    client.auth.set_session(
+                        st.session_state["access_token"],
+                        st.session_state.get("refresh_token", ""),
+                    )
+                client.auth.update_user({"data": {"tour_seen": True}})
+            except Exception:
+                pass
+            user_meta["tour_seen"] = True
+            st.session_state["user"]["user_metadata"] = user_meta
+            st.rerun()
+
+if page == "About":
     st.title("About CodeBreaker")
     st.caption(
         "Plan Before You Code — Architecture, Engineering Logs, and Habit Formation"
@@ -911,7 +835,7 @@ elif page == "About":
         "CodeBreaker was built on a core software engineering philosophy: **Plan before you code.** "
         "Too many developers dive straight into writing code without an architecture blueprint, leading to spaghetti code, "
         "unhandled edge cases, and lost engineering context. CodeBreaker bridges the gap between idea and execution "
-        "by combining AI-driven system architecture generation, multi-format exports, and isolated engineering logs."
+        "by combining automated system architecture generation, multi-format exports, and isolated engineering logs."
     )
 
     st.subheader("🎓 How Lecturers Use CodeBreaker in Class")
@@ -920,13 +844,13 @@ elif page == "About":
         "A typical semester assignment formula is:\n\n"
         "$$\\text{Assignment Grade} = \\text{System Blueprint} + \\text{Engineering Log}$$ \n\n"
         "- **System Blueprint**: Students submit their initial architecture analysis (Tech Stack, Folder Structure, Edge Cases, Roadmap) exported as Markdown, HTML, or PDF.\n"
-        "- **Engineering Log**: Students maintain an ongoing log of daily progress, encountered bugs, and technical insights, securely isolated by user accounts and Row Level Security (RLS)."
+        "- **Engineering Log**: Students maintain an ongoing log of daily progress, encountered bugs, and technical insights, securely isolated by user accounts."
     )
 
     st.subheader("🚪 The Two Auth Doors")
     st.markdown(
-        "1. **Email / Password Authentication**: Traditional signup and login powered by Supabase Auth with strict email confirmation verification (blocking unconfirmed logins and supporting resend confirmation workflows).\n"
-        "2. **GitHub OAuth**: Secure, frictionless Single Sign-On (SSO) via GitHub OAuth with PKCE authorization code exchange mediated securely by Supabase."
+        "1. **Email / Password Authentication**: Traditional signup and login powered by secure authentication with strict email confirmation verification (blocking unconfirmed logins and supporting resend confirmation workflows).\n"
+        "2. **OAuth**: Secure, frictionless Single Sign-On (SSO) via OAuth with PKCE authorization code exchange mediated securely."
     )
 
     st.subheader("📥 The Four Export Formats")
@@ -944,25 +868,25 @@ elif page == "About":
     )
 
     st.markdown("---")
-    st.caption("CodeBreaker v1.1.4 • Built with Streamlit, Supabase, Groq & fpdf2")
+    st.caption("CodeBreaker Workspace • Built with Streamlit & Python")
 
 elif page == "Home":
     st.title("CodeBreaker")
     st.caption(
-        "Deconstruct, Analyze, and Architect Systems with AI-Driven Engineering Insights"
+        "Deconstruct, Analyze, and Architect Systems with Structured Engineering Insights"
     )
     st.markdown("---")
-    st.subheader("Welcome to CodeBreaker v1.1.4")
+    st.subheader("Welcome to CodeBreaker")
     st.write(
-        "CodeBreaker is a lightweight, documented, and safe AI-powered code analysis, "
-        "system blueprint, and engineering log tool backed by Supabase Auth and RLS. "
+        "CodeBreaker is a lightweight, documented, and safe code analysis, "
+        "system blueprint, and engineering log tool backed by secure authentication. "
         "Use the sidebar to navigate between modules."
     )
 
 elif page == "Analyze":
     st.title("Analyze & Architecture Generation")
     st.write(
-        "Fill out the project details below to generate an AI-driven system blueprint."
+        "Fill out the project details below to generate an automated system blueprint."
     )
 
     with st.form("analyze_form"):
@@ -1126,7 +1050,7 @@ elif page == "Blueprint":
 elif page == "Engineering Log":
     st.title("Engineering Log")
     st.caption(
-        "Record technical design decisions, logs, and milestones isolated by user & RLS."
+        "Record technical design decisions, logs, and milestones isolated by user account."
     )
     st.markdown("---")
 
@@ -1191,7 +1115,7 @@ elif page == "Engineering Log":
                 st.session_state["access_token"],
                 st.session_state.get("refresh_token", ""),
             )
-        # Query entries newest first. Isolation relies on RLS (auth.uid() = user_id).
+        # Query entries newest first.
         response = (
             client.table("engineering_log")
             .select("*")
@@ -1237,7 +1161,7 @@ elif page == "Engineering Log":
                                         st.session_state["access_token"],
                                         st.session_state.get("refresh_token", ""),
                                     )
-                                # Delete matching entry id and user_id (RLS + application safeguard)
+                                # Delete matching entry id and user_id (application safeguard)
                                 client.table("engineering_log").delete().eq(
                                     "id", entry_id
                                 ).eq("user_id", user["id"]).execute()
@@ -1251,5 +1175,5 @@ elif page == "Engineering Log":
             )
     except Exception as e:
         st.warning(
-            f"Could not load engineering log entries (Table or RLS setup required): {e}"
+            f"Could not load engineering log entries (Table setup required): {e}"
         )

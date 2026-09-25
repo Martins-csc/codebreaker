@@ -1,5 +1,22 @@
 # CodeBreaker Development Log
 
+## Entry 028: Landing, One-Card Auth & Sidebar Order Contract (v1.3.0)
+- **Date**: 2026-09-25
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.3.0 Landing + One-Card Auth + Sidebar Order Contract
+
+### Design Notes & Architectural Decisions
+1. **Landing Rationale**: Public landing page established as the default logged-out view, featuring a professional headline, one-paragraph value proposition, 3-step "How it works", module icon-cards (Analyze, Blueprint, Engineering Log), and clear CTAs (`[Log In]`, `[Create Account]`). Pre-auth sidebar rendering is completely suppressed.
+2. **One-Card Auth View**: Reached exclusively via landing CTAs. A single container card housing mode toggle (Log In / Sign Up), email, password, conditional display name (sign-up mode only), button row (`[Log In]` / `[Forgot Password]` or `[Sign Up]`), thin divider `"or"`, `[Continue with GitHub]`, and `← Back to overview` link. Password reset request flow stays inside the card.
+3. **Sidebar Order Contract (Authenticated)**: Strict sidebar order enforced:
+   - Admin Pulse (admin only)
+   - Section radios (`Home`, `Analyze`, `Blueprint`, `Engineering Log`, `About`) with zero "Navigation" caption (`label_visibility="collapsed"`)
+   - Persistence Debug (admin only)
+   - Sign Out LAST.
+4. **Routing & Banner Polish**: Authenticated users hitting root land on Home. Version banners removed from Home.
+5. **Banned-Strings Sweep**: Thorough sweep across `app.py` and exports eliminating all user-facing occurrences of "Row Level Security", "RLS", "Supabase", "handshake", "AI-driven", version strings (`v1.x`), "press enter", and "0/100 words". Tone professional and zero-jargon.
+6. **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green test suite (`86 passed`, including new unit tests in `tests/test_v1_3_0.py`).
+
 ## Entry 030: When Every Client-Storage Channel Fails: Capability URLs (v1.2.3, v1.2.4 & v1.2.5 Micro-Hotfixes)
 - **Date**: 2026-09-22 / 2026-09-23
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

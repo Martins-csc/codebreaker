@@ -3,7 +3,19 @@
 All notable changes to the CodeBreaker project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
+
+## [1.3.0] - 2026-09-25
+
+### Added / Changed
+- Mission v1.3.0 — Landing + One-Card Auth + Sidebar Contract:
+  - **Public Landing Page**: Professional logged-out default view featuring headline, one-paragraph value proposition, "How it works" three steps, module icon-cards (Analyze, Blueprint, Engineering Log), and CTAs `[Log In]` `[Create Account]`. No sidebar pre-auth.
+  - **One-Card Auth View**: Reached exclusively via landing CTAs. Single container card housing mode toggle (Log In / Sign Up), email, password, conditional display name, button row (`[Log In]` / `[Forgot Password]` or `[Sign Up]`), thin divider `"or"`, `[Continue with GitHub]`, and `← Back to overview` link. Reset flow stays inside the card.
+  - **Authenticated Sidebar Contract**: Strict order enforced — Admin Pulse (admin only) → section radios (Home, Analyze, Blueprint, Engineering Log, About) with no "Navigation" caption → Persistence Debug (admin only) → Sign Out LAST.
+  - **Routing & Home Polish**: Authenticated users hitting root land on Home. Version banners removed from Home.
+  - **Banned-Strings Sweep**: Zero user-facing occurrences of "Row Level Security", "RLS", "Supabase", "handshake", "AI-driven", version strings (`v1.x`), "press enter", or "0/100 words". Tone professional and jargon-free.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`python3 -m py_compile`) and green pytest suite (`86 passed`, including new unit tests in `tests/test_v1_3_0.py`).
+  - **Documentation**: CHANGELOG v1.3.0 and DEVLOG Entry 028.
 
 ## [1.2.6] - 2026-09-23
 
