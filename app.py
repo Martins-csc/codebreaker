@@ -301,11 +301,20 @@ try:
                     elif res.user.email:
                         display_name = res.user.email.split("@")[0]
                     user_metadata = getattr(res.user, "user_metadata", {}) or {}
+                    u_created = getattr(
+                        res.user, "created_at", None
+                    ) or user_metadata.get("created_at", "")
+                    c_display = (
+                        u_created.split("T")[0]
+                        if u_created and "T" in str(u_created)
+                        else (str(u_created) if u_created else "N/A")
+                    )
                     st.session_state["user"] = {
                         "id": res.user.id,
                         "email": res.user.email,
                         "display_name": display_name,
                         "user_metadata": user_metadata,
+                        "created_at": c_display,
                     }
                     st.session_state["access_token"] = res.session.access_token
                     st.session_state["refresh_token"] = res.session.refresh_token
@@ -447,11 +456,20 @@ if not user:
                                 user_metadata = (
                                     getattr(user_obj, "user_metadata", {}) or {}
                                 )
+                                u_created = getattr(
+                                    user_obj, "created_at", None
+                                ) or user_metadata.get("created_at", "")
+                                c_display = (
+                                    u_created.split("T")[0]
+                                    if u_created and "T" in str(u_created)
+                                    else (str(u_created) if u_created else "N/A")
+                                )
                                 st.session_state["user"] = {
                                     "id": user_obj.id,
                                     "email": user_obj.email,
                                     "display_name": display_name,
                                     "user_metadata": user_metadata,
+                                    "created_at": c_display,
                                 }
                                 st.session_state["access_token"] = (
                                     res.session.access_token
@@ -582,11 +600,20 @@ if not user:
                                     user_metadata = (
                                         getattr(user_obj, "user_metadata", {}) or {}
                                     )
+                                    u_created = getattr(
+                                        user_obj, "created_at", None
+                                    ) or user_metadata.get("created_at", "")
+                                    c_display = (
+                                        u_created.split("T")[0]
+                                        if u_created and "T" in str(u_created)
+                                        else (str(u_created) if u_created else "N/A")
+                                    )
                                     st.session_state["user"] = {
                                         "id": user_obj.id,
                                         "email": user_obj.email,
                                         "display_name": display_name,
                                         "user_metadata": user_metadata,
+                                        "created_at": c_display,
                                     }
                                     st.session_state["access_token"] = (
                                         session_obj.access_token
@@ -825,20 +852,33 @@ if user and not user_meta.get("tour_seen", False):
 
 if page == "About":
     st.title("About CodeBreaker")
-    st.caption(
-        "Plan Before You Code — Architecture, Engineering Logs, and Habit Formation"
-    )
     st.markdown("---")
 
-    st.subheader("🎯 Mission Statement")
+    st.subheader("How CodeBreaker protects you")
     st.write(
-        "CodeBreaker was built on a core software engineering philosophy: **Plan before you code.** "
-        "Too many developers dive straight into writing code without an architecture blueprint, leading to spaghetti code, "
-        "unhandled edge cases, and lost engineering context. CodeBreaker bridges the gap between idea and execution "
-        "by combining automated system architecture generation, multi-format exports, and isolated engineering logs."
+        "Your project data and engineering logs are securely isolated to your account using robust authorization and access controls. "
+        "No other user can access your private blueprints or logs."
     )
 
-    st.subheader("🎓 How Lecturers Use CodeBreaker in Class")
+    st.subheader("Module Guide")
+    st.markdown(
+        "- **Analyze**: Define system requirements and project specifications.\n"
+        "- **Blueprint**: Generate and export architecture roadmaps in multiple formats.\n"
+        "- **Engineering Log**: Maintain a secure chronological record of progress and milestones."
+    )
+
+    st.subheader("Workflow Recipe")
+    st.write("Analyze→Blueprint→export→Log→repeat")
+
+    st.subheader("Mini-FAQ")
+    st.markdown(
+        "1. **Privacy**: Are my logs private? Yes, strictly isolated to your authenticated account.\n"
+        "2. **Forgot Password**: How do I reset my password? Use the password reset link on the login screen.\n"
+        "3. **Reload Login Note**: Do I stay logged in across reloads? Yes, via secure session tokens.\n"
+        "4. **Where is my exported file**: Where do exports go? Straight to your browser's default download location."
+    )
+
+    st.subheader("For Lecturers & Supervisors")
     st.write(
         "Computer science and software engineering professors use CodeBreaker as a core instructional tool in class. "
         "A typical semester assignment formula is:\n\n"
@@ -847,65 +887,89 @@ if page == "About":
         "- **Engineering Log**: Students maintain an ongoing log of daily progress, encountered bugs, and technical insights, securely isolated by user accounts."
     )
 
-    st.subheader("🚪 The Two Auth Doors")
-    st.markdown(
-        "1. **Email / Password Authentication**: Traditional signup and login powered by secure authentication with strict email confirmation verification (blocking unconfirmed logins and supporting resend confirmation workflows).\n"
-        "2. **OAuth**: Secure, frictionless Single Sign-On (SSO) via OAuth with PKCE authorization code exchange mediated securely."
-    )
-
-    st.subheader("📥 The Four Export Formats")
-    st.markdown(
-        "1. **Markdown (.md)**: Perfect for dropping into repository `README.md` files as an instant project front page.\n"
-        "2. **Plain Text (.txt)**: Universal compatibility with any text editor or AI coding assistant specification.\n"
-        "3. **HTML (.html)**: Self-contained, cleanly styled web page optimized for mobile browsers and offline reading.\n"
-        "4. **PDF (.pdf)**: Professional architecture document rendering powered by pure-python `fpdf2`, ideal for printing and formal submissions."
-    )
-
-    st.subheader("🔗 Public Repository & Open Source")
-    st.markdown(
-        "CodeBreaker is an open-source project. Explore the source code, open issues, or contribute on GitHub: "
-        "[CodeBreaker GitHub Repository](https://github.com)"
-    )
-
     st.markdown("---")
-    st.caption("CodeBreaker Workspace • Built with Streamlit & Python")
+    st.markdown(
+        "Built by Martins — The CodeBreaker Team • Contact: support@codebreaker.dev"
+    )
 
 elif page == "Home":
-    st.title("CodeBreaker")
-    st.caption(
-        "Deconstruct, Analyze, and Architect Systems with Structured Engineering Insights"
-    )
+    st.title("Dashboard")
     st.markdown("---")
-    st.subheader("Welcome to CodeBreaker")
-    st.write(
-        "CodeBreaker is a lightweight, documented, and safe code analysis, "
-        "system blueprint, and engineering log tool backed by secure authentication. "
-        "Use the sidebar to navigate between modules."
-    )
+
+    col_t1, col_t2 = st.columns(2)
+    with col_t1:
+        with st.container(border=True):
+            st.subheader("My Blueprints")
+            bp_count = st.session_state.get(
+                "blueprint_count", 1 if st.session_state.get("blueprint") else 0
+            )
+            st.metric("Generated This Session", bp_count)
+            st.caption("persistent library arrives next update")
+
+    with col_t2:
+        with st.container(border=True):
+            st.subheader("My Engineering Logs")
+            try:
+                client = get_client()
+                if "access_token" in st.session_state:
+                    client.auth.set_session(
+                        st.session_state["access_token"],
+                        st.session_state.get("refresh_token", ""),
+                    )
+                res_logs = (
+                    client.table("engineering_log")
+                    .select("progress, created_at")
+                    .eq("user_id", user["id"])
+                    .order("created_at", desc=True)
+                    .execute()
+                )
+                log_rows = getattr(res_logs, "data", [])
+                log_count = len(log_rows)
+                st.metric("Total Logs", log_count)
+                st.markdown("**Recent Milestones:**")
+                if log_rows:
+                    for row in log_rows[:3]:
+                        prog = row.get("progress", "Milestone")
+                        preview = prog.split("\n")[0][:40] if prog else "Milestone"
+                        st.markdown(f"- {preview}")
+                else:
+                    st.write("No logs recorded yet.")
+            except Exception:
+                st.metric("Total Logs", 0)
+                st.write("No logs recorded yet.")
+
+    col_t3, col_t4 = st.columns(2)
+    with col_t3:
+        with st.container(border=True):
+            st.subheader("Quick Start")
+            qs_c1, qs_c2, qs_c3 = st.columns(3)
+            with qs_c1:
+                if st.button("Analyze", use_container_width=True, key="qs_analyze"):
+                    st.query_params["pg"] = "Analyze"
+                    st.rerun()
+            with qs_c2:
+                if st.button("Blueprint", use_container_width=True, key="qs_blueprint"):
+                    st.query_params["pg"] = "Blueprint"
+                    st.rerun()
+            with qs_c3:
+                if st.button("Engineering Log", use_container_width=True, key="qs_log"):
+                    st.query_params["pg"] = "Engineering Log"
+                    st.rerun()
+
+    with col_t4:
+        with st.container(border=True):
+            st.subheader("Account")
+            st.markdown(f"**Display Name:** {user.get('display_name', 'N/A')}")
+            st.markdown(f"**Email:** {user.get('email', 'N/A')}")
+            st.markdown(f"**Member Since:** {user.get('created_at', 'N/A')}")
 
 elif page == "Analyze":
     st.title("Analyze & Architecture Generation")
-    st.write(
-        "Fill out the project details below to generate an automated system blueprint."
-    )
 
     with st.form("analyze_form"):
-        project_name = st.text_input(
-            "Project Name", placeholder="e.g., Real-time Chat App", max_chars=100
-        )
-        problem = st.text_area(
-            "Problem Description / Requirements",
-            placeholder="What problem are you solving and what are the core requirements?",
-            max_chars=2000,
-        )
-        target_audience = st.text_input(
-            "Target Audience",
-            placeholder="e.g., Developers, Enterprise, Consumers",
-            max_chars=200,
-        )
-        skill_level = st.selectbox(
-            "Your Skill Level", ["Beginner", "Intermediate", "Advanced", "Expert"]
-        )
+        project_name = st.text_input("Project Name", max_chars=100)
+        problem = st.text_area("Problem Description / Requirements", max_chars=2000)
+        target_audience = st.text_input("Target Audience", max_chars=200)
 
         submitted = st.form_submit_button("Generate Blueprint")
 
@@ -923,14 +987,15 @@ elif page == "Analyze":
                 "project_name": project_name,
                 "problem": problem,
                 "target_audience": target_audience,
-                "skill_level": skill_level,
+                "skill_level": "Intermediate",
             }
-            with st.spinner(
-                "Generating system architecture blueprint via AI Engine..."
-            ):
+            with st.spinner("Generating blueprint…"):
                 try:
                     blueprint = generate_blueprint(analysis_payload)
                     st.session_state["blueprint"] = blueprint
+                    st.session_state["blueprint_count"] = (
+                        st.session_state.get("blueprint_count", 0) + 1
+                    )
                     st.success(
                         "Blueprint generated successfully! Navigate to the 'Blueprint' page to view it."
                     )
@@ -948,13 +1013,6 @@ elif page == "Blueprint":
             "No blueprint generated yet. Please submit a project analysis on the 'Analyze' page."
         )
     else:
-        st.info(
-            "**What do I do with this file?**\n\n"
-            "- Drop it in your GitHub repo as README.md — it becomes your project's front page.\n"
-            "- Hand it to any AI coding assistant as your spec.\n"
-            "- .html opens in any browser, .txt in any editor, .pdf for human readers & printing, .md renders on GitHub."
-        )
-
         col_title, col_export = st.columns([2, 2])
         with col_title:
             st.subheader(
@@ -1049,27 +1107,14 @@ elif page == "Blueprint":
 
 elif page == "Engineering Log":
     st.title("Engineering Log")
-    st.caption(
-        "Record technical design decisions, logs, and milestones isolated by user account."
-    )
     st.markdown("---")
 
     # Form to insert an entry for the current user
     st.subheader("New Engineering Log Entry")
     with st.form("engineering_log_form"):
-        log_progress = st.text_area(
-            "Progress / Milestone",
-            placeholder="What did you accomplish?",
-            max_chars=5000,
-        )
-        log_bugs = st.text_area(
-            "Bugs / Challenges",
-            placeholder="What issues did you encounter?",
-            max_chars=5000,
-        )
-        log_learnings = st.text_area(
-            "Learnings / Insights", placeholder="What did you learn?", max_chars=5000
-        )
+        log_progress = st.text_area("Progress / Milestone", max_chars=5000)
+        log_bugs = st.text_area("Bugs / Challenges", max_chars=5000)
+        log_learnings = st.text_area("Learnings / Insights", max_chars=5000)
         log_submitted = st.form_submit_button("Submit Log Entry")
 
     if log_submitted:
@@ -1106,7 +1151,13 @@ elif page == "Engineering Log":
                 st.error(f"Failed to save engineering log: {e}")
 
     st.markdown("---")
-    st.subheader("Your Engineering Log Entries (Newest First)")
+    st.subheader("Your Engineering Log Entries")
+
+    sort_option = st.selectbox(
+        "Sort Entries",
+        ["Newest first", "Oldest first", "A→Z (milestone)", "Z→A (milestone)"],
+        key="eng_log_sort_option",
+    )
 
     try:
         client = get_client()
@@ -1115,14 +1166,30 @@ elif page == "Engineering Log":
                 st.session_state["access_token"],
                 st.session_state.get("refresh_token", ""),
             )
-        # Query entries newest first.
         response = (
             client.table("engineering_log")
             .select("*")
-            .order("created_at", desc=True)
+            .eq("user_id", user["id"])
             .execute()
         )
         entries = getattr(response, "data", [])
+
+        # Apply sorting
+        if sort_option == "Newest first":
+            entries = sorted(
+                entries, key=lambda x: x.get("created_at", ""), reverse=True
+            )
+        elif sort_option == "Oldest first":
+            entries = sorted(entries, key=lambda x: x.get("created_at", ""))
+        elif sort_option == "A→Z (milestone)":
+            entries = sorted(entries, key=lambda x: str(x.get("progress", "")).lower())
+        elif sort_option == "Z→A (milestone)":
+            entries = sorted(
+                entries,
+                key=lambda x: str(x.get("progress", "")).lower(),
+                reverse=True,
+            )
+
         if entries:
             for entry in entries:
                 entry_id = entry.get("id")
@@ -1153,22 +1220,78 @@ elif page == "Engineering Log":
 
                     col_space, col_btn = st.columns([4, 1])
                     with col_btn:
-                        if st.button("🗑️ Delete", key=f"del_log_{entry_id}"):
-                            try:
-                                client = get_client()
-                                if "access_token" in st.session_state:
-                                    client.auth.set_session(
-                                        st.session_state["access_token"],
-                                        st.session_state.get("refresh_token", ""),
-                                    )
-                                # Delete matching entry id and user_id (application safeguard)
-                                client.table("engineering_log").delete().eq(
-                                    "id", entry_id
-                                ).eq("user_id", user["id"]).execute()
-                                st.success("Log entry deleted successfully.")
+                        confirm_del_key = f"confirm_del_{entry_id}"
+                        if not st.session_state.get(confirm_del_key, False):
+                            if st.button("🗑️ Delete", key=f"del_log_{entry_id}"):
+                                st.session_state[confirm_del_key] = True
                                 st.rerun()
-                            except Exception as e:
-                                st.error(f"Failed to delete log entry: {e}")
+                        else:
+                            st.write("Delete entry?")
+                            col_c1, col_c2 = st.columns(2)
+                            with col_c1:
+                                if st.button(
+                                    "Confirm delete",
+                                    key=f"conf_del_{entry_id}",
+                                    type="primary",
+                                ):
+                                    try:
+                                        client = get_client()
+                                        if "access_token" in st.session_state:
+                                            client.auth.set_session(
+                                                st.session_state["access_token"],
+                                                st.session_state.get(
+                                                    "refresh_token", ""
+                                                ),
+                                            )
+                                        client.table("engineering_log").delete().eq(
+                                            "id", entry_id
+                                        ).eq("user_id", user["id"]).execute()
+                                        st.session_state[confirm_del_key] = False
+                                        st.success("Log entry deleted successfully.")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Failed to delete log entry: {e}")
+                            with col_c2:
+                                if st.button("Cancel", key=f"canc_del_{entry_id}"):
+                                    st.session_state[confirm_del_key] = False
+                                    st.rerun()
+
+            st.markdown("---")
+            all_confirm_key = "confirm_delete_all_logs"
+            if not st.session_state.get(all_confirm_key, False):
+                if st.button("Delete ALL my logs", key="btn_delete_all_logs"):
+                    st.session_state[all_confirm_key] = True
+                    st.rerun()
+            else:
+                st.warning(
+                    "Are you sure you want to delete ALL your engineering logs? This cannot be undone."
+                )
+                col_all1, col_all2 = st.columns(2)
+                with col_all1:
+                    if st.button(
+                        "Confirm delete ALL logs",
+                        key="btn_conf_delete_all",
+                        type="primary",
+                    ):
+                        try:
+                            client = get_client()
+                            if "access_token" in st.session_state:
+                                client.auth.set_session(
+                                    st.session_state["access_token"],
+                                    st.session_state.get("refresh_token", ""),
+                                )
+                            client.table("engineering_log").delete().eq(
+                                "user_id", user["id"]
+                            ).execute()
+                            st.session_state[all_confirm_key] = False
+                            st.success("All engineering logs deleted successfully.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Failed to delete all logs: {e}")
+                with col_all2:
+                    if st.button("Cancel", key="btn_canc_delete_all"):
+                        st.session_state[all_confirm_key] = False
+                        st.rerun()
         else:
             st.info(
                 "No engineering log entries found yet. Submit your first entry above."

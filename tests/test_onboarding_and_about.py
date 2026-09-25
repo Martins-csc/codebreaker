@@ -72,14 +72,13 @@ def test_tour_markdown_content():
 
 
 def test_about_page_content():
-    """Test About page content contains mission statement, lecturer section, auth doors, and export formats."""
+    """Test About page content contains the six required v1.4.0 sections in order."""
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert "Mission Statement" in content
-    assert "Plan before you code" in content
-    assert "How Lecturers Use CodeBreaker in Class" in content
-    assert "Assignment Grade" in content
-    assert "The Two Auth Doors" in content
-    assert "The Four Export Formats" in content
-    assert "CodeBreaker Workspace" in content
+    assert "How CodeBreaker protects you" in content
+    assert "Module Guide" in content
+    assert "Analyze→Blueprint→export→Log→repeat" in content
+    assert "Mini-FAQ" in content
+    assert "For Lecturers & Supervisors" in content
+    assert "Built by Martins — The CodeBreaker Team" in content

@@ -1,5 +1,35 @@
 # CodeBreaker Development Log
 
+## Entry 031: Dashboard Contract, Log Control UX & About Six Structure (v1.4.0)
+- **Date**: 2026-09-25
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.4.0 Dashboard, Copy Hygiene, Log Controls & About Six
+
+### Design Notes & Architectural Decisions
+1. **Builder Home Dashboard (Authenticated)**: Four tiles in a 2×2 grid layout providing immediate operational overview:
+   - (a) **My Blueprints**: Session generation count + "persistent library arrives next update" caption.
+   - (b) **My Engineering Logs**: Total log count + three most recent milestone titles fetched securely from Supabase (own rows only).
+   - (c) **Quick Start**: Three direct action buttons (Analyze / Blueprint / Engineering Log) updating `st.query_params["pg"]` and triggering `st.rerun()`.
+   - (d) **Account**: Display name, email, and member-since date (`created_at`).
+   Strict adherence to professional tone with zero version strings and no "AI-driven" phrasing.
+2. **Builder Copy Hygiene**: Streamlined form and module interfaces:
+   - **Analyze**: Deleted subtitle, all placeholder texts, word-counter hints, and the Skill Level selectbox (defaulting server-side).
+   - **Blueprint**: Status line updated to "Generating blueprint…", deleted the "What do I do with this file?" explanatory block while leaving export format boxes untouched.
+   - **Engineering Log**: Deleted subtitle and all placeholder/word-counter hints inside textareas.
+   - **Banned-Strings Sweep**: Fully enforced across all UI strings and documentation.
+3. **Builder Engineering Log Controls**:
+   - **Sort Selectbox**: `["Newest first","Oldest first","A→Z (milestone)","Z→A (milestone)"]` default Newest, applied at render.
+   - **Two-Step Per-Entry Delete**: First click reveals `[Confirm delete]` + `[Cancel]` via per-entry session state flag; confirm executes deletion, cancel clears.
+   - **Delete ALL My Logs**: Separate two-step confirmation button scoping deletion strictly to the authenticated user's own rows.
+4. **Builder About Six Additions in Order**:
+   (1) "How CodeBreaker protects you" trust section;
+   (2) Module guide one-liners;
+   (3) Workflow recipe (`Analyze→Blueprint→export→Log→repeat`);
+   (4) Mini-FAQ four questions (privacy / forgot password / reload login note / where is my exported file);
+   (5) Renamed existing lecturer playbook to "For Lecturers & Supervisors";
+   (6) Signature line "Built by Martins — The CodeBreaker Team" + contact placeholder.
+5. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`), zero-network tests, mock supabase dashboard rendering, sort selector reordering, two-step delete verification, and green test suite (`90 passed` including `tests/test_v1_4_0.py`).
+
 ## Entry 028: Landing, One-Card Auth & Sidebar Order Contract (v1.3.0)
 - **Date**: 2026-09-25
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

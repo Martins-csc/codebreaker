@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-09-25
+
+### Added / Changed
+- Mission v1.4.0 — Dashboard, copy hygiene, log controls, About six:
+  - **Builder Home Dashboard (Authenticated)**: Four tiles in 2x2 layout — (a) My Blueprints: session count + "persistent library arrives next update" caption; (b) My Engineering Logs: count + three most recent milestone titles (from Supabase, own rows only); (c) Quick Start: three action buttons (Analyze / Blueprint / Engineering Log) setting `st.query_params["pg"]=target` and `st.rerun()`; (d) Account: display name, email, member-since date. No version strings, no "AI-driven" phrasing.
+  - **Builder Copy Hygiene**: Analyze — deleted subtitle, all placeholder texts, word-counter hints, and Skill Level selectbox; Blueprint — status line set to "Generating blueprint…", deleted "What do I do with this file?" explanatory block (export format boxes untouched); Engineering Log — deleted subtitle and textarea placeholder/word-counter hints. Banned-strings list fully enforced.
+  - **Builder Engineering Log Controls**: Added sort selectbox `["Newest first","Oldest first","A→Z (milestone)","Z→A (milestone)"]` default Newest, applied at render; per-entry delete made two-step (`[Confirm delete]` + `[Cancel]` via per-entry session_state flag); added separate "Delete ALL my logs" button with its own two-step confirm.
+  - **Builder About Six Additions in Order**: (1) "How CodeBreaker protects you" trust section; (2) Module guide one-liners; (3) Workflow recipe (`Analyze→Blueprint→export→Log→repeat`); (4) Mini-FAQ four questions; (5) renamed lecturer playbook to "For Lecturers & Supervisors"; (6) signature line "Built by Martins — The CodeBreaker Team" + contact placeholder.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`), zero-network tests, mock supabase dashboard rendering, sort reordering, two-step delete, and green pytest suite (`90 passed`, including `tests/test_v1_4_0.py`).
+  - **Documentation**: CHANGELOG v1.4.0 and DEVLOG Entry 031.
+
 ## [1.3.0] - 2026-09-25
 
 ### Added / Changed
