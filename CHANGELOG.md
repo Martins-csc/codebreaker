@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-09-27
+
+### Added / Changed
+- Micro-Mission v1.4.3 — Phase-2 Feedback Round 3:
+  - **Builder Delete-All Expander Styling**: Wrapped delete-ALL two-step confirmation inside an `st.expander("Confirm delete all", expanded=True)` so existing expander-scoped red CSS applies to its Delete button (`#d33`) while Cancel stays gray.
+  - **Builder Elimination of `st.form`**: Removed final remaining `st.form` wrapper (Analyze form) and `st.form_submit_button`, replacing them with plain widgets + `st.button`, completely killing the "Press Ctrl+Enter to submit form" hint everywhere in the app.
+  - **Builder Dynamic Export Captions**: Added dynamic `st.caption` hints directly beneath the Export Format selectbox changing with selection (Markdown: `"editable spec for repos/AI assistants"`; Plain text: `"universal, opens anywhere"`; HTML: `"styled page for browsers/offline"`; PDF: `"fixed-layout for print/share"`).
+  - **Builder Clean Member-Since Formatting**: Implemented `format_member_since` formatting ISO timestamps and date strings into clean calendar dates (`"%d %b %Y"`, e.g., `"16 Sep 2026"`), applied across login, signup, resume, OAuth, and dashboard tile.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and green pytest suite (`111 passed`, including new unit tests in `tests/test_v1_4_3.py`).
+  - **Documentation**: CHANGELOG v1.4.3 and DEVLOG Entry 034 (plus Entry 031 addendum).
+
 ## [1.4.2] - 2026-09-27
 
 ### Added / Changed

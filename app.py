@@ -38,6 +38,30 @@ def format_lagos_timestamp(created_at_str):
         return d, str(created_at_str)
 
 
+def format_member_since(created_at_val):
+    if not created_at_val or created_at_val == "N/A":
+        return "N/A"
+    try:
+        s_val = str(created_at_val)
+        if "T" in s_val:
+            clean_str = s_val.replace("Z", "+00:00").split("+")[0].split(".")[0]
+            dt = datetime.fromisoformat(clean_str)
+            return dt.strftime("%d %b %Y")
+        elif len(s_val) == 10 and s_val[4] == "-" and s_val[7] == "-":
+            dt = datetime.strptime(s_val, "%Y-%m-%d")
+            return dt.strftime("%d %b %Y")
+        else:
+            dt = datetime.fromisoformat(s_val.replace("Z", "+00:00"))
+            return dt.strftime("%d %b %Y")
+    except Exception:
+        s = str(created_at_val).split("T")[0]
+        try:
+            dt = datetime.strptime(s, "%Y-%m-%d")
+            return dt.strftime("%d %b %Y")
+        except Exception:
+            return str(created_at_val)
+
+
 def handle_storage_error(e):
     err_msg = f"{type(e).__name__}: {str(e)[:80]}"
     st.session_state["persist_debug"] = err_msg
@@ -335,11 +359,7 @@ try:
                     u_created = getattr(
                         res.user, "created_at", None
                     ) or user_metadata.get("created_at", "")
-                    c_display = (
-                        u_created.split("T")[0]
-                        if u_created and "T" in str(u_created)
-                        else (str(u_created) if u_created else "N/A")
-                    )
+                    c_display = format_member_since(u_created)
                     st.session_state["user"] = {
                         "id": res.user.id,
                         "email": res.user.email,
@@ -490,11 +510,7 @@ if not user:
                                 u_created = getattr(
                                     user_obj, "created_at", None
                                 ) or user_metadata.get("created_at", "")
-                                c_display = (
-                                    u_created.split("T")[0]
-                                    if u_created and "T" in str(u_created)
-                                    else (str(u_created) if u_created else "N/A")
-                                )
+                                c_display = format_member_since(u_created)
                                 st.session_state["user"] = {
                                     "id": user_obj.id,
                                     "email": user_obj.email,
@@ -634,11 +650,7 @@ if not user:
                                     u_created = getattr(
                                         user_obj, "created_at", None
                                     ) or user_metadata.get("created_at", "")
-                                    c_display = (
-                                        u_created.split("T")[0]
-                                        if u_created and "T" in str(u_created)
-                                        else (str(u_created) if u_created else "N/A")
-                                    )
+                                    c_display = format_member_since(u_created)
                                     st.session_state["user"] = {
                                         "id": user_obj.id,
                                         "email": user_obj.email,
@@ -1060,39 +1072,49 @@ elif page == "Home":
 elif page == "Analyze":
     st.title("Analyze & Architecture Generation")
 
-    with st.form("analyze_form"):
-        project_name = st.text_input("Project Name", placeholder="e.g. Chat App")
-        problem = st.text_area(
-            "Problem Description / Requirements",
-            placeholder="What problem are you solving and what are the core requirements?",
-        )
-        target_audience = st.text_input(
-            "Target Audience", placeholder="e.g. Students, Enterprise, Consumers"
-        )
+    project_name = st.text_input(
+        "Project Name", placeholder="e.g. Chat App", key="analyze_project_name_input"
+    )
+    problem = st.text_area(
+        "Problem Description / Requirements",
+        placeholder="What problem are you solving and what are the core requirements?",
+        key="analyze_problem_area",
+    )
+    target_audience = st.text_input(
+        "Target Audience",
+        placeholder="e.g. Students, Enterprise, Consumers",
+        key="analyze_target_audience_input",
+    )
 
-        submitted = st.form_submit_button("Generate Blueprint")
+    submitted = st.button(
+        "Generate Blueprint", type="primary", key="btn_submit_analyze"
+    )
 
     if submitted:
-        pn_valid, pn_err = validate_input_length("project_name", project_name)
-        prob_valid, prob_err = validate_input_length("problem", problem)
-        ta_valid, ta_err = validate_input_length("target_audience", target_audience)
+        p_val = st.session_state.get("analyze_project_name_input", "")
+        prob_val = st.session_state.get("analyze_problem_area", "")
+        ta_val = st.session_state.get("analyze_target_audience_input", "")
+
+        pn_valid, pn_err = validate_input_length("project_name", p_val)
+        prob_valid, prob_err = validate_input_length("problem", prob_val)
+        ta_valid, ta_err = validate_input_length("target_audience", ta_val)
 
         if not pn_valid or not prob_valid or not ta_valid:
             st.error("Input exceeds maximum allowed length. Please shorten your input.")
-        elif not project_name.strip() or not problem.strip():
+        elif not p_val.strip() or not prob_val.strip():
             st.error("Please provide at least a Project Name and Problem Description.")
         else:
             analysis_payload = {
-                "project_name": project_name,
-                "problem": problem,
-                "target_audience": target_audience,
+                "project_name": p_val,
+                "problem": prob_val,
+                "target_audience": ta_val,
                 "skill_level": "Intermediate",
             }
             with st.spinner("Generating blueprint…"):
                 try:
                     blueprint = generate_blueprint(analysis_payload)
                     st.session_state["blueprint"] = blueprint
-                    st.session_state["current_project_name"] = project_name.strip()
+                    st.session_state["current_project_name"] = p_val.strip()
                     st.session_state["blueprint_count"] = (
                         st.session_state.get("blueprint_count", 0) + 1
                     )
@@ -1125,6 +1147,14 @@ elif page == "Blueprint":
                 key="blueprint_export_format",
                 help="Select target file format for exporting blueprint. Files download to browser default location.",
             )
+            if "Markdown" in export_format:
+                st.caption("editable spec for repos/AI assistants")
+            elif "Plain text" in export_format:
+                st.caption("universal, opens anywhere")
+            elif "HTML" in export_format:
+                st.caption("styled page for browsers/offline")
+            else:
+                st.caption("fixed-layout for print/share")
             base_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
             if base_fname.endswith(".md"):
                 txt_fname = base_fname[:-3] + ".txt"
@@ -1407,38 +1437,41 @@ elif page == "Engineering Log":
                     st.session_state[all_confirm_key] = True
                     st.rerun()
             else:
-                st.warning(
-                    "Are you sure you want to delete ALL your engineering logs? This cannot be undone."
-                )
-                col_all1, col_all2 = st.columns(2)
-                with col_all1:
-                    if st.button(
-                        "Delete",
-                        key="btn_conf_delete_all",
-                        type="primary",
-                        use_container_width=True,
-                    ):
-                        try:
-                            client = get_client()
-                            if "access_token" in st.session_state:
-                                client.auth.set_session(
-                                    st.session_state["access_token"],
-                                    st.session_state.get("refresh_token", ""),
-                                )
-                            client.table("engineering_log").delete().eq(
-                                "user_id", user["id"]
-                            ).execute()
+                with st.expander("Confirm delete all", expanded=True):
+                    st.warning(
+                        "Are you sure you want to delete ALL your engineering logs? This cannot be undone."
+                    )
+                    col_all1, col_all2 = st.columns(2)
+                    with col_all1:
+                        if st.button(
+                            "Delete",
+                            key="btn_conf_delete_all",
+                            type="primary",
+                            use_container_width=True,
+                        ):
+                            try:
+                                client = get_client()
+                                if "access_token" in st.session_state:
+                                    client.auth.set_session(
+                                        st.session_state["access_token"],
+                                        st.session_state.get("refresh_token", ""),
+                                    )
+                                client.table("engineering_log").delete().eq(
+                                    "user_id", user["id"]
+                                ).execute()
+                                st.session_state[all_confirm_key] = False
+                                st.success("All engineering logs deleted successfully.")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Failed to delete all logs: {e}")
+                    with col_all2:
+                        if st.button(
+                            "Cancel",
+                            key="btn_canc_delete_all",
+                            use_container_width=True,
+                        ):
                             st.session_state[all_confirm_key] = False
-                            st.success("All engineering logs deleted successfully.")
                             st.rerun()
-                        except Exception as e:
-                            st.error(f"Failed to delete all logs: {e}")
-                with col_all2:
-                    if st.button(
-                        "Cancel", key="btn_canc_delete_all", use_container_width=True
-                    ):
-                        st.session_state[all_confirm_key] = False
-                        st.rerun()
         else:
             st.info(
                 "No engineering log entries found yet. Submit your first entry above."

@@ -1,5 +1,18 @@
 # CodeBreaker Development Log
 
+## Entry 034: Phase-2 Feedback Round 3 (v1.4.3)
+- **Date**: 2026-09-27
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.4.3 Phase-2 Feedback Round 3
+
+### Design Notes & Architectural Decisions
+1. **Builder Delete-All Expander Styling**: Wrapped the delete-ALL two-step confirmation inside an `st.expander("Confirm delete all", expanded=True)` when the confirmation flag is active. This leverages the existing expander-scoped red CSS selector (`div[data-testid="stExpander"] div.stButton > button[kind="primary"]`) so the confirm-Delete button renders red (`#d33`) while Cancel stays gray.
+2. **Builder Elimination of `st.form`**: Removed the final remaining `st.form` wrapper (Analyze form) and `st.form_submit_button`, replacing them with plain widgets backed by `st.session_state` and explicit `st.button` controls. This completely eliminates the "Press Ctrl+Enter to submit form" hint across every textbox in the application.
+3. **Builder Dynamic Export Captions**: Added dynamic `st.caption` hints directly beneath the Export Format selectbox that update in real time based on selection (Markdown: `"editable spec for repos/AI assistants"`; Plain text: `"universal, opens anywhere"`; HTML: `"styled page for browsers/offline"`; PDF: `"fixed-layout for print/share"`).
+4. **Builder Clean Member-Since Formatting**: Implemented `format_member_since(created_at_val)` to parse ISO timestamps and date strings safely, stripping time components, microseconds, and UTC offsets to render as clean calendar dates (`"%d %b %Y"`, e.g., `"16 Sep 2026"`), applied uniformly across login, signup, URL-resume rehydration, OAuth, and dashboard tiles.
+5. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`111 passed`, including new unit tests in `tests/test_v1_4_3.py`).
+6. **Documentation**: CHANGELOG v1.4.3 and DEVLOG Entry 034 (plus Entry 031 addendum).
+
 ## Entry 033: Phase-2 Feedback Rounds 1+2 Combined (v1.4.2)
 - **Date**: 2026-09-27
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
