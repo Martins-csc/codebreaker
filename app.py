@@ -3,6 +3,7 @@ import json
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 from ai_engine import (BlueprintError, generate_blueprint,
@@ -13,7 +14,28 @@ from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
 
-st.set_page_config(page_title="CodeBreaker", page_icon="⚡", layout="wide")
+st.set_page_config(
+    page_title="CodeBreaker", page_icon=":material/terminal:", layout="wide"
+)
+
+
+def format_lagos_timestamp(created_at_str):
+    if not created_at_str or created_at_str == "N/A":
+        return "N/A", "N/A"
+    try:
+        clean_str = str(created_at_str).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(clean_str)
+        dt_lagos = dt.astimezone(ZoneInfo("Africa/Lagos"))
+        d_disp = dt_lagos.strftime("%Y-%m-%d")
+        t_disp = dt_lagos.strftime("%Y-%m-%d %H:%M:%S")
+        return d_disp, t_disp
+    except Exception:
+        d = (
+            str(created_at_str).split("T")[0]
+            if "T" in str(created_at_str)
+            else str(created_at_str)
+        )
+        return d, str(created_at_str)
 
 
 def handle_storage_error(e):
@@ -102,11 +124,20 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                 user_metadata = (
                                     getattr(user_obj, "user_metadata", {}) or {}
                                 )
+                                u_created = getattr(
+                                    user_obj, "created_at", None
+                                ) or user_metadata.get("created_at", "")
+                                c_display = (
+                                    u_created.split("T")[0]
+                                    if u_created and "T" in str(u_created)
+                                    else (str(u_created) if u_created else "N/A")
+                                )
                                 st.session_state["user"] = {
                                     "id": user_obj.id,
                                     "email": user_obj.email,
                                     "display_name": display_name,
                                     "user_metadata": user_metadata,
+                                    "created_at": c_display,
                                 }
                                 st.session_state["access_token"] = new_sess.access_token
                                 st.session_state["refresh_token"] = (
@@ -116,7 +147,7 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                     new_sess, "expires_at", time.time() + 3600
                                 )
                                 st.session_state["last_verify_result"] = (
-                                    "Verified & Rotated ✅"
+                                    "Verified & Rotated"
                                 )
                                 restored = True
 
@@ -263,7 +294,7 @@ try:
                     "Recovery session established. Please set your new password."
                 )
             elif type_param == "signup":
-                st.success("Email confirmed ✅ — please log in")
+                st.success("Email confirmed - please log in")
                 st.session_state["email_confirmed_success"] = True
         else:
             st.warning("This link has expired or is invalid. Please request a new one.")
@@ -710,15 +741,15 @@ if not user:
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
             st.info(
-                "🔍 **Analyze**\n\nTransform project requirements into structured technical specs."
+                ":material/analytics: **Analyze**\n\nTransform project requirements into structured technical specs."
             )
         with col_m2:
             st.info(
-                "📐 **Blueprint**\n\nExplore multi-tab system architecture, tech stacks, and exportable documentation."
+                ":material/description: **Blueprint**\n\nExplore multi-tab system architecture, tech stacks, and exportable documentation."
             )
         with col_m3:
             st.info(
-                "📝 **Engineering Log**\n\nMaintain a secure, chronological record of daily progress and technical insights."
+                ":material/journal: **Engineering Log**\n\nMaintain a secure, chronological record of daily progress and technical insights."
             )
 
         st.markdown("---")
@@ -754,7 +785,7 @@ else:
     )
 
     if is_admin:
-        st.sidebar.subheader("🛡️ Admin Pulse")
+        st.sidebar.subheader(":material/shield: Admin Pulse")
         try:
             client = get_client()
             if "access_token" in st.session_state:
@@ -828,7 +859,7 @@ else:
 user_meta = user.get("user_metadata", {}) if user else {}
 if user and not user_meta.get("tour_seen", False):
     with st.expander(
-        "👋 Welcome to CodeBreaker — First-Run Onboarding Tour", expanded=True
+        "Welcome to CodeBreaker - First-Run Onboarding Tour", expanded=True
     ):
         st.markdown(
             "1. **Analyze**: Describe any project idea to generate an automated blueprint.\n"
@@ -892,7 +923,7 @@ if page == "About":
     st.markdown("---")
     col_ab1, col_ab2 = st.columns([3, 1])
     with col_ab1:
-        st.markdown("**Built by Martins**")
+        st.markdown("**Built by CodeBreaker Dev**")
     with col_ab2:
         if st.button("Contact us", key="about_contact_btn", use_container_width=True):
             st.query_params["pg"] = "Contact"
@@ -1030,9 +1061,14 @@ elif page == "Analyze":
     st.title("Analyze & Architecture Generation")
 
     with st.form("analyze_form"):
-        project_name = st.text_input("Project Name", max_chars=100)
-        problem = st.text_area("Problem Description / Requirements", max_chars=2000)
-        target_audience = st.text_input("Target Audience", max_chars=200)
+        project_name = st.text_input("Project Name", placeholder="e.g. Chat App")
+        problem = st.text_area(
+            "Problem Description / Requirements",
+            placeholder="What problem are you solving and what are the core requirements?",
+        )
+        target_audience = st.text_input(
+            "Target Audience", placeholder="e.g. Students, Enterprise, Consumers"
+        )
 
         submitted = st.form_submit_button("Generate Blueprint")
 
@@ -1087,6 +1123,7 @@ elif page == "Blueprint":
                 "Export Format",
                 ["Markdown (.md)", "Plain text (.txt)", "HTML (.html)", "PDF (.pdf)"],
                 key="blueprint_export_format",
+                help="Select target file format for exporting blueprint. Files download to browser default location.",
             )
             base_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
             if base_fname.endswith(".md"):
@@ -1102,22 +1139,26 @@ elif page == "Blueprint":
                 content = render_blueprint_markdown(blueprint)
                 fname = base_fname
                 mime = "text/markdown"
-                btn_label = "📥 Export as Markdown (.md)"
+                btn_label = "Export as Markdown (.md)"
+                btn_help = "Export blueprint as structured Markdown (.md) document. Downloads to browser default location."
             elif "Plain text" in export_format:
                 content = render_blueprint_text(blueprint)
                 fname = txt_fname
                 mime = "text/plain"
-                btn_label = "📥 Export as Plain Text (.txt)"
+                btn_label = "Export as Plain Text (.txt)"
+                btn_help = "Export blueprint as plain text (.txt) document. Downloads to browser default location."
             elif "HTML" in export_format:
                 content = render_blueprint_html(blueprint)
                 fname = html_fname
                 mime = "text/html"
-                btn_label = "📥 Export as HTML (.html)"
+                btn_label = "Export as HTML (.html)"
+                btn_help = "Export blueprint as styled HTML page (.html). Downloads to browser default location."
             else:
                 content = render_blueprint_pdf(blueprint)
                 fname = pdf_fname
                 mime = "application/pdf"
-                btn_label = "📥 Export as PDF (.pdf)"
+                btn_label = "Export as PDF (.pdf)"
+                btn_help = "Export blueprint as formatted PDF document (.pdf). Downloads to browser default location."
 
             st.download_button(
                 label=btn_label,
@@ -1125,6 +1166,7 @@ elif page == "Blueprint":
                 file_name=fname,
                 mime=mime,
                 use_container_width=True,
+                help=btn_help,
             )
 
         tab_tech, tab_folder, tab_edges, tab_roadmap, tab_summary = st.tabs(
@@ -1170,6 +1212,18 @@ elif page == "Blueprint":
             st.write(blueprint.get("summary", "No summary provided."))
 
 elif page == "Engineering Log":
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stExpander"] div.stButton > button[kind="primary"] {
+            background-color: #d33;
+            color: #fff;
+            border-color: #d33;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.title("Engineering Log")
     st.markdown("---")
 
@@ -1277,11 +1331,7 @@ elif page == "Engineering Log":
                 for entry in proj_entries:
                     entry_id = entry.get("id")
                     created_at = entry.get("created_at", "N/A")
-                    date_display = (
-                        created_at.split("T")[0]
-                        if "T" in str(created_at)
-                        else str(created_at)
-                    )
+                    date_display, timestamp_display = format_lagos_timestamp(created_at)
                     progress_text = str(entry.get("progress", "Milestone"))
                     progress_preview = (
                         progress_text.split("\n")[0][:40]
@@ -1293,7 +1343,7 @@ elif page == "Engineering Log":
                         f"[{date_display}] {proj_name} — {progress_preview}"
                     )
                     with st.expander(expander_label, expanded=False):
-                        st.markdown(f"**Timestamp:** `{created_at}`")
+                        st.markdown(f"**Timestamp:** `{timestamp_display}`")
                         if entry.get("progress"):
                             st.markdown(
                                 f"**Progress / Milestone:**\n{entry.get('progress')}"
@@ -1309,7 +1359,7 @@ elif page == "Engineering Log":
                         with col_btn:
                             confirm_del_key = f"confirm_del_{entry_id}"
                             if not st.session_state.get(confirm_del_key, False):
-                                if st.button("🗑️ Delete", key=f"del_log_{entry_id}"):
+                                if st.button("Delete", key=f"del_log_{entry_id}"):
                                     st.session_state[confirm_del_key] = True
                                     st.rerun()
                             else:

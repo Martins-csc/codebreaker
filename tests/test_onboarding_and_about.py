@@ -81,4 +81,4 @@ def test_about_page_content():
     assert "Analyze→Blueprint→export→Log→repeat" in content
     assert "Mini-FAQ" in content
     assert "For Lecturers & Supervisors" in content
-    assert "Built by Martins" in content
+    assert "Built by CodeBreaker Dev" in content

@@ -83,7 +83,7 @@ def test_about_page_expanders_and_contact_btn():
         'with st.expander("Where is my exported file: Where do exports go?"):'
         in content
     )
-    assert "Built by Martins" in content
+    assert "Built by CodeBreaker Dev" in content
     assert 'st.button("Contact us"' in content
 
 

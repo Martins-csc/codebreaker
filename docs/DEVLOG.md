@@ -1,5 +1,21 @@
 # CodeBreaker Development Log
 
+## Entry 033: Phase-2 Feedback Rounds 1+2 Combined (v1.4.2)
+- **Date**: 2026-09-27
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.4.2 Phase-2 Feedback Rounds 1+2 Combined
+
+### Design Notes & Architectural Decisions
+1. **Builder Analyze Placeholders & Length Limits**: Restored Analyze form placeholder texts (`"e.g. Chat App"`, `"e.g. Students, Enterprise, Consumers"`, and problem description example prompt) while removing `max_chars` from all Analyze inputs so character counters ("0/200") disappear cleanly while instructional placeholders remain.
+2. **Builder Engineering Log Delete Styling**: Injected scoped CSS (`div[data-testid="stExpander"] div.stButton > button[kind="primary"]`) on the Engineering Log page so confirm-Delete renders red (`#d33`) while Cancel buttons remain gray.
+3. **Builder Account Member-Since Persistence**: Included `created_at` in the rebuilt user dictionary on the URL-resume refresh path (`?rt=...`), ensuring "Member Since" correctly survives browser refresh and dashboard tiles read it safely.
+4. **Builder Log Timestamp Localization**: Converted UTC timestamps to Africa/Lagos local clock time using standard library `zoneinfo.ZoneInfo("Africa/Lagos")` for both expander headers and internal log details.
+5. **Builder De-Emoji Professionalism Sweep**: Removed all emoji glyphs from user-facing strings (module cards, sidebar headers, onboarding tour, delete markers, status alerts), replacing them with Streamlit material icons (`:material/analytics:`, `:material/description:`, `:material/journal:`, `:material/shield:`, `:material/terminal:`) and clean plain text.
+6. **Builder About Signature**: Updated signature to `"Built by CodeBreaker Dev"` while retaining the functional `[Contact us]` button.
+7. **Builder Export Help Tooltips**: Added native hover tooltips (`help=`) to the Export Format selectbox and all four export download buttons, explaining file purpose and browser download destination.
+8. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green unit test suite (`106 passed`, including new unit tests in `tests/test_v1_4_2.py`).
+9. **Documentation**: CHANGELOG v1.4.2 and DEVLOG Entry 033 (plus Entry 031 addendum).
+
 ## Entry 032: Phase-2 Feedback Fixes & Contact Form (v1.4.1)
 - **Date**: 2026-09-27
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

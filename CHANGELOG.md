@@ -5,6 +5,20 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-09-27
+
+### Added / Changed
+- Micro-Mission v1.4.2 — Phase-2 Feedback Rounds 1+2 Combined:
+  - **Builder Analyze Placeholders & Length Limits**: Restored Analyze form placeholders (`"e.g. Chat App"`, `"e.g. Students, Enterprise, Consumers"`, problem description example prompt) and removed `max_chars` from all Analyze inputs so counters ("0/200") vanish while placeholders stay.
+  - **Builder Log Delete Red Styling**: Injected scoped CSS (`div[data-testid="stExpander"] div.stButton > button[kind="primary"]`) on Engineering Log page so confirm-Delete renders red (`#d33`) while Cancel stays gray.
+  - **Builder Account Member-Since Persistence**: Included `created_at` in the rebuilt user dictionary on URL-resume refresh path (`?rt=...`) so Member Since survives refresh.
+  - **Builder Log Timestamp Localization**: Converted UTC timestamps to Africa/Lagos local clock time using standard library `zoneinfo.ZoneInfo("Africa/Lagos")`.
+  - **Builder De-Emoji Professionalism Sweep**: Removed all emoji glyphs from user-facing strings (module cards, sidebar headers, onboarding tour, delete markers), replacing them with Streamlit material icons (`:material/analytics:`, `:material/description:`, `:material/journal:`, `:material/shield:`, `:material/terminal:`) and clean plain text.
+  - **Builder About Signature**: Updated signature to `"Built by CodeBreaker Dev"` (retaining the `[Contact us]` button).
+  - **Builder Export Help Tooltips**: Added native hover tooltips (`help=`) to export format selectbox and all four export download buttons explaining format purpose and destination.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and green pytest suite (`106 passed`, including new unit tests in `tests/test_v1_4_2.py`).
+  - **Documentation**: CHANGELOG v1.4.2 and DEVLOG Entry 033.
+
 ## [1.4.1] - 2026-09-27
 
 ### Added / Changed
