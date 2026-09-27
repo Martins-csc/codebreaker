@@ -1,5 +1,19 @@
 # CodeBreaker Development Log
 
+## Entry 035: Phase-2 Feedback Round 4 + Hint Elimination (v1.4.4)
+- **Date**: 2026-09-27
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.4.4 Phase-2 Feedback Round 4 + Hint Elimination
+
+### Design Notes & Architectural Decisions
+1. **Builder Stable Member-Since Field**: Computed formatted member-since (`"%d %b %Y"`, e.g., `"16 Sep 2026"`) once at login, signup, OAuth, and capability resume rehydration paths, storing it as `user["member_since"]`. Dashboard and account tiles read exclusively from this field.
+2. **Builder Vertical Folder Structure**: Rendered folder structures via `st.code(tree, language=None)` with `.replace("\\n", "\n")` handling literal escape sequences so folder trees stack vertically.
+3. **Builder Inline Export Purposes**: Integrated format purposes inline into export selectbox option labels (`"Markdown (.md) — editable spec for repos & AI assistants"`, `"Plain text (.txt) — universal, opens anywhere"`, `"HTML (.html) — styled page for browser/offline"`, `"PDF (.pdf) — fixed-layout for print & share"`) and removed the separate caption below.
+4. **Builder Auth Polish**: Removed email placeholder (`placeholder=""`) and rendered the `"or"` divider as a professional flexbox line-text-line divider (`— or —`).
+5. **Builder Danger Buttons & Hint Elimination**: Enforced `use_container_width=True` on all delete/cancel buttons. Added aggressive CSS suppression for `stWidgetTrailer`, `stCharCounter`, widget label trailing hints, and browser `aria-label` trailing hints. Asserted zero `st.form` remain in `app.py`.
+6. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`118 passed`, including new unit tests in `tests/test_v1_4_4.py`).
+7. **Documentation**: CHANGELOG v1.4.4 and DEVLOG Entry 035 (plus Entry 031 addendum).
+
 ## Entry 034: Phase-2 Feedback Round 3 (v1.4.3)
 - **Date**: 2026-09-27
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

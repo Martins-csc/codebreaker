@@ -18,6 +18,27 @@ st.set_page_config(
     page_title="CodeBreaker", page_icon=":material/terminal:", layout="wide"
 )
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stWidgetTrailer"],
+    div[data-testid="stCharCounter"],
+    [data-testid="stWidgetLabel"] + div,
+    input[aria-label] + div,
+    textarea[aria-label] + div,
+    .stForm [data-testid="InputInstructions"],
+    div[data-baseweb="input"] + div {
+        display: none !important;
+    }
+    </style>
+    <script>
+    const inputs = document.querySelectorAll('input, textarea');
+    inputs.forEach(input => input.setAttribute('autocomplete', 'off'));
+    </script>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 def format_lagos_timestamp(created_at_str):
     if not created_at_str or created_at_str == "N/A":
@@ -151,17 +172,13 @@ if "user" not in st.session_state or "access_token" not in st.session_state:
                                 u_created = getattr(
                                     user_obj, "created_at", None
                                 ) or user_metadata.get("created_at", "")
-                                c_display = (
-                                    u_created.split("T")[0]
-                                    if u_created and "T" in str(u_created)
-                                    else (str(u_created) if u_created else "N/A")
-                                )
+                                c_display = format_member_since(u_created)
                                 st.session_state["user"] = {
                                     "id": user_obj.id,
                                     "email": user_obj.email,
                                     "display_name": display_name,
                                     "user_metadata": user_metadata,
-                                    "created_at": c_display,
+                                    "member_since": c_display,
                                 }
                                 st.session_state["access_token"] = new_sess.access_token
                                 st.session_state["refresh_token"] = (
@@ -365,7 +382,7 @@ try:
                         "email": res.user.email,
                         "display_name": display_name,
                         "user_metadata": user_metadata,
-                        "created_at": c_display,
+                        "member_since": c_display,
                     }
                     st.session_state["access_token"] = res.session.access_token
                     st.session_state["refresh_token"] = res.session.refresh_token
@@ -424,9 +441,7 @@ if not user:
                 unsafe_allow_html=True,
             )
 
-            auth_email = st.text_input(
-                "Email", placeholder="you@example.com", key="auth_card_email"
-            )
+            auth_email = st.text_input("Email", placeholder="", key="auth_card_email")
             auth_password = st.text_input(
                 "Password", type="password", placeholder="", key="auth_card_password"
             )
@@ -516,7 +531,7 @@ if not user:
                                     "email": user_obj.email,
                                     "display_name": display_name,
                                     "user_metadata": user_metadata,
-                                    "created_at": c_display,
+                                    "member_since": c_display,
                                 }
                                 st.session_state["access_token"] = (
                                     res.session.access_token
@@ -656,7 +671,7 @@ if not user:
                                         "email": user_obj.email,
                                         "display_name": display_name,
                                         "user_metadata": user_metadata,
-                                        "created_at": c_display,
+                                        "member_since": c_display,
                                     }
                                     st.session_state["access_token"] = (
                                         session_obj.access_token
@@ -691,7 +706,16 @@ if not user:
                             else:
                                 st.error(f"Sign-up failed: {err_str}")
 
-            st.markdown("or")
+            st.markdown(
+                """
+                <div style="display: flex; align-items: center; text-align: center; color: #888; margin: 1em 0;">
+                    <hr style="flex: 1; border: none; border-top: 1px solid #ccc;">
+                    <span style="padding: 0 10px;">or</span>
+                    <hr style="flex: 1; border: none; border-top: 1px solid #ccc;">
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
             redirect_to = getattr(st.context, "url", None)
             if redirect_to:
@@ -1067,7 +1091,7 @@ elif page == "Home":
             st.subheader("Account")
             st.markdown(f"**Display Name:** {user.get('display_name', 'N/A')}")
             st.markdown(f"**Email:** {user.get('email', 'N/A')}")
-            st.markdown(f"**Member Since:** {user.get('created_at', 'N/A')}")
+            st.markdown(f"**Member Since:** {user.get('member_since', 'N/A')}")
 
 elif page == "Analyze":
     st.title("Analyze & Architecture Generation")
@@ -1143,18 +1167,15 @@ elif page == "Blueprint":
         with col_export:
             export_format = st.selectbox(
                 "Export Format",
-                ["Markdown (.md)", "Plain text (.txt)", "HTML (.html)", "PDF (.pdf)"],
+                [
+                    "Markdown (.md) — editable spec for repos & AI assistants",
+                    "Plain text (.txt) — universal, opens anywhere",
+                    "HTML (.html) — styled page for browser/offline",
+                    "PDF (.pdf) — fixed-layout for print & share",
+                ],
                 key="blueprint_export_format",
                 help="Select target file format for exporting blueprint. Files download to browser default location.",
             )
-            if "Markdown" in export_format:
-                st.caption("editable spec for repos/AI assistants")
-            elif "Plain text" in export_format:
-                st.caption("universal, opens anywhere")
-            elif "HTML" in export_format:
-                st.caption("styled page for browsers/offline")
-            else:
-                st.caption("fixed-layout for print/share")
             base_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
             if base_fname.endswith(".md"):
                 txt_fname = base_fname[:-3] + ".txt"
@@ -1217,7 +1238,9 @@ elif page == "Blueprint":
             folder_tree = blueprint.get(
                 "folder_structure", "No folder structure provided."
             )
-            st.code(folder_tree, language="text")
+            if isinstance(folder_tree, str):
+                folder_tree = folder_tree.replace("\\n", "\n")
+            st.code(folder_tree, language=None)
 
         with tab_edges:
             st.markdown("### Potential Edge Cases & Risks")
@@ -1389,7 +1412,11 @@ elif page == "Engineering Log":
                         with col_btn:
                             confirm_del_key = f"confirm_del_{entry_id}"
                             if not st.session_state.get(confirm_del_key, False):
-                                if st.button("Delete", key=f"del_log_{entry_id}"):
+                                if st.button(
+                                    "Delete",
+                                    key=f"del_log_{entry_id}",
+                                    use_container_width=True,
+                                ):
                                     st.session_state[confirm_del_key] = True
                                     st.rerun()
                             else:

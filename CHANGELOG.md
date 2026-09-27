@@ -5,6 +5,18 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.4.4] - 2026-09-27
+
+### Added / Changed
+- Micro-Mission v1.4.4 — Phase-2 Feedback Round 4 + Hint Elimination:
+  - **Builder Stable Member-Since Field**: Computed formatted member-since (`"%d %b %Y"`, e.g. `"16 Sep 2026"`) once at login, signup, OAuth, and resume paths, storing as `user["member_since"]`; dashboard + account read only that field.
+  - **Builder Vertical Folder Structure**: Rendered folder structures via `st.code(tree, language=None)` with `.replace("\\n", "\n")` so folders stack vertically.
+  - **Builder Inline Export Purposes**: Integrated format purposes inline into export format selectbox labels (`"Markdown (.md) — editable spec for repos & AI assistants"`, etc.) and removed caption-below.
+  - **Builder Auth Polish**: Removed email placeholder and rendered `"or"` divider as a flexbox line-text-line (`— or —`).
+  - **Builder Danger Buttons & Hint Elimination**: Enforced `use_container_width=True` on all delete/cancel buttons. Injected aggressive CSS hiding `stWidgetTrailer`, `stCharCounter`, and browser hints. Asserted zero `st.form` remain in `app.py`.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and green pytest suite (`118 passed`, including new unit tests in `tests/test_v1_4_4.py`).
+  - **Documentation**: CHANGELOG v1.4.4 and DEVLOG Entry 035 (plus Entry 031 addendum).
+
 ## [1.4.3] - 2026-09-27
 
 ### Added / Changed

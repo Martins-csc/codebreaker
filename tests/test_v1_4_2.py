@@ -48,11 +48,13 @@ def test_v1_4_2_log_expander_primary_css():
 
 
 def test_v1_4_2_resumed_user_carries_created_at():
-    """Test URL-resume rehydration path includes created_at in session_state['user']."""
+    """Test URL-resume rehydration path includes member_since in session_state['user']."""
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert '"created_at": c_display' in content or "'created_at': c_display" in content
+    assert (
+        '"member_since": c_display' in content or "'member_since': c_display" in content
+    )
 
 
 def test_v1_4_2_log_tz_conversion():
