@@ -93,7 +93,7 @@ def test_v1_4_0_dashboard_and_hygiene_elements():
 
     # Delete controls
     assert "Delete ALL my logs" in content
-    assert "Confirm delete" in content
+    assert "Delete" in content
 
 
 def test_v1_4_0_two_step_delete_state():

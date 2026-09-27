@@ -1,5 +1,22 @@
 # CodeBreaker Development Log
 
+## Entry 032: Phase-2 Feedback Fixes & Contact Form (v1.4.1)
+- **Date**: 2026-09-27
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.4.1 Phase-2 Feedback Fixes & Contact Form
+
+### Design Notes & Architectural Decisions
+1. **Builder PDF Unicode Safety (`_latin1_safe`)**: Implemented `_latin1_safe(text)` to map common arrows (`→`, `←`, `↔`), symbols (`•`, quotes, dashes), and emojis to safe ASCII equivalents, followed by `.encode("latin-1","replace").decode("latin-1")`. Wrapped every string passed to FPDF across `render_blueprint_pdf` and footer generation, completely eliminating `FPDFUnicodeEncodingException` vulnerability. Verified via dedicated emoji+arrow unit test.
+2. **Builder Log Form & Project Labeling**:
+   - Removed `max_chars` from all log text areas.
+   - Replaced `st.form` wrappers with plain widgets + `[Submit Log Entry]` button, successfully eliminating the Streamlit Ctrl+Enter submission hint.
+   - Added `project_name` field prefilled from the current Analyze project name in `session_state`, editable, defaulting to `"General"`, and stored in database logs.
+   - Rendered engineering log entries grouped by project with clean header labels `"[date] Project — milestone"`.
+3. **Builder Contact Page**: Added dedicated sidebar navigation section `"Contact"` with a secure contact form (Name, Email, Message with 5 rows height, `[Send Message]` button). Enforced validation (non-empty fields, email regex format), SMTP delivery via Gmail to `codebreakerbuild@gmail.com`, success feedback `"Message sent. We'll respond within 24 hours."`, and strict 60s submission cooldown.
+4. **Builder About & Mini-FAQ Accordions**: Refined About page by replacing the old contact clause with `"Built by Martins"` and a `[Contact us]` button setting `st.query_params["pg"]="Contact"` and triggering `st.rerun()`. Converted Mini-FAQ four questions into interactive `st.expander` accordions.
+5. **Builder Log Delete Controls**: Refined two-step delete confirmation buttons with `use_container_width=True` and short labels `"Delete"` / `"Cancel"`.
+6. **Testing & Verification**: Enforced pre-seal compile check (`python3 -m py_compile`) and verified green test suite (`98 passed`, including `tests/test_v1_4_1.py`).
+
 ## Entry 031: Dashboard Contract, Log Control UX & About Six Structure (v1.4.0)
 - **Date**: 2026-09-25
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

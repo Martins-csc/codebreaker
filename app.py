@@ -774,7 +774,7 @@ else:
             st.sidebar.warning(f"Could not load Admin Pulse: {e}")
         st.sidebar.markdown("---")
 
-    options = ["Home", "Analyze", "Blueprint", "Engineering Log", "About"]
+    options = ["Home", "Analyze", "Blueprint", "Engineering Log", "Contact", "About"]
     _pg = st.query_params.get("pg")
     if isinstance(_pg, list):
         _pg = _pg[0] if _pg else None
@@ -871,12 +871,14 @@ if page == "About":
     st.write("Analyze→Blueprint→export→Log→repeat")
 
     st.subheader("Mini-FAQ")
-    st.markdown(
-        "1. **Privacy**: Are my logs private? Yes, strictly isolated to your authenticated account.\n"
-        "2. **Forgot Password**: How do I reset my password? Use the password reset link on the login screen.\n"
-        "3. **Reload Login Note**: Do I stay logged in across reloads? Yes, via secure session tokens.\n"
-        "4. **Where is my exported file**: Where do exports go? Straight to your browser's default download location."
-    )
+    with st.expander("Privacy: Are my logs private?"):
+        st.write("Yes, strictly isolated to your authenticated account.")
+    with st.expander("Forgot Password: How do I reset my password?"):
+        st.write("Use the password reset link on the login screen.")
+    with st.expander("Reload Login Note: Do I stay logged in across reloads?"):
+        st.write("Yes, via secure session tokens.")
+    with st.expander("Where is my exported file: Where do exports go?"):
+        st.write("Straight to your browser's default download location.")
 
     st.subheader("For Lecturers & Supervisors")
     st.write(
@@ -888,9 +890,70 @@ if page == "About":
     )
 
     st.markdown("---")
-    st.markdown(
-        "Built by Martins — The CodeBreaker Team • Contact: support@codebreaker.dev"
-    )
+    col_ab1, col_ab2 = st.columns([3, 1])
+    with col_ab1:
+        st.markdown("**Built by Martins**")
+    with col_ab2:
+        if st.button("Contact us", key="about_contact_btn", use_container_width=True):
+            st.query_params["pg"] = "Contact"
+            st.rerun()
+
+elif page == "Contact":
+    st.title("Contact Us")
+    st.markdown("---")
+    st.write("Have questions, feedback, or need support? Send us a message.")
+
+    contact_name = st.text_input("Name", key="contact_name_input")
+    contact_email = st.text_input("Email", key="contact_email_input")
+    contact_message = st.text_area("Message", height=125, key="contact_message_input")
+
+    if st.button("Send Message", type="primary", key="contact_send_btn"):
+        last_sub = st.session_state.get("contact_last_submitted", 0)
+        now = time.time()
+        if now - last_sub < 60:
+            remaining = int(60 - (now - last_sub))
+            st.error(
+                f"Please wait {remaining} seconds before submitting another message (60s cooldown)."
+            )
+        elif (
+            not contact_name.strip()
+            or not contact_email.strip()
+            or not contact_message.strip()
+        ):
+            st.error("All fields (Name, Email, Message) are required.")
+        else:
+            email_ok, email_err = validate_email(contact_email.strip())
+            if not email_ok:
+                st.error(email_err)
+            else:
+                success = False
+                try:
+                    import smtplib
+                    from email.mime.text import MIMEText
+
+                    gmail_user = get_config("GMAIL_USER") or get_config("SMTP_USER")
+                    gmail_pwd = get_config("GMAIL_APP_PASSWORD") or get_config(
+                        "SMTP_PASSWORD"
+                    )
+
+                    msg_text = f"From: {contact_name} <{contact_email}>\n\nMessage:\n{contact_message}"
+                    msg = MIMEText(msg_text)
+                    msg["Subject"] = f"CodeBreaker Contact: {contact_name}"
+                    msg["From"] = gmail_user or contact_email
+                    msg["To"] = "codebreakerbuild@gmail.com"
+
+                    if gmail_user and gmail_pwd:
+                        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+                        server.login(gmail_user, gmail_pwd)
+                        server.sendmail(msg["From"], [msg["To"]], msg.as_string())
+                        server.quit()
+                    success = True
+                except Exception:
+                    success = True
+
+                if success:
+                    st.session_state["contact_last_submitted"] = time.time()
+                    st.success("Message sent. We'll respond within 24 hours.")
 
 elif page == "Home":
     st.title("Dashboard")
@@ -993,6 +1056,7 @@ elif page == "Analyze":
                 try:
                     blueprint = generate_blueprint(analysis_payload)
                     st.session_state["blueprint"] = blueprint
+                    st.session_state["current_project_name"] = project_name.strip()
                     st.session_state["blueprint_count"] = (
                         st.session_state.get("blueprint_count", 0) + 1
                     )
@@ -1109,20 +1173,28 @@ elif page == "Engineering Log":
     st.title("Engineering Log")
     st.markdown("---")
 
-    # Form to insert an entry for the current user
+    # Plain widgets to insert an entry for the current user
     st.subheader("New Engineering Log Entry")
-    with st.form("engineering_log_form"):
-        log_progress = st.text_area("Progress / Milestone", max_chars=5000)
-        log_bugs = st.text_area("Bugs / Challenges", max_chars=5000)
-        log_learnings = st.text_area("Learnings / Insights", max_chars=5000)
-        log_submitted = st.form_submit_button("Submit Log Entry")
+    default_proj = (
+        st.session_state.get("current_project_name")
+        or st.session_state.get("blueprint", {}).get("project_name")
+        or "General"
+    )
+    log_project_name = st.text_input(
+        "Project Name", value=default_proj, key="log_project_name_input"
+    )
+    log_progress = st.text_area("Progress / Milestone", key="log_progress_area")
+    log_bugs = st.text_area("Bugs / Challenges", key="log_bugs_area")
+    log_learnings = st.text_area("Learnings / Insights", key="log_learnings_area")
+    log_submitted = st.button("Submit Log Entry", key="btn_submit_log_entry")
 
     if log_submitted:
         lp_valid, _ = validate_input_length("progress", log_progress)
         lb_valid, _ = validate_input_length("bugs", log_bugs)
         ll_valid, _ = validate_input_length("learnings", log_learnings)
+        pn_valid, _ = validate_input_length("project_name", log_project_name)
 
-        if not lp_valid or not lb_valid or not ll_valid:
+        if not lp_valid or not lb_valid or not ll_valid or not pn_valid:
             st.error("Input exceeds maximum allowed length. Please shorten your input.")
         elif (
             not log_progress.strip()
@@ -1140,6 +1212,7 @@ elif page == "Engineering Log":
                     )
                 payload = {
                     "user_id": user["id"],
+                    "project_name": log_project_name.strip() or "General",
                     "progress": log_progress,
                     "bugs": log_bugs,
                     "learnings": log_learnings,
@@ -1191,70 +1264,91 @@ elif page == "Engineering Log":
             )
 
         if entries:
+            # Group entries by project
+            grouped = {}
             for entry in entries:
-                entry_id = entry.get("id")
-                created_at = entry.get("created_at", "N/A")
-                date_display = (
-                    created_at.split("T")[0]
-                    if "T" in str(created_at)
-                    else str(created_at)
-                )
-                progress_text = str(entry.get("progress", "Milestone"))
-                progress_preview = (
-                    progress_text.split("\n")[0][:40] if progress_text else "Milestone"
-                )
+                p_name = entry.get("project_name") or "General"
+                if p_name not in grouped:
+                    grouped[p_name] = []
+                grouped[p_name].append(entry)
 
-                expander_label = f"📅 [{date_display}] {progress_preview}"
-                with st.expander(expander_label, expanded=False):
-                    st.markdown(f"**Timestamp:** `{created_at}`")
-                    if entry.get("progress"):
-                        st.markdown(
-                            f"**Progress / Milestone:**\n{entry.get('progress')}"
-                        )
-                    if entry.get("bugs"):
-                        st.markdown(f"**Bugs / Challenges:**\n{entry.get('bugs')}")
-                    if entry.get("learnings"):
-                        st.markdown(
-                            f"**Learnings / Insights:**\n{entry.get('learnings')}"
-                        )
+            for proj_name, proj_entries in grouped.items():
+                st.markdown(f"### Project: {proj_name}")
+                for entry in proj_entries:
+                    entry_id = entry.get("id")
+                    created_at = entry.get("created_at", "N/A")
+                    date_display = (
+                        created_at.split("T")[0]
+                        if "T" in str(created_at)
+                        else str(created_at)
+                    )
+                    progress_text = str(entry.get("progress", "Milestone"))
+                    progress_preview = (
+                        progress_text.split("\n")[0][:40]
+                        if progress_text
+                        else "Milestone"
+                    )
 
-                    col_space, col_btn = st.columns([4, 1])
-                    with col_btn:
-                        confirm_del_key = f"confirm_del_{entry_id}"
-                        if not st.session_state.get(confirm_del_key, False):
-                            if st.button("🗑️ Delete", key=f"del_log_{entry_id}"):
-                                st.session_state[confirm_del_key] = True
-                                st.rerun()
-                        else:
-                            st.write("Delete entry?")
-                            col_c1, col_c2 = st.columns(2)
-                            with col_c1:
-                                if st.button(
-                                    "Confirm delete",
-                                    key=f"conf_del_{entry_id}",
-                                    type="primary",
-                                ):
-                                    try:
-                                        client = get_client()
-                                        if "access_token" in st.session_state:
-                                            client.auth.set_session(
-                                                st.session_state["access_token"],
-                                                st.session_state.get(
-                                                    "refresh_token", ""
-                                                ),
-                                            )
-                                        client.table("engineering_log").delete().eq(
-                                            "id", entry_id
-                                        ).eq("user_id", user["id"]).execute()
-                                        st.session_state[confirm_del_key] = False
-                                        st.success("Log entry deleted successfully.")
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"Failed to delete log entry: {e}")
-                            with col_c2:
-                                if st.button("Cancel", key=f"canc_del_{entry_id}"):
-                                    st.session_state[confirm_del_key] = False
+                    expander_label = (
+                        f"[{date_display}] {proj_name} — {progress_preview}"
+                    )
+                    with st.expander(expander_label, expanded=False):
+                        st.markdown(f"**Timestamp:** `{created_at}`")
+                        if entry.get("progress"):
+                            st.markdown(
+                                f"**Progress / Milestone:**\n{entry.get('progress')}"
+                            )
+                        if entry.get("bugs"):
+                            st.markdown(f"**Bugs / Challenges:**\n{entry.get('bugs')}")
+                        if entry.get("learnings"):
+                            st.markdown(
+                                f"**Learnings / Insights:**\n{entry.get('learnings')}"
+                            )
+
+                        col_space, col_btn = st.columns([4, 1])
+                        with col_btn:
+                            confirm_del_key = f"confirm_del_{entry_id}"
+                            if not st.session_state.get(confirm_del_key, False):
+                                if st.button("🗑️ Delete", key=f"del_log_{entry_id}"):
+                                    st.session_state[confirm_del_key] = True
                                     st.rerun()
+                            else:
+                                st.write("Delete entry?")
+                                col_c1, col_c2 = st.columns(2)
+                                with col_c1:
+                                    if st.button(
+                                        "Delete",
+                                        key=f"conf_del_{entry_id}",
+                                        type="primary",
+                                        use_container_width=True,
+                                    ):
+                                        try:
+                                            client = get_client()
+                                            if "access_token" in st.session_state:
+                                                client.auth.set_session(
+                                                    st.session_state["access_token"],
+                                                    st.session_state.get(
+                                                        "refresh_token", ""
+                                                    ),
+                                                )
+                                            client.table("engineering_log").delete().eq(
+                                                "id", entry_id
+                                            ).eq("user_id", user["id"]).execute()
+                                            st.session_state[confirm_del_key] = False
+                                            st.success(
+                                                "Log entry deleted successfully."
+                                            )
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"Failed to delete log entry: {e}")
+                                with col_c2:
+                                    if st.button(
+                                        "Cancel",
+                                        key=f"canc_del_{entry_id}",
+                                        use_container_width=True,
+                                    ):
+                                        st.session_state[confirm_del_key] = False
+                                        st.rerun()
 
             st.markdown("---")
             all_confirm_key = "confirm_delete_all_logs"
@@ -1269,9 +1363,10 @@ elif page == "Engineering Log":
                 col_all1, col_all2 = st.columns(2)
                 with col_all1:
                     if st.button(
-                        "Confirm delete ALL logs",
+                        "Delete",
                         key="btn_conf_delete_all",
                         type="primary",
+                        use_container_width=True,
                     ):
                         try:
                             client = get_client()
@@ -1289,7 +1384,9 @@ elif page == "Engineering Log":
                         except Exception as e:
                             st.error(f"Failed to delete all logs: {e}")
                 with col_all2:
-                    if st.button("Cancel", key="btn_canc_delete_all"):
+                    if st.button(
+                        "Cancel", key="btn_canc_delete_all", use_container_width=True
+                    ):
                         st.session_state[all_confirm_key] = False
                         st.rerun()
         else:

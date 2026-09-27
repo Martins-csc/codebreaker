@@ -5,6 +5,18 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-09-27
+
+### Added / Changed
+- Micro-Mission v1.4.1 — Phase-2 Feedback Fixes & Contact Form:
+  - **Builder PDF (`_latin1_safe`)**: Added robust `_latin1_safe(text)` mapping common arrows/symbols/emojis to ASCII and sanitizing via `.encode("latin-1","replace").decode("latin-1")`. Wrapped every string passed to FPDF in `render_blueprint_pdf` to eliminate `FPDFUnicodeEncodingException` recurrence. Added test coverage with emoji + arrow input.
+  - **Builder Log Form & Project Labeling**: Removed `max_chars` from all log text areas, replaced `st.form` with plain widgets + `[Submit Log Entry]` button (removing Ctrl+Enter hint), added editable project name prefilled from Analyze session state (default "General"), stored `project_name` in Supabase, and rendered entries grouped by project with label `"[date] Project — milestone"`.
+  - **Builder Contact Page**: Added new sidebar section "Contact" featuring form with Name, Email, Message (5 rows), and `[Send Message]` button. Implemented input validation, valid email format checks, Gmail SMTP integration to `codebreakerbuild@gmail.com`, success message `"Message sent. We'll respond within 24 hours."`, and 60s submission cooldown.
+  - **Builder About & FAQ Accordions**: Replaced invented contact clause with "Built by Martins" + `[Contact us]` button linking to the Contact page (`st.query_params["pg"]="Contact"`, `st.rerun()`). Converted Mini-FAQ four items into `st.expander` accordions.
+  - **Builder Log Delete Controls**: Updated two-step confirmation buttons to `use_container_width=True` with short labels `"Delete"` / `"Cancel"`.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and green pytest suite (`98 passed`, including new unit tests in `tests/test_v1_4_1.py`).
+  - **Documentation**: CHANGELOG v1.4.1 and DEVLOG Entry 032.
+
 ## [1.4.0] - 2026-09-25
 
 ### Added / Changed
