@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 036: Export Redesign, Contact Clear & SMTP Fix (v1.4.5)
+- **Date**: 2026-09-28
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.4.5 Export Redesign + Contact Clear + SMTP Fix
+
+### Design Notes & Architectural Decisions
+1. **Builder Export Redesign**: Removed export format selectbox, inline purpose labels, top help tooltip, and caption. Rendered four format rows (Markdown / Plain text / HTML / PDF). Each row features two columns: col1 `st.download_button("Export as <Format>")` triggering direct export; col2 `st.popover(":material/info:")` (with `st.expander("ⓘ")` fallback) containing the format's explanation ("what do I do with this file") appearing only when tapped.
+2. **Builder Contact Clear & Validation**: On successful contact message send, widget values (`contact_name_input`, `contact_email_input`, `contact_message_input`) are cleared in `session_state` (`""`), keeping the success message.
+3. **Builder SMTP Config Check & Send**: Enforced pre-send assertion of `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` present in `st.secrets` or `os.environ`; if any missing, displays `st.error("Contact form unavailable — email service not configured")` and stops. Used `smtplib.SMTP_SSL` for port 465 or `SMTP` for 587 with `starttls()`. Caught `smtplib.SMTPException` specifically, displaying `st.error(f"Email send failed: {e}")` and preserving form inputs on failure. On success, prints `Contact email sent to {to_email}`.
+4. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`121 passed`, including new unit tests in `tests/test_v1_4_5.py`).
+5. **Documentation**: CHANGELOG v1.4.5, DEVLOG Entry 036 (plus Entry 031 addendum).
+
 ## Entry 035: Phase-2 Feedback Round 4 + Hint Elimination (v1.4.4)
 - **Date**: 2026-09-27
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

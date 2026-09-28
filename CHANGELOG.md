@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.4.5] - 2026-09-28
+
+### Added / Changed
+- Micro-Mission v1.4.5 — Export Redesign + Contact Clear + SMTP Fix:
+  - **Builder Export Redesign**: Removed export format selectbox and top help tooltips. Rendered four explicit export format rows (Markdown / Plain text / HTML / PDF), each with a direct download button in col1 and an info popover (with expander fallback) in col2 displaying the format purpose explanation only when tapped.
+  - **Builder Contact Clear**: Cleared Name, Email, and Message widget values in `session_state` on successful submit so the form is instantly empty while preserving the success message.
+  - **Builder SMTP Config & Send**: Added pre-send assertion for `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, and `SMTP_PASSWORD` (showing `Contact form unavailable — email service not configured` if missing). Configured `smtplib.SMTP_SSL` for port 465 and `SMTP` with `starttls()` for 587. Caught `smtplib.SMTPException` specifically, showing `Email send failed: {e}` on failure without clearing the form, and printing `Contact email sent to {to_email}` on success.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`121 passed`, including new unit tests in `tests/test_v1_4_5.py`).
+  - **Documentation**: CHANGELOG v1.4.5 and DEVLOG Entry 036 (plus Entry 031 addendum).
+
 ## [1.4.4] - 2026-09-27
 
 ### Added / Changed

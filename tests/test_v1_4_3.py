@@ -35,14 +35,14 @@ def test_v1_4_3_delete_all_inside_expander():
 
 
 def test_v1_4_3_export_captions_per_format():
-    """Test inline purpose labels are present for all four export formats."""
+    """Test export explanations are present for all four export formats in v1.4.5."""
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert "Markdown (.md) — editable spec for repos & AI assistants" in content
-    assert "Plain text (.txt) — universal, opens anywhere" in content
-    assert "HTML (.html) — styled page for browser/offline" in content
-    assert "PDF (.pdf) — fixed-layout for print & share" in content
+    assert "editable spec for repos & AI assistants" in content
+    assert "universal, opens anywhere" in content
+    assert "styled page for browser/offline" in content
+    assert "fixed-layout for print & share" in content
 
 
 def test_v1_4_3_member_since_date_formatting():

@@ -103,9 +103,9 @@ def test_v1_4_2_about_signature_text():
 
 
 def test_v1_4_2_export_help_tooltips_present():
-    """Test help= tooltips are present on export selectbox and download buttons."""
+    """Test four export download buttons are present after v1.4.5 redesign."""
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert 'help="Select target file format for exporting blueprint' in content
-    assert "help=" in content
+    assert "Export as Markdown (.md)" in content
+    assert "Export as Plain text (.txt)" in content

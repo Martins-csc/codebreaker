@@ -66,15 +66,15 @@ def test_v1_4_4_folder_structure_vertical_replace():
 
 
 def test_v1_4_4_export_labels_inline_purpose():
-    """Test export format selectbox has inline purpose labels and no caption below."""
+    """Test selectbox is removed and four export rows are present."""
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert "Markdown (.md) — editable spec for repos & AI assistants" in content
-    assert "Plain text (.txt) — universal, opens anywhere" in content
-    assert "HTML (.html) — styled page for browser/offline" in content
-    assert "PDF (.pdf) — fixed-layout for print & share" in content
-    assert 'st.caption("editable spec for repos/AI assistants")' not in content
+    assert "blueprint_export_format" not in content
+    assert "Export as Markdown (.md)" in content
+    assert "Export as Plain text (.txt)" in content
+    assert "Export as HTML (.html)" in content
+    assert "Export as PDF (.pdf)" in content
 
 
 def test_v1_4_4_email_placeholder_empty_and_hints_css():

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import streamlit as st
+
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -990,34 +991,59 @@ elif page == "Contact":
             if not email_ok:
                 st.error(email_err)
             else:
+                missing_smtp = any(
+                    not get_config(k)
+                    for k in ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD"]
+                )
+                if missing_smtp:
+                    st.error("Contact form unavailable — email service not configured")
+                    st.stop()
+
+                smtp_host = get_config("SMTP_HOST")
+                smtp_port_str = get_config("SMTP_PORT")
+                smtp_user = get_config("SMTP_USER")
+                smtp_password = get_config("SMTP_PASSWORD")
+                to_email = get_config(
+                    "CONTACT_TO_EMAIL",
+                    get_config("ADMIN_EMAIL", "codebreakerbuild@gmail.com"),
+                )
+                if not to_email:
+                    to_email = "codebreakerbuild@gmail.com"
+
                 success = False
                 try:
                     import smtplib
                     from email.mime.text import MIMEText
 
-                    gmail_user = get_config("GMAIL_USER") or get_config("SMTP_USER")
-                    gmail_pwd = get_config("GMAIL_APP_PASSWORD") or get_config(
-                        "SMTP_PASSWORD"
-                    )
+                    port = int(smtp_port_str)
+                    if port == 465:
+                        server = smtplib.SMTP_SSL(smtp_host, port)
+                    else:
+                        server = smtplib.SMTP(smtp_host, port)
+                        server.starttls()
 
+                    server.login(smtp_user, smtp_password)
                     msg_text = f"From: {contact_name} <{contact_email}>\n\nMessage:\n{contact_message}"
                     msg = MIMEText(msg_text)
                     msg["Subject"] = f"CodeBreaker Contact: {contact_name}"
-                    msg["From"] = gmail_user or contact_email
-                    msg["To"] = "codebreakerbuild@gmail.com"
+                    msg["From"] = smtp_user
+                    msg["To"] = to_email
 
-                    if gmail_user and gmail_pwd:
-                        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-                        server.login(gmail_user, gmail_pwd)
-                        server.sendmail(msg["From"], [msg["To"]], msg.as_string())
-                        server.quit()
+                    server.sendmail(msg["From"], [msg["To"]], msg.as_string())
+                    server.quit()
                     success = True
-                except Exception:
-                    success = True
+                except smtplib.SMTPException as e:
+                    st.error(f"Email send failed: {e}")
+                except Exception as e:
+                    st.error(f"Email send failed: {e}")
 
                 if success:
                     st.session_state["contact_last_submitted"] = time.time()
+                    st.session_state["contact_name_input"] = ""
+                    st.session_state["contact_email_input"] = ""
+                    st.session_state["contact_message_input"] = ""
                     st.success("Message sent. We'll respond within 24 hours.")
+                    print(f"Contact email sent to {to_email}")
 
 elif page == "Home":
     st.title("Dashboard")
@@ -1162,17 +1188,6 @@ elif page == "Blueprint":
                 f"Blueprint for: {blueprint.get('project_name', 'Untitled Project')}"
             )
         with col_export:
-            export_format = st.selectbox(
-                "Export Format",
-                [
-                    "Markdown (.md) — editable spec for repos & AI assistants",
-                    "Plain text (.txt) — universal, opens anywhere",
-                    "HTML (.html) — styled page for browser/offline",
-                    "PDF (.pdf) — fixed-layout for print & share",
-                ],
-                key="blueprint_export_format",
-                help="Select target file format for exporting blueprint. Files download to browser default location.",
-            )
             base_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
             if base_fname.endswith(".md"):
                 txt_fname = base_fname[:-3] + ".txt"
@@ -1183,39 +1198,59 @@ elif page == "Blueprint":
                 html_fname = base_fname + ".html"
                 pdf_fname = base_fname + ".pdf"
 
-            if "Markdown" in export_format:
-                content = render_blueprint_markdown(blueprint)
-                fname = base_fname
-                mime = "text/markdown"
-                btn_label = "Export as Markdown (.md)"
-                btn_help = "Export blueprint as structured Markdown (.md) document. Downloads to browser default location."
-            elif "Plain text" in export_format:
-                content = render_blueprint_text(blueprint)
-                fname = txt_fname
-                mime = "text/plain"
-                btn_label = "Export as Plain Text (.txt)"
-                btn_help = "Export blueprint as plain text (.txt) document. Downloads to browser default location."
-            elif "HTML" in export_format:
-                content = render_blueprint_html(blueprint)
-                fname = html_fname
-                mime = "text/html"
-                btn_label = "Export as HTML (.html)"
-                btn_help = "Export blueprint as styled HTML page (.html). Downloads to browser default location."
-            else:
-                content = render_blueprint_pdf(blueprint)
-                fname = pdf_fname
-                mime = "application/pdf"
-                btn_label = "Export as PDF (.pdf)"
-                btn_help = "Export blueprint as formatted PDF document (.pdf). Downloads to browser default location."
+            formats_info = [
+                (
+                    "Export as Markdown (.md)",
+                    render_blueprint_markdown(blueprint),
+                    base_fname,
+                    "text/markdown",
+                    "editable spec for repos & AI assistants",
+                    "export_md_btn",
+                ),
+                (
+                    "Export as Plain text (.txt)",
+                    render_blueprint_text(blueprint),
+                    txt_fname,
+                    "text/plain",
+                    "universal, opens anywhere",
+                    "export_txt_btn",
+                ),
+                (
+                    "Export as HTML (.html)",
+                    render_blueprint_html(blueprint),
+                    html_fname,
+                    "text/html",
+                    "styled page for browser/offline",
+                    "export_html_btn",
+                ),
+                (
+                    "Export as PDF (.pdf)",
+                    render_blueprint_pdf(blueprint),
+                    pdf_fname,
+                    "application/pdf",
+                    "fixed-layout for print & share",
+                    "export_pdf_btn",
+                ),
+            ]
 
-            st.download_button(
-                label=btn_label,
-                data=content,
-                file_name=fname,
-                mime=mime,
-                use_container_width=True,
-                help=btn_help,
-            )
+            for lbl, dat, fn, mime_type, expl, k in formats_info:
+                rc1, rc2 = st.columns([5, 1])
+                with rc1:
+                    st.download_button(
+                        label=lbl,
+                        data=dat,
+                        file_name=fn,
+                        mime=mime_type,
+                        use_container_width=True,
+                        key=k,
+                    )
+                with rc2:
+                    try:
+                        with st.popover(":material/info:"):
+                            st.write(expl)
+                    except Exception:
+                        with st.expander("ⓘ"):
+                            st.write(expl)
 
         tab_tech, tab_folder, tab_edges, tab_roadmap, tab_summary = st.tabs(
             ["Tech Stack", "Folder Structure", "Edge Cases", "Roadmap", "Summary"]
