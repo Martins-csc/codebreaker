@@ -23,9 +23,6 @@ st.markdown(
     <style>
     div[data-testid="stWidgetTrailer"],
     div[data-testid="stCharCounter"],
-    [data-testid="stWidgetLabel"] + div,
-    input[aria-label] + div,
-    textarea[aria-label] + div,
     .stForm [data-testid="InputInstructions"],
     div[data-baseweb="input"] + div {
         display: none !important;
