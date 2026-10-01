@@ -15,14 +15,15 @@ from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
 
-def get_config(key):
+def get_config(key, default=None):
     try:
         if key in st.secrets:
             return st.secrets[key]
     except Exception:
         pass
     import os as _os
-    return _os.environ.get(key)
+    val = _os.environ.get(key)
+    return val if val is not None else default
 
 
 st.set_page_config(
