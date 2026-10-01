@@ -15,6 +15,16 @@ from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
 
+def get_config(key):
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    import os as _os
+    return _os.environ.get(key)
+
+
 st.set_page_config(
     page_title="CodeBreaker", page_icon=":material/terminal:", layout="wide"
 )
