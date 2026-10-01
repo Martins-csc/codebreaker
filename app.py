@@ -1028,7 +1028,7 @@ elif page == "Contact":
                 smtp_password = get_config("SMTP_PASSWORD")
                 to_email = get_config(
                     "CONTACT_TO_EMAIL",
-                    get_config("ADMIN_EMAIL", "codebreakerbuild@gmail.com"),
+                    "codebreakerbuild@gmail.com",
                 )
                 if not to_email:
                     to_email = "codebreakerbuild@gmail.com"
