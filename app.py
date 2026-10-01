@@ -15,6 +15,7 @@ from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
 
+
 def get_config(key, default=None):
     try:
         if key in st.secrets:
@@ -22,6 +23,7 @@ def get_config(key, default=None):
     except Exception:
         pass
     import os as _os
+
     val = _os.environ.get(key)
     return val if val is not None else default
 
@@ -975,6 +977,16 @@ if page == "About":
             st.rerun()
 
 elif page == "Contact":
+    if st.session_state.get("contact_clear_pending"):
+        st.session_state["contact_name_input"] = ""
+        st.session_state["contact_email_input"] = ""
+        st.session_state["contact_message_input"] = ""
+        st.session_state["contact_clear_pending"] = False
+
+    if st.session_state.get("contact_success"):
+        st.success("Message sent. We'll respond within 24 hours.")
+        st.session_state["contact_success"] = False
+
     st.title("Contact Us")
     st.markdown("---")
     st.write("Have questions, feedback, or need support? Send us a message.")
@@ -1050,11 +1062,10 @@ elif page == "Contact":
 
                 if success:
                     st.session_state["contact_last_submitted"] = time.time()
-                    st.session_state["contact_name_input"] = ""
-                    st.session_state["contact_email_input"] = ""
-                    st.session_state["contact_message_input"] = ""
-                    st.success("Message sent. We'll respond within 24 hours.")
+                    st.session_state["contact_clear_pending"] = True
+                    st.session_state["contact_success"] = True
                     print(f"Contact email sent to {to_email}")
+                    st.rerun()
 
 elif page == "Home":
     st.title("Dashboard")

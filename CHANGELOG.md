@@ -5,6 +5,11 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.4.7] - 2026-10-01
+
+### Added / Changed
+- Micro-Hotfix v1.4.7 — Fixed `StreamlitWidgetAlreadyInstantiatedError` on contact submit by replacing post-render widget state assignments with `contact_clear_pending` and `contact_success` flags processed before widget instantiation coupled with `st.rerun()`.
+
 ## [1.4.5] - 2026-09-28
 
 ### Added / Changed
