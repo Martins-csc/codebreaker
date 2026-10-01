@@ -1,5 +1,18 @@
 # CodeBreaker Development Log
 
+## Entry 037: Persistent Library Architecture (v1.5.0)
+- **Date**: 2026-10-01
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.5.0 Persistent Blueprint Library
+
+### Design Notes & Architectural Decisions
+1. **Builder Analyze Auto-Save**: On successful `generate_blueprint`, immediately inserts a row into `public.blueprints` (`user_id`, `title` = project name, `blueprint_json` = raw blueprint object), storing the new row's `id` in `st.session_state["active_blueprint_id"]`.
+2. **Builder Home Library List**: Replaced session placeholder with a live query to `public.blueprints` for the current user (ordered by `created_at desc`, limit 5). Renders Title, Date, and an `[Open]` button. Clicking `[Open]` sets `active_blueprint_id`, sets `st.query_params["pg"] = "Blueprint"`, and calls `st.rerun()`.
+3. **Builder Blueprint DB Rehydration**: On Blueprint page load, if `active_blueprint_id` is set, fetches the row from `public.blueprints`, parses `blueprint_json`, and renders the 5 tabs. Graceful clean fallback message when no active ID and no session blueprint exists.
+4. **Database Migration & RLS**: Provided `blueprints_migration.sql` creating `public.blueprints` with Row Level Security (RLS) policies enforcing multi-tenant isolation (`auth.uid() = user_id`).
+5. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and green test suite (`123 passed`, including new unit tests in `tests/test_v1_5_0.py`).
+6. **Documentation**: CHANGELOG v1.5.0 and DEVLOG Entry 037.
+
 ## Entry 036: Export Redesign, Contact Clear & SMTP Fix (v1.4.5)
 - **Date**: 2026-09-28
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

@@ -1075,11 +1075,53 @@ elif page == "Home":
     with col_t1:
         with st.container(border=True):
             st.subheader("My Blueprints")
-            bp_count = st.session_state.get(
-                "blueprint_count", 1 if st.session_state.get("blueprint") else 0
-            )
-            st.metric("Generated This Session", bp_count)
-            st.caption("persistent library arrives next update")
+            try:
+                client = get_client()
+                if "access_token" in st.session_state:
+                    client.auth.set_session(
+                        st.session_state["access_token"],
+                        st.session_state.get("refresh_token", ""),
+                    )
+                bp_res = (
+                    client.table("blueprints")
+                    .select("id, title, created_at")
+                    .eq("user_id", user["id"])
+                    .order("created_at", desc=True)
+                    .limit(5)
+                    .execute()
+                )
+                bp_rows = getattr(bp_res, "data", [])
+                st.metric("Saved Blueprints", len(bp_rows))
+                if bp_rows:
+                    st.markdown("**Recent Blueprints:**")
+                    for bp_item in bp_rows:
+                        bp_id = bp_item.get("id")
+                        bp_title = bp_item.get("title") or "Untitled Project"
+                        bp_created = bp_item.get("created_at", "N/A")
+                        date_str, _ = (
+                            format_lagos_timestamp(bp_created)
+                            if bp_created != "N/A"
+                            else ("N/A", "")
+                        )
+
+                        col_bl1, col_bl2 = st.columns([3, 1])
+                        with col_bl1:
+                            st.markdown(f"- **{bp_title}** `({date_str})`")
+                        with col_bl2:
+                            if st.button(
+                                "Open", key=f"open_bp_{bp_id}", use_container_width=True
+                            ):
+                                st.session_state["active_blueprint_id"] = bp_id
+                                st.query_params["pg"] = "Blueprint"
+                                st.rerun()
+                else:
+                    st.write("No saved blueprints yet.")
+            except Exception:
+                bp_count = st.session_state.get(
+                    "blueprint_count", 1 if st.session_state.get("blueprint") else 0
+                )
+                st.metric("Generated This Session", bp_count)
+                st.write("No saved blueprints yet.")
 
     with col_t2:
         with st.container(border=True):
@@ -1187,6 +1229,28 @@ elif page == "Analyze":
                     st.session_state["blueprint_count"] = (
                         st.session_state.get("blueprint_count", 0) + 1
                     )
+                    try:
+                        client = get_client()
+                        if "access_token" in st.session_state:
+                            client.auth.set_session(
+                                st.session_state["access_token"],
+                                st.session_state.get("refresh_token", ""),
+                            )
+                        bp_payload = {
+                            "user_id": user["id"],
+                            "title": p_val.strip(),
+                            "blueprint_json": blueprint,
+                        }
+                        ins_res = (
+                            client.table("blueprints").insert(bp_payload).execute()
+                        )
+                        ins_data = getattr(ins_res, "data", [])
+                        if ins_data and isinstance(ins_data, list):
+                            new_bp_id = ins_data[0].get("id")
+                            if new_bp_id:
+                                st.session_state["active_blueprint_id"] = new_bp_id
+                    except Exception:
+                        pass
                     st.success(
                         "Blueprint generated successfully! Navigate to the 'Blueprint' page to view it."
                     )
@@ -1198,10 +1262,39 @@ elif page == "Analyze":
 elif page == "Blueprint":
     st.title("System Architecture Blueprint")
 
+    active_bp_id = st.session_state.get("active_blueprint_id")
+    if active_bp_id:
+        try:
+            client = get_client()
+            if "access_token" in st.session_state:
+                client.auth.set_session(
+                    st.session_state["access_token"],
+                    st.session_state.get("refresh_token", ""),
+                )
+            res_bp = (
+                client.table("blueprints")
+                .select("blueprint_json")
+                .eq("id", active_bp_id)
+                .eq("user_id", user["id"])
+                .execute()
+            )
+            rows = getattr(res_bp, "data", [])
+            if rows:
+                b_json = rows[0].get("blueprint_json")
+                if isinstance(b_json, str):
+                    import json
+
+                    blueprint = json.loads(b_json)
+                elif isinstance(b_json, dict):
+                    blueprint = b_json
+                st.session_state["blueprint"] = blueprint
+        except Exception:
+            pass
+
     blueprint = st.session_state.get("blueprint")
     if not blueprint:
         st.info(
-            "No blueprint generated yet. Please submit a project analysis on the 'Analyze' page."
+            "Generate a new blueprint in Analyze or open an existing one from Home."
         )
     else:
         col_title, col_export = st.columns([2, 2])

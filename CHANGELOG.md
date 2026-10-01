@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-10-01
+
+### Added / Changed
+- Mission v1.5.0 — Persistent Blueprint Library:
+  - **Builder Analyze Auto-Save**: Automatically inserts generated blueprints into `public.blueprints` (`title`, `blueprint_json`) on successful generation and stores `active_blueprint_id` in session state.
+  - **Builder Home Library List**: Replaced placeholder on Dashboard with live query to `public.blueprints` (top 5 by date) showing Title, Date, and an `[Open]` button that loads the blueprint and navigates to the Blueprint page.
+  - **Builder Blueprint DB Rehydration**: Blueprint page loads and parses `blueprint_json` from `public.blueprints` when `active_blueprint_id` is set, with clean fallback messaging.
+  - **Database Migration & RLS**: Added `blueprints_migration.sql` with RLS policies (`auth.uid() = user_id`).
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`123 passed`, including new unit tests in `tests/test_v1_5_0.py`).
+  - **Documentation**: CHANGELOG v1.5.0 and DEVLOG Entry 037.
+
 ## [1.4.7] - 2026-10-01
 
 ### Added / Changed
