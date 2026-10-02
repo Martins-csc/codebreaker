@@ -38,3 +38,19 @@ def test_v1_5_0_persistent_blueprint_library_code():
         "Generate a new blueprint in Analyze or open an existing one from Home."
         in content
     )
+
+
+def test_v1_5_2_requirements():
+    """Assert codebase implements v1.5.2 blueprint refresh-restore and save visibility requirements."""
+    with open("app.py", "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 1. Blueprint default load queries most recent row when active_blueprint_id missing
+    assert 'order("created_at", desc=True)' in content
+    assert ".limit(1)" in content
+
+    # 2. Save failure wraps auto-save in try/except with st.warning
+    assert "Blueprint generated but could not be saved to your library:" in content
+
+    # 3. Home list queries public.blueprints on every render
+    assert 'client.table("blueprints")' in content

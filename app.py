@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import streamlit as st
-
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -1249,8 +1248,10 @@ elif page == "Analyze":
                             new_bp_id = ins_data[0].get("id")
                             if new_bp_id:
                                 st.session_state["active_blueprint_id"] = new_bp_id
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        st.warning(
+                            f"Blueprint generated but could not be saved to your library: {e}"
+                        )
                     st.success(
                         "Blueprint generated successfully! Navigate to the 'Blueprint' page to view it."
                     )
@@ -1263,14 +1264,40 @@ elif page == "Blueprint":
     st.title("System Architecture Blueprint")
 
     active_bp_id = st.session_state.get("active_blueprint_id")
-    if active_bp_id:
+    client = get_client()
+    if "access_token" in st.session_state:
+        client.auth.set_session(
+            st.session_state["access_token"],
+            st.session_state.get("refresh_token", ""),
+        )
+
+    if not active_bp_id:
         try:
-            client = get_client()
-            if "access_token" in st.session_state:
-                client.auth.set_session(
-                    st.session_state["access_token"],
-                    st.session_state.get("refresh_token", ""),
-                )
+            res_recent = (
+                client.table("blueprints")
+                .select("id, blueprint_json")
+                .eq("user_id", user["id"])
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            recent_rows = getattr(res_recent, "data", [])
+            if recent_rows:
+                active_bp_id = recent_rows[0].get("id")
+                st.session_state["active_blueprint_id"] = active_bp_id
+                b_json = recent_rows[0].get("blueprint_json")
+                if isinstance(b_json, str):
+                    import json
+
+                    blueprint = json.loads(b_json)
+                elif isinstance(b_json, dict):
+                    blueprint = b_json
+                st.session_state["blueprint"] = blueprint
+        except Exception:
+            pass
+
+    if active_bp_id and not st.session_state.get("blueprint"):
+        try:
             res_bp = (
                 client.table("blueprints")
                 .select("blueprint_json")

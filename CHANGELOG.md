@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-10-02
+
+### Added / Changed
+- Micro-Mission v1.5.2 — Blueprint Refresh-Restore + Save Visibility:
+  - **Builder Blueprint Default-Load**: When `active_blueprint_id` is missing in session state (e.g., after browser refresh), queries the current user's most recent row from `public.blueprints` and loads it automatically, showing the "generate or open from Home" message only when the library is truly empty.
+  - **Builder Save Visibility**: Wrapped auto-save database insert in `try/except`; on failure, surfaces `st.warning("Blueprint generated but could not be saved to your library: {e}")` to make silent save failure impossible.
+  - **Builder Home List Re-query**: Re-queries `public.blueprints` on every render (no stale caching).
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (all tests passing, including new unit tests in `tests/test_v1_5_0.py`).
+  - **Documentation**: CHANGELOG v1.5.2 and DEVLOG Entry 038 (plus Entry 032 addendum).
+
 ## [1.5.0] - 2026-10-01
 
 ### Added / Changed

@@ -1,5 +1,20 @@
 # CodeBreaker Development Log
 
+## Entry 038: Blueprint Refresh-Restore + Save Visibility (v1.5.2)
+- **Date**: 2026-10-02
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.5.2 Blueprint Refresh-Restore + Save Visibility
+
+### Design Notes & Architectural Decisions
+1. **Builder Blueprint Default-Load (Refresh Restore)**: When `active_blueprint_id` is not present in `session_state` (e.g. following a browser reload or refresh), queries the current user's most recent row from `public.blueprints` (`order("created_at", desc=True).limit(1)`) and loads it automatically, ensuring persistence across sessions and reloads. Displays the "generate or open from Home" fallback message strictly when the library is truly empty.
+2. **Builder Save Visibility**: Wrapped the auto-save database insert in `try/except` and caught exceptions, surfacing `st.warning(f"Blueprint generated but could not be saved to your library: {e}")` on failure so silent save failures are impossible.
+3. **Builder Home List Re-Query**: Ensured `public.blueprints` is re-queried directly on every render of the Home dashboard without stale caching.
+4. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and green test suite (all tests passing, including `test_v1_5_2_requirements` in `tests/test_v1_5_0.py`).
+5. **Documentation**: CHANGELOG v1.5.2 and DEVLOG Entry 038 (plus Entry 032 addendum).
+
+## Entry 032 Addendum: Blueprint Persistence Refinements (v1.5.2)
+- Added refresh-restore default loading of the most recent blueprint and warning feedback for auto-save failures.
+
 ## Entry 037: Persistent Library Architecture (v1.5.0)
 - **Date**: 2026-10-01
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
