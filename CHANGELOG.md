@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.3] - 2026-10-02
+
+### Added / Changed
+- Micro-Mission v1.5.3 — Restore GitHub OAuth via Scoped PKCE Verifier Storage:
+  - **Builder PKCE Storage Module (`pkce_storage.py`)**: Restored minimal cookie get/set helper (`PkceCookieStorage` subclass of `SyncSupportedStorage`) scoped strictly to keys prefixed `"sb-pkce"` (code verifiers) with automatic in-memory fallback if the cookie component is unavailable.
+  - **Builder Supabase Client Wiring**: Wired `PkceCookieStorage` into `get_client` with `options={"auth": {"storage": PkceCookieStorage(), "flow_type": "pkce", "persist_session": False}}`, ensuring the PKCE verifier survives the GitHub OAuth redirect while session persistence remains disabled (`rt` URL remains the sole session mechanism).
+  - **Builder GitHub OAuth Restoration**: Restored the "Continue with GitHub" button and "or" divider on the auth card.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (all tests passing, including round-trip storage tests).
+  - **Documentation**: CHANGELOG v1.5.3 and DEVLOG Entry 033 (scoped verifier storage rationale).
+
 ## [1.5.1] - 2026-10-02
 
 ### Added / Changed

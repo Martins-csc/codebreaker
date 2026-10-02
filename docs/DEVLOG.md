@@ -1,5 +1,18 @@
 # CodeBreaker Development Log
 
+## Entry 033: Why Verifier Storage is Scoped to PKCE Keys Only (Collateral of the v1.2.0 Purge) (v1.5.3)
+- **Date**: 2026-10-02
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.5.3 Restore GitHub OAuth via Scoped PKCE Verifier Storage
+
+### Design Notes & Architectural Decisions
+1. **The PKCE Verifier Loss Root Cause**: When CodeBreaker abandoned general client-side session storage in v1.2.3 in favor of URL capability tokens (`?rt=...`), cookie storage utilities were completely purged. However, Supabase OAuth in PKCE flow (`flow_type="pkce"`) generates a cryptographic code verifier prior to redirecting to GitHub and expects the verifier to be stored across the cross-domain redirect in order to exchange the authorization code upon return. Without cookie/storage backing for the PKCE verifier, the redirect cycle broke.
+2. **Scoped PKCE Storage (`pkce_storage.py`)**: Restored the minimal pre-v1.2.0 cookie helper using `streamlit-cookies-controller`, implementing a `SyncStorage` subclass (`PkceCookieStorage`).
+3. **Strict Scoping (`sb-pkce`)**: Scoped cookie persistence exclusively to keys prefixed `"sb-pkce"` (and code-verifier keys). All user session persistence remains strictly handled server-side via URL capability tokens (`?rt=...`). No auth tokens are cached in cookies.
+4. **Runtime Fallback**: If the cookie component is unavailable or encounters an error at runtime, it gracefully falls back to `SyncMemoryStorage` to ensure the auth page never crashes.
+5. **Testing & Verification**: Verified via pre-seal compile check (`py_compile`) and full green test suite (including storage round-trip tests).
+6. **Documentation**: CHANGELOG v1.5.3 and DEVLOG Entry 033.
+
 ## Entry 039: Auth Polish + FAQ Rename + OAuth Visibility (v1.5.1)
 - **Date**: 2026-10-02
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
