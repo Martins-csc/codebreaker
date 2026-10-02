@@ -79,6 +79,6 @@ def test_about_page_content():
     assert "How CodeBreaker protects you" in content
     assert "Module Guide" in content
     assert "Analyze→Blueprint→export→Log→repeat" in content
-    assert "Mini-FAQ" in content
+    assert "FAQ" in content
     assert "For Lecturers & Supervisors" in content
     assert "Built by CodeBreaker Dev" in content

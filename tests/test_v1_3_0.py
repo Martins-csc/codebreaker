@@ -57,7 +57,13 @@ def test_landing_and_auth_elements():
     assert "← Back to overview" in content
     assert "Continue with GitHub" in content
     assert "Forgot Password" in content
-    assert "auth_card_mode" in content
+    assert "query_params" in content
+    assert '"mode"' in content
+    assert "landing_login_cta" in content
+    assert "landing_signup_cta" in content
+    assert "card_signup_btn" in content
+    assert "GitHub OAuth exchange failed:" in content
+    assert "Supabase Redirect URLs" in content
 
 
 def test_sidebar_order_contract():

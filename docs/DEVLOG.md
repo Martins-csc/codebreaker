@@ -1,5 +1,21 @@
 # CodeBreaker Development Log
 
+## Entry 039: Auth Polish + FAQ Rename + OAuth Visibility (v1.5.1)
+- **Date**: 2026-10-02
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.5.1 Auth Polish + FAQ Rename + OAuth Visibility
+
+### Design Notes & Architectural Decisions
+1. **Builder Auth Page**: Removed "Account Access" header and "Mode" radio entirely. Mode is now driven directly by landing CTAs (`[Log In]` sets query param `mode=login`, `[Create Account]` sets `mode=signup`), read cleanly by the auth view on load.
+2. **Builder Sign Up Button**: Enforced `use_container_width=True` on the Sign Up button so it spans full width matching the GitHub OAuth button.
+3. **Builder About FAQ**: Renamed "Mini-FAQ" header to "FAQ".
+4. **Builder GitHub OAuth & Redirect Whitelist**: On OAuth exchange failure, displays `st.error` with the actual error message (never silently returning to login). On success, mints `rt`, sets session, and lands on Home. Added code comment detailing Supabase redirect URL whitelist requirements (app domain + `/streamlit` public URL).
+5. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and green test suite (all 126 tests passing).
+6. **Documentation**: CHANGELOG v1.5.1 and DEVLOG Entry 039 (plus Entry 032 addendum).
+
+## Entry 032 Addendum: Auth Polish & OAuth Whitelist (v1.5.1)
+- Added query-param driven auth mode selection, full-width sign up button, FAQ rename, and explicit GitHub OAuth error surfacing with Supabase redirect URL documentation.
+
 ## Entry 038: Blueprint Refresh-Restore + Save Visibility (v1.5.2)
 - **Date**: 2026-10-02
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

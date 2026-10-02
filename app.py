@@ -362,6 +362,9 @@ try:
 
     # 2. Handle GitHub OAuth authorization code exchange (old recovery detection deleted)
     elif code_param:
+        # Supabase Redirect URLs whitelist required in Dashboard:
+        # 1. App domain (e.g. https://your-app.replit.app / https://your-project.streamlit.app)
+        # 2. Streamlit public URL + /streamlit (e.g. https://.../streamlit)
         code = code_param
         try:
             try:
@@ -400,11 +403,12 @@ try:
                     st.session_state["expires_at"] = expires_at
                     mint_and_set_rt(client, res.user.id, res.session.refresh_token)
                     st.success("Successfully logged in with GitHub!")
+                    st.query_params["pg"] = "Home"
+                    st.query_params.pop("code", None)
+                    st.rerun()
         except Exception as e:
-            st.error(f"GitHub OAuth authentication failed: {e}")
-        finally:
-            st.query_params.clear()
-            st.rerun()
+            st.error(f"GitHub OAuth exchange failed: {e}")
+            st.query_params.pop("code", None)
 
     if "access_token" in st.session_state and "refresh_token" in st.session_state:
         try:
@@ -435,10 +439,11 @@ if not user:
 
         st.markdown("---")
         with st.container():
-            st.subheader("Account Access")
-            auth_mode = st.radio(
-                "Mode", ["Log In", "Sign Up"], horizontal=True, key="auth_card_mode"
+            auth_mode = st.query_params.get(
+                "mode", st.session_state.get("auth_view", "login")
             )
+            if auth_mode not in ["login", "signup"]:
+                auth_mode = "login"
 
             st.markdown(
                 """
@@ -457,13 +462,13 @@ if not user:
             )
 
             auth_display_name = ""
-            if auth_mode == "Sign Up":
+            if auth_mode == "signup":
                 auth_display_name = st.text_input(
                     "Display Name", placeholder="", key="auth_card_display_name"
                 )
 
-            col_b1, col_b2 = st.columns(2)
-            if auth_mode == "Log In":
+            if auth_mode == "login":
+                col_b1, col_b2 = st.columns(2)
                 with col_b1:
                     login_submitted = st.button(
                         "Log In",
@@ -481,13 +486,12 @@ if not user:
             else:
                 login_submitted = False
                 forgot_submitted = False
-                with col_b1:
-                    signup_submitted = st.button(
-                        "Sign Up",
-                        type="primary",
-                        use_container_width=True,
-                        key="card_signup_btn",
-                    )
+                signup_submitted = st.button(
+                    "Sign Up",
+                    type="primary",
+                    use_container_width=True,
+                    key="card_signup_btn",
+                )
 
             if login_submitted:
                 if not auth_email.strip():
@@ -808,12 +812,14 @@ if not user:
                 key="landing_login_cta",
             ):
                 st.session_state["auth_view"] = "login"
+                st.query_params["mode"] = "login"
                 st.rerun()
         with col_cta2:
             if st.button(
                 "Create Account", use_container_width=True, key="landing_signup_cta"
             ):
                 st.session_state["auth_view"] = "signup"
+                st.query_params["mode"] = "signup"
                 st.rerun()
 
     st.stop()
@@ -947,7 +953,7 @@ if page == "About":
     st.subheader("Workflow Recipe")
     st.write("Analyze→Blueprint→export→Log→repeat")
 
-    st.subheader("Mini-FAQ")
+    st.subheader("FAQ")
     with st.expander("Privacy: Are my logs private?"):
         st.write("Yes, strictly isolated to your authenticated account.")
     with st.expander("Forgot Password: How do I reset my password?"):

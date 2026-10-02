@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-10-02
+
+### Added / Changed
+- Micro-Mission v1.5.1 — Auth Polish + FAQ Rename + OAuth Visibility:
+  - **Builder Auth Page**: Removed "Account Access" header and "Mode" radio entirely. Mode is now driven by landing CTAs (`[Log In]` sets query param `mode=login`, `[Create Account]` sets `mode=signup`), read directly by the auth page.
+  - **Builder Sign Up Button**: Enforced `use_container_width=True` on the Sign Up button so it spans full width like the GitHub button.
+  - **Builder About FAQ**: Renamed "Mini-FAQ" header to "FAQ".
+  - **Builder GitHub OAuth & Redirect Whitelist**: On OAuth exchange failure, displays `st.error` with the actual error message. On success, mints `rt`, sets session, and lands on Home. Added code comment documenting Supabase redirect URL whitelist requirements (app domain + `/streamlit` public URL).
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (all tests passing).
+  - **Documentation**: CHANGELOG v1.5.1 and DEVLOG Entry 039 (plus Entry 032 addendum).
+
 ## [1.5.2] - 2026-10-02
 
 ### Added / Changed
