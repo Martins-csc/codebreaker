@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 035: GitHub Manual PKCE Flow, Auth Mode & Sign-Out Cleanup (v1.5.5)
+- **Date**: 2026-10-02
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.5.5 GitHub Manual PKCE Flow, Auth Mode & Sign-Out Cleanup
+
+### Design Notes & Architectural Decisions
+1. **Manual Cryptographic PKCE**: Replaced cookie-backed client storage with robust manual PKCE generation (`verifier = secrets.token_urlsafe(43)`, unpadded base64url SHA-256 challenge, `state = secrets.token_urlsafe(16)`). State-verifier pairs are stored in `public.oauth_states`.
+2. **Secure Token Exchange & Pruning**: On return callback (`code` + `state`), validates/looks up verifier in `public.oauth_states`, issues a direct `POST` request to `{SUPABASE_URL}/auth/v1/token?grant_type=pkce`, establishes session, mints capability token (`rt`), deletes state row, prunes states older than 10 minutes, and lands on Home.
+3. **Auth Mode & Comprehensive Sign-Out**: Query-parameter driven auth mode (`mode=login` vs `mode=signup` with Display Name). Sign-out cleanup explicitly purges all auth query parameters (`rt`, `pg`, `code`, `state`, `type`, `token`, `token_hash`, `error`, `error_description`, `oauth_state`, `mode`, `auth_view`).
+4. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green unit test suite (`130 passed`).
+5. **Documentation**: CHANGELOG v1.5.5 and DEVLOG Entry 035.
+
 ## Entry 033: Why Verifier Storage is Scoped to PKCE Keys Only (Collateral of the v1.2.0 Purge) (v1.5.3)
 - **Date**: 2026-10-02
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

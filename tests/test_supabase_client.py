@@ -44,23 +44,6 @@ def test_get_client_singleton_and_success(mock_create_client):
     assert mock_create_client.call_count == 1
     args, kwargs = mock_create_client.call_args
     assert args == ("https://example.supabase.co", "fake_anon_key")
-    assert "options" in kwargs
-
-
-def test_pkce_cookie_storage_roundtrip():
-    """Test PkceCookieStorage set_item, get_item, remove_item round-trip for sb-pkce keys."""
-    from pkce_storage import PkceCookieStorage
-
-    storage = PkceCookieStorage()
-    storage.set_item("other-key", "val1")
-    assert storage.get_item("other-key") == "val1"
-    storage.remove_item("other-key")
-    assert storage.get_item("other-key") is None
-
-    storage.set_item("sb-pkce-code-verifier", "verifier123")
-    assert storage.get_item("sb-pkce-code-verifier") == "verifier123"
-    storage.remove_item("sb-pkce-code-verifier")
-    assert storage.get_item("sb-pkce-code-verifier") is None
 
 
 def test_github_button_present():

@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.5] - 2026-10-02
+
+### Added / Changed
+- Micro-Mission v1.5.5 — GitHub Manual PKCE Flow, Auth Mode & Sign-Out Parameter Cleanup:
+  - **Builder Manual GitHub PKCE**: Implemented manual cryptographic PKCE code verifier (`secrets.token_urlsafe(43)`), unpadded base64url SHA-256 code challenge (`s256`), and random state token (`secrets.token_urlsafe(16)`). Inserted state-verifier pairs into `public.oauth_states` table. Constructed `authorize_url` as `st.link_button` with state parameter separated from `redirect_to`.
+  - **Builder Return & Token Exchange**: Handled `code` + `state` callback, looked up verifier in `public.oauth_states`, executed POST request to `{SUPABASE_URL}/auth/v1/token?grant_type=pkce`, established session, minted capability token (`rt`), deleted state row, pruned states older than 10 minutes, and redirected to Home. Removed v1.5.3 cookie storage module (`pkce_storage.py`).
+  - **Builder Auth Mode & Sign-Out Cleanup**: Query-parameter driven mode selection (`mode=login` vs `mode=signup` with Display Name support). Sign-out cleanup now deletes all specified authentication query parameters (`rt`, `pg`, `code`, `state`, `type`, `token`, `token_hash`, `error`, `error_description`, `oauth_state`, `mode`, `auth_view`).
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`130 passed`).
+  - **Documentation**: CHANGELOG v1.5.5 and DEVLOG Entry 035.
+
 ## [1.5.3] - 2026-10-02
 
 ### Added / Changed

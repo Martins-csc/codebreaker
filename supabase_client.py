@@ -1,9 +1,7 @@
 import os
 
 from config import ConfigError, get_config
-from pkce_storage import PkceCookieStorage
 from supabase import Client, create_client
-from supabase.lib.client_options import SyncClientOptions
 
 _global_supabase_client: Client = None
 
@@ -14,20 +12,6 @@ def get_client() -> Client:
     Stores a per-session singleton in st.session_state if Streamlit context is active,
     preventing cross-user session leakage across concurrent Streamlit sessions (Branch H2).
     """
-    options = {
-        "auth": {
-            "storage": PkceCookieStorage(),
-            "flow_type": "pkce",
-            "persist_session": False,
-        }
-    }
-    auth_opts = options["auth"]
-    client_options = SyncClientOptions(
-        flow_type=auth_opts["flow_type"],
-        persist_session=auth_opts["persist_session"],
-        storage=auth_opts["storage"],
-    )
-
     try:
         import streamlit as st
 
@@ -49,7 +33,7 @@ def get_client() -> Client:
 
                 try:
                     st.session_state["supabase_client_instance"] = create_client(
-                        url, anon_key, options=client_options
+                        url, anon_key
                     )
                 except Exception as e:
                     err_msg = str(e)
@@ -84,7 +68,7 @@ def get_client() -> Client:
         )
 
     try:
-        _global_supabase_client = create_client(url, anon_key, options=client_options)
+        _global_supabase_client = create_client(url, anon_key)
     except Exception as e:
         err_msg = str(e)
         if url:

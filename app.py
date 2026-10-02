@@ -1,10 +1,13 @@
+import base64
 import hashlib
 import json
 import secrets
 import time
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+import requests
 import streamlit as st
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
@@ -360,55 +363,130 @@ try:
         st.query_params.clear()
         st.rerun()
 
-    # 2. Handle GitHub OAuth authorization code exchange (old recovery detection deleted)
-    elif code_param:
-        # Supabase Redirect URLs whitelist required in Dashboard:
-        # 1. App domain (e.g. https://your-app.replit.app / https://your-project.streamlit.app)
-        # 2. Streamlit public URL + /streamlit (e.g. https://.../streamlit)
+    # 2. Handle GitHub OAuth authorization code exchange (Manual PKCE flow)
+    elif code_param and state_param:
         code = code_param
+        state = state_param
         try:
-            try:
-                res = client.auth.exchange_code_for_session(code)
-            except Exception:
-                res = client.auth.exchange_code_for_session({"auth_code": code})
+            supabase_url = get_config("SUPABASE_URL").rstrip("/")
+            anon_key = get_config("SUPABASE_ANON_KEY")
 
-            if res and res.session:
-                client.auth.set_session(
-                    res.session.access_token, res.session.refresh_token
+            # Prune states older than 10 min
+            ten_min_ago = (
+                datetime.now(timezone.utc) - timedelta(minutes=10)
+            ).isoformat()
+            try:
+                client.table("oauth_states").delete().lt(
+                    "created_at", ten_min_ago
+                ).execute()
+            except Exception:
+                pass
+
+            # Lookup verifier by state
+            state_res = (
+                client.table("oauth_states")
+                .select("code_verifier")
+                .eq("state", state)
+                .execute()
+            )
+            state_rows = getattr(state_res, "data", [])
+            if not state_rows:
+                st.error("Invalid or expired OAuth state.")
+            else:
+                verifier = state_rows[0].get("code_verifier")
+
+                token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
+                headers = {"apikey": anon_key, "Content-Type": "application/json"}
+                payload = {"auth_code": code, "code_verifier": verifier}
+
+                resp = requests.post(
+                    token_url, headers=headers, json=payload, timeout=10
                 )
-                if res.user:
-                    display_name = ""
-                    if res.user.user_metadata:
-                        display_name = (
-                            res.user.user_metadata.get("display_name", "")
-                            or res.user.email.split("@")[0]
+                if resp.status_code == 200:
+                    token_data = resp.json()
+                    access_token = token_data.get("access_token")
+                    refresh_token = token_data.get("refresh_token")
+
+                    if access_token and refresh_token:
+                        client.auth.set_session(access_token, refresh_token)
+                        user_res = client.auth.get_user(access_token)
+                        user_obj = getattr(user_res, "user", None)
+
+                        if user_obj:
+                            display_name = ""
+                            if user_obj.user_metadata:
+                                display_name = (
+                                    user_obj.user_metadata.get("display_name", "")
+                                    or user_obj.email.split("@")[0]
+                                )
+                            elif user_obj.email:
+                                display_name = user_obj.email.split("@")[0]
+                            user_metadata = getattr(user_obj, "user_metadata", {}) or {}
+                            u_created = getattr(
+                                user_obj, "created_at", None
+                            ) or user_metadata.get("created_at", "")
+                            c_display = format_member_since(u_created)
+                            st.session_state["user"] = {
+                                "id": user_obj.id,
+                                "email": user_obj.email,
+                                "display_name": display_name,
+                                "user_metadata": user_metadata,
+                                "member_since": c_display,
+                            }
+                            st.session_state["access_token"] = access_token
+                            st.session_state["refresh_token"] = refresh_token
+                            st.session_state["expires_at"] = token_data.get(
+                                "expires_at", time.time() + 3600
+                            )
+                            mint_and_set_rt(client, user_obj.id, refresh_token)
+
+                            # Delete state row
+                            client.table("oauth_states").delete().eq(
+                                "state", state
+                            ).execute()
+
+                            st.success("Successfully logged in with GitHub!")
+                            st.query_params["pg"] = "Home"
+                            for p in [
+                                "code",
+                                "state",
+                                "type",
+                                "token",
+                                "token_hash",
+                                "error",
+                                "error_description",
+                                "oauth_state",
+                                "mode",
+                                "auth_view",
+                            ]:
+                                st.query_params.pop(p, None)
+                            st.rerun()
+                        else:
+                            st.error(
+                                "Failed to retrieve user profile after OAuth exchange."
+                            )
+                    else:
+                        st.error(
+                            "Invalid token response received from authentication server."
                         )
-                    elif res.user.email:
-                        display_name = res.user.email.split("@")[0]
-                    user_metadata = getattr(res.user, "user_metadata", {}) or {}
-                    u_created = getattr(
-                        res.user, "created_at", None
-                    ) or user_metadata.get("created_at", "")
-                    c_display = format_member_since(u_created)
-                    st.session_state["user"] = {
-                        "id": res.user.id,
-                        "email": res.user.email,
-                        "display_name": display_name,
-                        "user_metadata": user_metadata,
-                        "member_since": c_display,
-                    }
-                    st.session_state["access_token"] = res.session.access_token
-                    st.session_state["refresh_token"] = res.session.refresh_token
-                    expires_at = getattr(res.session, "expires_at", time.time() + 3600)
-                    st.session_state["expires_at"] = expires_at
-                    mint_and_set_rt(client, res.user.id, res.session.refresh_token)
-                    st.success("Successfully logged in with GitHub!")
-                    st.query_params["pg"] = "Home"
-                    st.query_params.pop("code", None)
-                    st.rerun()
+                else:
+                    err_msg = resp.text
+                    try:
+                        err_json = resp.json()
+                        err_msg = (
+                            err_json.get("error_description")
+                            or err_json.get("msg")
+                            or err_json.get("error")
+                            or resp.text
+                        )
+                    except Exception:
+                        pass
+                    st.error(f"GitHub OAuth error: {err_msg}")
         except Exception as e:
             st.error(f"GitHub OAuth exchange failed: {e}")
-            st.query_params.pop("code", None)
+
+        for p in ["code", "state"]:
+            st.query_params.pop(p, None)
 
     if "access_token" in st.session_state and "refresh_token" in st.session_state:
         try:
@@ -739,26 +817,35 @@ if not user:
 
             try:
                 client = get_client()
+                supabase_url = get_config("SUPABASE_URL").rstrip("/")
+                anon_key = get_config("SUPABASE_ANON_KEY")
+
+                verifier = secrets.token_urlsafe(43)
+                digest = hashlib.sha256(verifier.encode("utf-8")).digest()
+                challenge = (
+                    base64.urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
+                )
+                state = secrets.token_urlsafe(16)
+
                 try:
-                    oauth_res = client.auth.sign_in_with_oauth(
-                        {"provider": "github", "options": {"redirect_to": redirect_to}}
-                    )
-                except TypeError:
-                    oauth_res = client.auth.sign_in_with_oauth(
-                        provider="github", options={"redirect_to": redirect_to}
-                    )
+                    client.table("oauth_states").insert(
+                        {"state": state, "code_verifier": verifier}
+                    ).execute()
+                except Exception:
+                    pass
 
-                oauth_url = getattr(oauth_res, "url", None)
-                if not oauth_url and isinstance(oauth_res, dict):
-                    oauth_url = oauth_res.get("url")
+                # Supabase Redirect URLs whitelist required in Dashboard:
+                # 1. App domain (e.g. https://your-app.replit.app / https://your-project.streamlit.app)
+                # 2. Streamlit public URL + /streamlit (e.g. https://.../streamlit)
+                encoded_redirect = urllib.parse.quote(redirect_to, safe="")
+                authorize_url = f"{supabase_url}/auth/v1/authorize?provider=github&apikey={anon_key}&redirect_to={encoded_redirect}&state={state}&code_challenge={challenge}&code_challenge_method=s256"
 
-                if oauth_url:
-                    st.link_button(
-                        "Continue with GitHub",
-                        oauth_url,
-                        use_container_width=True,
-                        key="card_github_link_btn",
-                    )
+                st.link_button(
+                    "Continue with GitHub",
+                    authorize_url,
+                    use_container_width=True,
+                    key="card_github_link_btn",
+                )
             except Exception as e:
                 st.error(f"Could not generate GitHub OAuth link: {e}")
     else:
@@ -898,10 +985,22 @@ else:
             client.auth.sign_out()
         except Exception:
             pass
-        if "rt" in st.query_params:
-            del st.query_params["rt"]
-        if "pg" in st.query_params:
-            del st.query_params["pg"]
+        auth_params = [
+            "rt",
+            "pg",
+            "code",
+            "state",
+            "type",
+            "token",
+            "token_hash",
+            "error",
+            "error_description",
+            "oauth_state",
+            "mode",
+            "auth_view",
+        ]
+        for p in auth_params:
+            st.query_params.pop(p, None)
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.success("Signed out successfully.")
