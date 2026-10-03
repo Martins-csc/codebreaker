@@ -410,7 +410,7 @@ try:
 
                 token_url = f"{supabase_url}/auth/v1/token?grant_type=authorization_code"
                 headers = {"apikey": anon_key, "Content-Type": "application/json"}
-                payload = {"code": code, "code_verifier": verifier}
+                payload = {"grant_type": "authorization_code","code": code, "code_verifier": verifier}
 
                 resp = requests.post(
                     token_url, headers=headers, json=payload, timeout=10
@@ -1622,6 +1622,7 @@ elif page == "Engineering Log":
                         st.session_state.get("refresh_token", ""),
                     )
                 payload = {
+                    "grant_type": "authorization_code",
                     "user_id": user["id"],
                     "project_name": log_project_name.strip() or "General",
                     "progress": log_progress,
