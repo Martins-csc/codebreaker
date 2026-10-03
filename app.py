@@ -422,8 +422,6 @@ try:
                     resp = requests.post(
                         token_url_alt, headers=headers, json=payload, timeout=10
                     )
-        if resp.status_code != 200:
-            st.caption("TOKEN-WITNESS: " + str(resp.status_code) + " " + resp.text[:300])
 
                 if resp.status_code == 200:
                     token_data = resp.json()
