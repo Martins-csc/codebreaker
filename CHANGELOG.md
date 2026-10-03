@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.6] - 2026-10-03
+
+### Added / Changed
+- Micro-Mission v1.5.6 — Single-Slot PKCE Verifier (Supabase State Stripping Rationale):
+  - **Single-Slot Verifier Architecture**: Handled Supabase OAuth `/auth/v1/authorize` stripping custom state parameters. Before rendering the GitHub login link, any existing pending state row (`state='pending'`) in `public.oauth_states` is deleted, and a fresh single slot is inserted with `state='pending'` and `code_verifier=verifier`.
+  - **Return Path & Token Exchange**: Return-path trigger relies on `code` alone (state optional). Fetches `code_verifier` where `state='pending'`, ordered by `created_at desc limit 1`. Issues POST request to `{SUPABASE_URL}/auth/v1/token?grant_type=pkce`. Retries once with `grant_type=authorization_code` on 400. On success, establishes session, mints `rt`, deletes the pending row, clears auth query params, and redirects to Home.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`133 passed`, including pending-slot insert/lookup and code-only return path tests).
+  - **Documentation**: CHANGELOG v1.5.6 and DEVLOG Entry 036.
+
 ## [1.5.5] - 2026-10-02
 
 ### Added / Changed

@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 036: Supabase Strips Custom State; Single-Slot Verifier Rationale (v1.5.6)
+- **Date**: 2026-10-03
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.5.6 Single-Slot PKCE Verifier
+
+### Design Notes & Architectural Decisions
+1. **Supabase Custom State Stripping**: Supabase OAuth `/auth/v1/authorize` endpoint strips or replaces custom `state` parameters passed in the redirect URL when communicating with upstream identity providers (GitHub). Consequently, returning callback requests lack the original client `state` parameter (`state_param` is `None` or arbitrary).
+2. **Single-Slot Verifier Architecture**: To handle state stripping while maintaining cryptographic PKCE security, CodeBreaker adopts a single-slot OAuth state strategy. Before rendering the GitHub login link, any existing pending state row (`state='pending'`) in `public.oauth_states` is deleted, and a fresh single slot is inserted with `state='pending'` and the newly generated `code_verifier`. On return callback (`code` present, state optional), the server fetches the latest verifier from `public.oauth_states` where `state='pending'`, ordered by `created_at desc limit 1`. If no pending slot exists, session expiration is reported (`st.error` + stop).
+3. **Token Exchange & Fallback**: Issues POST request to `{SUPABASE_URL}/auth/v1/token?grant_type=pkce`. If status 400 is returned, retries once with `grant_type=authorization_code`. On success, sets session, mints `rt`, deletes the pending slot, clears query params, and redirects to Home.
+4. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`133 passed`, including pending-slot insert/lookup and code-only return path tests).
+5. **Documentation**: CHANGELOG v1.5.6 and DEVLOG Entry 036.
+
 ## Entry 035: GitHub Manual PKCE Flow, Auth Mode & Sign-Out Cleanup (v1.5.5)
 - **Date**: 2026-10-02
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

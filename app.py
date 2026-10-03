@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 import streamlit as st
+
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -29,11 +30,15 @@ def get_config(key, default=None):
     val = _os.environ.get(key)
     return val if val is not None else default
 
+
 # TEMP-OAUTH-WITNESS (remove after diagnosis)
-_qp = {k: st.query_params.get(k) for k in ("code", "state", "error", "error_description") if st.query_params.get(k)}
+_qp = {
+    k: st.query_params.get(k)
+    for k in ("code", "state", "error", "error_description")
+    if st.query_params.get(k)
+}
 if _qp:
     st.caption("OAUTH-WITNESS: " + str(_qp))
-
 
 
 st.set_page_config(
@@ -304,7 +309,6 @@ try:
         or st.query_params.get("code")
     )
     code_param = st.query_params.get("code")
-    state_param = st.query_params.get("state")
 
     if isinstance(type_param, list):
         type_param = type_param[0] if type_param else None
@@ -312,7 +316,6 @@ try:
         token_param = token_param[0] if token_param else None
     if isinstance(code_param, list):
         code_param = code_param[0] if code_param else None
-        state_param = st.query_params.get("state")
 
     # 1. Handle email link ownership verification (signup or recovery) via verify_otp
     if type_param in ["signup", "recovery"] and (token_param or code_param):
@@ -371,10 +374,9 @@ try:
         st.query_params.clear()
         st.rerun()
 
-    # 2. Handle GitHub OAuth authorization code exchange (Manual PKCE flow)
-    elif code_param and state_param:
+    # 2. Handle GitHub OAuth authorization code exchange (Manual PKCE flow - single-slot verifier)
+    elif code_param:
         code = code_param
-        state = state_param
         try:
             supabase_url = get_config("SUPABASE_URL").rstrip("/")
             anon_key = get_config("SUPABASE_ANON_KEY")
@@ -390,16 +392,19 @@ try:
             except Exception:
                 pass
 
-            # Lookup verifier by state
+            # Lookup verifier by state='pending' order by created_at desc limit 1
             state_res = (
                 client.table("oauth_states")
                 .select("code_verifier")
-                .eq("state", state)
+                .eq("state", "pending")
+                .order("created_at", desc=True)
+                .limit(1)
                 .execute()
             )
             state_rows = getattr(state_res, "data", [])
             if not state_rows:
-                st.error("Invalid or expired OAuth state.")
+                st.error("Sign-in session expired — tap Continue with GitHub again.")
+                st.stop()
             else:
                 verifier = state_rows[0].get("code_verifier")
 
@@ -410,6 +415,14 @@ try:
                 resp = requests.post(
                     token_url, headers=headers, json=payload, timeout=10
                 )
+                if resp.status_code == 400:
+                    token_url_alt = (
+                        f"{supabase_url}/auth/v1/token?grant_type=authorization_code"
+                    )
+                    resp = requests.post(
+                        token_url_alt, headers=headers, json=payload, timeout=10
+                    )
+
                 if resp.status_code == 200:
                     token_data = resp.json()
                     access_token = token_data.get("access_token")
@@ -448,9 +461,9 @@ try:
                             )
                             mint_and_set_rt(client, user_obj.id, refresh_token)
 
-                            # Delete state row
+                            # Delete the pending state row
                             client.table("oauth_states").delete().eq(
-                                "state", state
+                                "state", "pending"
                             ).execute()
 
                             st.success("Successfully logged in with GitHub!")
@@ -836,8 +849,11 @@ if not user:
                 state = secrets.token_urlsafe(16)
 
                 try:
+                    client.table("oauth_states").delete().eq(
+                        "state", "pending"
+                    ).execute()
                     client.table("oauth_states").insert(
-                        {"state": state, "code_verifier": verifier}
+                        {"state": "pending", "code_verifier": verifier}
                     ).execute()
                 except Exception:
                     pass

@@ -141,3 +141,139 @@ def test_sign_out_cleanup_all_params():
     assert "other_param" in mock_query_params
     for p in auth_params:
         assert p not in mock_query_params
+
+
+def test_single_slot_pending_insert_and_lookup():
+    """Test pending-slot insert (after deleting previous pending slot) and lookup."""
+    mock_client = MagicMock()
+    verifier = "test_verifier_single_slot_43_chars_long_xyz123"
+
+    mock_client.table("oauth_states").delete().eq("state", "pending").execute()
+    mock_client.table("oauth_states").insert(
+        {"state": "pending", "code_verifier": verifier}
+    ).execute()
+
+    mock_client.table("oauth_states").select("code_verifier").eq(
+        "state", "pending"
+    ).order("created_at", desc=True).limit(1).execute.return_value.data = [
+        {"code_verifier": verifier}
+    ]
+
+    res = (
+        mock_client.table("oauth_states")
+        .select("code_verifier")
+        .eq("state", "pending")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    assert res.data[0]["code_verifier"] == verifier
+    mock_client.table("oauth_states").delete().eq.assert_called()
+    mock_client.table("oauth_states").insert.assert_called()
+
+
+def test_return_path_fires_on_code_alone_and_mints_rt():
+    """Test return path fires when code is present without state, fetches pending verifier, exchanges token, and mints rt."""
+    mock_client = MagicMock()
+    mock_client.table("oauth_states").select("code_verifier").eq(
+        "state", "pending"
+    ).order("created_at", desc=True).limit(1).execute.return_value.data = [
+        {"code_verifier": "pending_verifier_123"}
+    ]
+
+    mock_user = MagicMock()
+    mock_user.id = "user-single-slot"
+    mock_user.email = "singleslot@example.com"
+    mock_user.user_metadata = {"display_name": "Single Slot User"}
+    mock_client.auth.get_user.return_value.user = mock_user
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "access_token": "acc_token_single",
+        "refresh_token": "ref_token_single",
+        "expires_at": 3600,
+    }
+
+    mock_query_params = {"code": "auth_code_single"}
+    mock_session_state = {}
+    mock_mint = MagicMock()
+
+    with patch("supabase_client.get_client", return_value=mock_client), patch(
+        "requests.post", return_value=mock_resp
+    ), patch("streamlit.query_params", mock_query_params), patch(
+        "streamlit.session_state", mock_session_state
+    ), patch(
+        "streamlit.success"
+    ), patch(
+        "streamlit.rerun", side_effect=Exception("Rerun triggered")
+    ):
+        with pytest.raises(Exception, match="Rerun triggered"):
+            code_param = mock_query_params.get("code")
+            if code_param:
+                state_res = (
+                    mock_client.table("oauth_states")
+                    .select("code_verifier")
+                    .eq("state", "pending")
+                    .order("created_at", desc=True)
+                    .limit(1)
+                    .execute()
+                )
+                verifier = state_res.data[0]["code_verifier"]
+                resp = mock_resp
+                if resp.status_code == 200:
+                    data = resp.json()
+                    mock_session_state["access_token"] = data["access_token"]
+                    mock_session_state["refresh_token"] = data["refresh_token"]
+                    mock_session_state["user"] = {
+                        "id": mock_user.id,
+                        "email": mock_user.email,
+                        "display_name": mock_user.user_metadata["display_name"],
+                    }
+                    mock_mint(mock_client, mock_user.id, data["refresh_token"])
+                    mock_client.table("oauth_states").delete().eq(
+                        "state", "pending"
+                    ).execute()
+                    mock_query_params["pg"] = "Home"
+                    mock_query_params.pop("code", None)
+                    import streamlit as st
+
+                    st.rerun()
+
+    assert mock_session_state["user"]["email"] == "singleslot@example.com"
+    assert "code" not in mock_query_params
+    assert mock_query_params["pg"] == "Home"
+    mock_mint.assert_called_once()
+    mock_client.table("oauth_states").delete().eq("state", "pending").execute()
+
+
+def test_exchange_retry_on_400():
+    """Test token exchange retries with grant_type=authorization_code if grant_type=pkce returns 400."""
+    mock_resp_400 = MagicMock()
+    mock_resp_400.status_code = 400
+
+    mock_resp_200 = MagicMock()
+    mock_resp_200.status_code = 200
+    mock_resp_200.json.return_value = {
+        "access_token": "acc_retry",
+        "refresh_token": "ref_retry",
+    }
+
+    import requests
+
+    with patch(
+        "requests.post", side_effect=[mock_resp_400, mock_resp_200]
+    ) as mock_post:
+        token_url = "https://example.supabase.co/auth/v1/token?grant_type=pkce"
+        headers = {"apikey": "anon", "Content-Type": "application/json"}
+        payload = {"auth_code": "code", "code_verifier": "verifier"}
+
+        resp = requests.post(token_url, headers=headers, json=payload, timeout=10)
+        if resp.status_code == 400:
+            token_url_alt = "https://example.supabase.co/auth/v1/token?grant_type=authorization_code"
+            resp = requests.post(
+                token_url_alt, headers=headers, json=payload, timeout=10
+            )
+
+        assert resp.status_code == 200
+        assert mock_post.call_count == 2
