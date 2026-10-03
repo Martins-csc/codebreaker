@@ -29,6 +29,12 @@ def get_config(key, default=None):
     val = _os.environ.get(key)
     return val if val is not None else default
 
+# TEMP-OAUTH-WITNESS (remove after diagnosis)
+_qp = {k: st.query_params.get(k) for k in ("code", "state", "error", "error_description") if st.query_params.get(k)}
+if _qp:
+    st.caption("OAUTH-WITNESS: " + str(_qp))
+
+
 
 st.set_page_config(
     page_title="CodeBreaker", page_icon=":material/terminal:", layout="wide"
