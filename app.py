@@ -408,7 +408,7 @@ try:
             else:
                 verifier = state_rows[0].get("code_verifier")
 
-                token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
+                token_url = f"{supabase_url}/auth/v1/token?grant_type=authorization_code"
                 headers = {"apikey": anon_key, "Content-Type": "application/json"}
                 payload = {"auth_code": code, "code_verifier": verifier}
 
