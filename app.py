@@ -423,6 +423,7 @@ try:
                         token_url_alt, headers=headers, json=payload, timeout=10
                     )
 
+                st.caption("TOKEN-WITNESS: " + str(resp.status_code) + " " + resp.text[:300])
                 if resp.status_code == 200:
                     token_data = resp.json()
                     access_token = token_data.get("access_token")
