@@ -298,6 +298,7 @@ try:
         or st.query_params.get("code")
     )
     code_param = st.query_params.get("code")
+    state_param = st.query_params.get("state")
 
     if isinstance(type_param, list):
         type_param = type_param[0] if type_param else None
@@ -305,6 +306,7 @@ try:
         token_param = token_param[0] if token_param else None
     if isinstance(code_param, list):
         code_param = code_param[0] if code_param else None
+        state_param = st.query_params.get("state")
 
     # 1. Handle email link ownership verification (signup or recovery) via verify_otp
     if type_param in ["signup", "recovery"] and (token_param or code_param):
