@@ -5,6 +5,13 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.7] - 2026-10-04
+
+### Added / Changed
+- Micro-Mission v1.5.7 — OAuth token grant-type sweep (diagnostic):
+  - **Diagnostic Grant-Type Sweep**: Replaced single token POST / 400 retry with an ordered sweep of six attempts against `{SUPABASE_URL}/auth/v1/token` (query `grant_type=pkce`, query `grant_type=authorization_code`, form-encoded variants, and no-query grant body variants), stopping at the first HTTP 200 with `TOKEN-WITNESS` winner logging or fallback `st.error` with last response body.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`) and verified green test suite (`.venv/bin/pytest`).
+
 ## [1.5.6] - 2026-10-03
 
 ### Added / Changed

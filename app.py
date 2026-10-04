@@ -9,7 +9,6 @@ from zoneinfo import ZoneInfo
 
 import requests
 import streamlit as st
-
 from ai_engine import (BlueprintError, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
@@ -408,23 +407,87 @@ try:
             else:
                 verifier = state_rows[0].get("code_verifier")
 
-                token_url = f"{supabase_url}/auth/v1/token?grant_type=authorization_code"
-                headers = {"apikey": anon_key, "Content-Type": "application/json"}
-                payload = {"grant_type": "authorization_code","code": code, "code_verifier": verifier}
+                attempts = [
+                    (
+                        "v1",
+                        f"{supabase_url}/auth/v1/token?grant_type=pkce",
+                        "json",
+                        {"auth_code": code, "code_verifier": verifier},
+                    ),
+                    (
+                        "v2",
+                        f"{supabase_url}/auth/v1/token?grant_type=authorization_code",
+                        "json",
+                        {"auth_code": code, "code_verifier": verifier},
+                    ),
+                    (
+                        "v3",
+                        f"{supabase_url}/auth/v1/token?grant_type=pkce",
+                        "form",
+                        {"auth_code": code, "code_verifier": verifier},
+                    ),
+                    (
+                        "v4",
+                        f"{supabase_url}/auth/v1/token?grant_type=authorization_code",
+                        "form",
+                        {"auth_code": code, "code_verifier": verifier},
+                    ),
+                    (
+                        "v5",
+                        f"{supabase_url}/auth/v1/token",
+                        "json",
+                        {
+                            "grant_type": "pkce",
+                            "auth_code": code,
+                            "code_verifier": verifier,
+                        },
+                    ),
+                    (
+                        "v6",
+                        f"{supabase_url}/auth/v1/token",
+                        "json",
+                        {
+                            "grant_type": "authorization_code",
+                            "auth_code": code,
+                            "code_verifier": verifier,
+                        },
+                    ),
+                ]
 
-                resp = requests.post(
-                    token_url, headers=headers, json=payload, timeout=10
+                winning_variant = None
+                resp = None
+                for v_name, url, mode, payload_data in attempts:
+                    if mode == "form":
+                        headers = {
+                            "apikey": anon_key,
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        }
+                        resp = requests.post(
+                            url, headers=headers, data=payload_data, timeout=10
+                        )
+                    else:
+                        headers = {
+                            "apikey": anon_key,
+                            "Content-Type": "application/json",
+                        }
+                        resp = requests.post(
+                            url, headers=headers, json=payload_data, timeout=10
+                        )
+                    if resp.status_code == 200:
+                        winning_variant = v_name
+                        break
+
+                variant_name = winning_variant if winning_variant else "none"
+                status = resp.status_code if resp else 0
+                st.caption(
+                    "TOKEN-WITNESS: winner="
+                    + variant_name
+                    + " "
+                    + str(status)
+                    + " "
+                    + (resp.text if resp else "")[:300]
                 )
-                if resp.status_code == 400:
-                    token_url_alt = (
-                        f"{supabase_url}/auth/v1/token?grant_type=authorization_code"
-                    )
-                    resp = requests.post(
-                        token_url_alt, headers=headers, json=payload, timeout=10
-                    )
-
-                st.caption("TOKEN-WITNESS: " + str(resp.status_code) + " " + resp.text[:300])
-                if resp.status_code == 200:
+                if resp and resp.status_code == 200:
                     token_data = resp.json()
                     access_token = token_data.get("access_token")
                     refresh_token = token_data.get("refresh_token")
@@ -492,18 +555,7 @@ try:
                             "Invalid token response received from authentication server."
                         )
                 else:
-                    err_msg = resp.text
-                    try:
-                        err_json = resp.json()
-                        err_msg = (
-                            err_json.get("error_description")
-                            or err_json.get("msg")
-                            or err_json.get("error")
-                            or resp.text
-                        )
-                    except Exception:
-                        pass
-                    st.error(f"GitHub OAuth error: {err_msg}")
+                    st.error(resp.text if resp else "OAuth token exchange failed")
         except Exception as e:
             st.error(f"GitHub OAuth exchange failed: {e}")
 
