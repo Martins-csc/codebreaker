@@ -1591,7 +1591,6 @@ elif page == "Engineering Log":
                         st.session_state.get("refresh_token", ""),
                     )
                 payload = {
-                    "grant_type": "authorization_code",
                     "user_id": user["id"],
                     "project_name": log_project_name.strip() or "General",
                     "progress": log_progress,
