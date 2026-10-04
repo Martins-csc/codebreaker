@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.5.8] - 2026-10-04
+
+### Added / Changed
+- Micro-Mission v1.5.8 — Hardcode winning OAuth exchange + remove witnesses:
+  - **Hardcoded Winning Call**: Replaced the six-variant diagnostic sweep with the single winning call (`POST {SUPABASE_URL}/auth/v1/token?grant_type=pkce` with `apikey=ANON` and JSON `{"auth_code": code, "code_verifier": verifier}`).
+  - **Witness Removal**: Deleted both diagnostics (`OAUTH-WITNESS` and `TOKEN-WITNESS`). Guaranteed zero witness strings remain in `app.py`.
+  - **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`), asserted zero witness occurrences, and verified green test suite (`.venv/bin/pytest`).
+  - **Documentation**: CHANGELOG v1.5.8 and DEVLOG Entry 037 (OAuth saga post-mortem).
+
 ## [1.5.7] - 2026-10-04
 
 ### Added / Changed

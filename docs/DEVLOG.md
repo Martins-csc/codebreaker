@@ -611,3 +611,16 @@
 ### Streamlit Translation of JS-SPA Auth Guidance
 - **Thin-Token Refresh-Only Pattern**: Storing only `{"refresh_token": ..., "expires_at": ...}` in `cb_session` avoids the browser cookie 4KB limit and ensures `access_token` never touches client storage.
 - **Gate Flags & WITNESS Observability**: Explicitly setting authentication gate flags (`user`, `access_token`, `refresh_token`, `expires_at`) during rehydration ensures deterministic route gating. The WITNESS panel provides real-time side-by-side observability into `st.context.cookies`, controller read, gate flags, and client instance ID (`id(client)`).
+
+## Entry 037: OAuth Saga Post-Mortem & Hosting Migration Tuition (v1.5.8)
+- **Date**: 2026-10-04
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.5.8 Hardcoded Winning OAuth Exchange & Witness Removal
+
+### OAuth Saga Post-Mortem
+1. **Supabase State Stripping**: Supabase `/auth/v1/authorize` strips custom state parameters passed in redirect URLs. Solved via single-slot pending verifier architecture (`public.oauth_states` table with `state='pending'`).
+2. **Single-Slot Pending Verifier**: Before rendering the GitHub login link, any existing pending state row is pruned and a single fresh state row is inserted.
+3. **GoTrue Token Endpoint Contract**: GoTrue accepts `grant_type=pkce` as a query parameter combined with a JSON request body containing `{"auth_code": code, "code_verifier": verifier}` and header `apikey=ANON`.
+4. **Table GRANTs**: Database row-level security and `GRANT SELECT, INSERT, DELETE ON public.oauth_states TO anon, authenticated` are mandatory for public PKCE state storage.
+5. **Diagnostics & Witnesses**: Temporary observability tools (`oauth-witness`, `token-witness`, and the 6-variant sweep) successfully diagnosed and isolated the exchange protocol, then were fully purged in v1.5.8.
+*This entry is the tuition receipt for the hosting migration.*
