@@ -34,10 +34,7 @@ def test_v1_5_0_persistent_blueprint_library_code():
 
     # 3. Blueprint page loads from DB using active_blueprint_id
     assert 'active_bp_id = st.session_state.get("active_blueprint_id")' in content
-    assert (
-        "Generate a new blueprint in Analyze or open an existing one from Home."
-        in content
-    )
+    assert "Open a blueprint from your library or generate a new one." in content
 
 
 def test_v1_5_2_requirements():

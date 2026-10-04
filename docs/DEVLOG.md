@@ -624,3 +624,16 @@
 4. **Table GRANTs**: Database row-level security and `GRANT SELECT, INSERT, DELETE ON public.oauth_states TO anon, authenticated` are mandatory for public PKCE state storage.
 5. **Diagnostics & Witnesses**: Temporary observability tools (`oauth-witness`, `token-witness`, and the 6-variant sweep) successfully diagnosed and isolated the exchange protocol, then were fully purged in v1.5.8.
 *This entry is the tuition receipt for the hosting migration.*
+
+## Entry 039: Workspace-vs-Library Model & Extend Versioning (v1.6.0)
+- **Date**: 2026-10-04
+- **Author**: Engineering Team / Builder, Tester & Reviewer Agents
+- **Milestone**: v1.6.0 Library Completeness, Extend Flow, Log Titles, Workspace Freshness & Export Restructure
+
+### Workspace-vs-Library Architecture
+1. **Fresh Workspace on Login**: Upon successful login, signup, or OAuth exchange, `profiles.active_blueprint_id` is nulled out so users start with a clean workspace slate ("Open a blueprint from your library or generate a new one.").
+2. **Persistent Pointer**: The active blueprint pointer is stored in `profiles.active_blueprint_id` and loaded on Blueprint page navigation. Opening, generating, or extending a blueprint updates the pointer.
+3. **Library Completeness**: Full library list on the Blueprint page renders ALL user blueprints (newest first, scrollable) with unique button keys per row (`[Open]`, `[Extend]`, `[Delete(confirm)]`).
+4. **Extend Versioning**: `[Extend]` session panel (new changes + optional notes) sends old JSON + context to AI engine, saving the result as a new linked row (`version=N+1`, `parent_id=old_id`) while leaving the parent untouched.
+5. **Engineering Log Titles**: Required Milestone title input (max 40 chars) with auto-backfill on read for legacy rows.
+6. **Export Restructure**: Markdown/TXT/HTML formatted with consistent section order and unicode trees. PDF formatted with ASCII trees (`|-`, `+`), 90-character line wrapping, and section headers repeated across pages.

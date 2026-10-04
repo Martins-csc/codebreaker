@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import re
+import textwrap
 
 import markdown
 import requests
@@ -185,6 +186,77 @@ Analyze the following project requirements and build a comprehensive system arch
         errors.append(f"Gemini failed: {err_msg}")
 
     raise BlueprintError(f"All AI providers failed. Details: {'; '.join(errors)}")
+
+
+def extend_blueprint(old_blueprint: dict, change_context: str) -> dict:
+    """
+    Extend an existing blueprint with new changes/notes context, preserving confirmed content.
+    """
+    if not isinstance(old_blueprint, dict):
+        raise BlueprintError("Old blueprint must be a dictionary.")
+
+    system_prompt = (
+        SYSTEM_PROMPT
+        + "\nYou are extending an existing system architecture blueprint. You must preserve confirmed content from the existing blueprint while intelligently integrating the new requirements, features, or bug fixes provided in the change context. Output the complete updated blueprint in strict JSON matching the required schema."
+    )
+
+    user_prompt = f"""
+Existing Blueprint JSON:
+{json.dumps(old_blueprint, indent=2)}
+
+New Changes / Additions / Context:
+{change_context}
+
+Please generate the updated, extended system architecture blueprint incorporating these changes while retaining core structure and verified decisions.
+"""
+
+    errors = []
+    try:
+        return _call_groq(system_prompt, user_prompt)
+    except Exception as e:
+        err_msg = str(e)
+        for secret in [get_config("GROQ_API_KEY"), get_config("GEMINI_API_KEY")]:
+            if secret:
+                err_msg = err_msg.replace(secret, "[REDACTED]")
+        errors.append(f"Groq failed: {err_msg}")
+
+    try:
+        return _call_gemini(system_prompt, user_prompt)
+    except Exception as e:
+        err_msg = str(e)
+        for secret in [get_config("GROQ_API_KEY"), get_config("GEMINI_API_KEY")]:
+            if secret:
+                err_msg = err_msg.replace(secret, "[REDACTED]")
+        errors.append(f"Gemini failed: {err_msg}")
+
+    raise BlueprintError(
+        f"All AI providers failed during extend. Details: {'; '.join(errors)}"
+    )
+
+
+def _unicode_to_ascii_tree(tree_str: str) -> str:
+    if not isinstance(tree_str, str):
+        return str(tree_str)
+    return (
+        tree_str.replace("└──", "+--")
+        .replace("├──", "|--")
+        .replace("│", "|")
+        .replace("─", "-")
+    )
+
+
+def _wrap_text(text: str, width: int = 90) -> str:
+    if not isinstance(text, str):
+        text = str(text)
+    paragraphs = text.split("\n")
+    wrapped_paragraphs = []
+    for p in paragraphs:
+        if not p.strip():
+            wrapped_paragraphs.append("")
+        else:
+            wrapped_lines = textwrap.wrap(p, width=width)
+            wrapped_paragraphs.extend(wrapped_lines)
+    return "\n".join(wrapped_paragraphs)
 
 
 def sanitize_filename(project_name: str) -> str:
@@ -597,6 +669,8 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     pdf.ln(4)
 
     def add_section_heading(title):
+        if pdf.y > 240:
+            pdf.add_page()
         pdf.set_font("helvetica", "B", 13)
         pdf.set_text_color(30, 30, 30)
         pdf.cell(
@@ -612,7 +686,7 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
 
     # Summary
     add_section_heading("Summary")
-    pdf.multi_cell(printable_w, 5.5, _latin1_safe(str(summary)))
+    pdf.multi_cell(printable_w, 5.5, _latin1_safe(_wrap_text(str(summary), width=90)))
     pdf.ln(3)
 
     # Tech Stack
@@ -624,12 +698,8 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     )
     if valid_tech:
         for tech in valid_tech:
-            pdf.cell(
-                printable_w,
-                5.5,
-                _latin1_safe(f"- {tech}"),
-                new_x="LMARGIN",
-                new_y="NEXT",
+            pdf.multi_cell(
+                printable_w, 5.5, _latin1_safe(_wrap_text(f"- {tech}", width=90))
             )
     else:
         pdf.cell(
@@ -645,8 +715,10 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     add_section_heading("Folder Structure")
     pdf.set_font("Courier", size=9)
     pdf.set_fill_color(246, 248, 250)
-    tree_text = str(folder_structure)
-    pdf.multi_cell(printable_w, 4.5, _latin1_safe(tree_text), fill=True)
+    tree_text = _unicode_to_ascii_tree(str(folder_structure))
+    pdf.multi_cell(
+        printable_w, 4.5, _latin1_safe(_wrap_text(tree_text, width=90)), fill=True
+    )
     pdf.set_font("helvetica", "", 10)
     pdf.ln(3)
 
@@ -659,7 +731,9 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     )
     if valid_edges:
         for edge in valid_edges:
-            pdf.multi_cell(printable_w, 5.5, _latin1_safe(f"- {edge}"))
+            pdf.multi_cell(
+                printable_w, 5.5, _latin1_safe(_wrap_text(f"- {edge}", width=90))
+            )
     else:
         pdf.cell(
             printable_w,
@@ -679,7 +753,9 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     )
     if valid_roadmap:
         for i, step in enumerate(valid_roadmap, 1):
-            pdf.multi_cell(printable_w, 5.5, _latin1_safe(f"{i}. {step}"))
+            pdf.multi_cell(
+                printable_w, 5.5, _latin1_safe(_wrap_text(f"{i}. {step}", width=90))
+            )
     else:
         pdf.cell(
             printable_w,

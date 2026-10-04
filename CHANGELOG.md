@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-10-04
+
+### Added / Changed
+- Mission v1.6.0 — Library Completeness, Extend, Log Titles, Workspace Freshness & Export Restructure:
+  - **Library Completeness**: Home library retains recent 5 with `[View all blueprints]` button. Blueprint page renders ALL user blueprints (newest first, scrollable) as rows with unique button keys per row id (`[Open]`, `[Extend]`, `[Delete(confirm)]`).
+  - **Extend Versioning Flow**: Added `[Extend]` session panel (new changes + optional notes textareas) calling AI engine to produce a new versioned row (`v<N+1>`), linked via `parent_id`, leaving the parent untouched and opening the new version.
+  - **Log Titles & Workspace Freshness**: Enforced required Milestone title (max 40 chars) on engineering logs; backfilled old rows on read. On login, `profiles.active_blueprint_id` is nulled; Blueprint page loads pointer or shows empty state `"Open a blueprint from your library or generate a new one."` when null.
+  - **Export Restructure**: Markdown/TXT/HTML formatted with consistent section order, bullet/numbered lists, and unicode folder trees. PDF formatted with ASCII trees (`|-`, `+`), 90-character line wrapping, and section headers repeated across pages.
+  - **Testing & Documentation**: Enforced pre-seal compile gate (`py_compile`), comprehensive test suite (`tests/test_v1_6_0.py`), and verified green test suite (`138 passed`, `.venv/bin/pytest`). CHANGELOG v1.6.0 and DEVLOG Entry 039.
+
 ## [1.5.8] - 2026-10-04
 
 ### Added / Changed
