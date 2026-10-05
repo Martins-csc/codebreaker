@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-10-05
+
+### Added / Changed
+- Mission v1.6.2 — PDF Renderer Rewrite, Extend Provider Unification, Nav Single-Source, Context N/A, Home Count Removal, Log N/A + Optional Title:
+  - **PDF Renderer Rewrite**: Exposed `sanitize_pdf_text(s)` with codepoint mapping and fallback (`ord > 255` → `-`). Exposed `build_pdf_lines(bp)` returning full document lines. PDF renderer strictly uses `pdf.multi_cell(0, 5.5, line)` per line with `get_y()` page-break checks and `set_font(style="B")` for headers (zero cell/write calls for dynamic content).
+  - **Extend Provider Unification**: Unified AI provider calls between `generate_blueprint` and `extend_blueprint` via shared `_call_ai` helper using exact same model constants, retry chain, and named provider error reporting.
+  - **Project Context N/A & Home Count Removal**: Missing/empty context fields render `"N/A"` (legacy sentences deleted). Removed "Saved Blueprints" count metric from Home dashboard.
+  - **Navigation Single Source**: Synchronized navigation via `nav_radio` session state key and `pg` query param across all navigation triggers (sidebar radio, Home open, view all blueprints, Quick Start buttons, About contact), ensuring second blueprint opens reliably every time.
+  - **Log N/A & Optional Milestone Title**: Milestone title is now optional (`"Milestone Title (optional)"`, no validation error when blank, defaulting to progress excerpt or `"N/A"`). Empty progress/bugs/learnings store as `"N/A"`, and expanders always list all three fields. Quick Start button renamed to `"Eng. Log"`.
+  - **Testing & Documentation**: Enforced pre-seal compile gate (`py_compile`), comprehensive test suite (`tests/test_v1_6_1.py`), and verified green test suite (`149 passed`). CHANGELOG v1.6.2 and DEVLOG Entry 041.
+
 ## [1.6.1] - 2026-10-05
 
 ### Added / Changed

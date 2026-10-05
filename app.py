@@ -950,9 +950,11 @@ else:
     _pg = st.query_params.get("pg")
     if isinstance(_pg, list):
         _pg = _pg[0] if _pg else None
+    if "nav_radio" not in st.session_state and _pg in options:
+        st.session_state["nav_radio"] = _pg
     default_index = options.index(_pg) if _pg in options else 0
     page = st.sidebar.radio(
-        "", options, index=default_index, label_visibility="collapsed"
+        "", options, index=default_index, label_visibility="collapsed", key="nav_radio"
     )
     if page != _pg:
         st.query_params["pg"] = page
@@ -1079,6 +1081,7 @@ if page == "About":
         st.markdown("**Built by CodeBreaker Dev**")
     with col_ab2:
         if st.button("Contact us", key="about_contact_btn", use_container_width=True):
+            st.session_state["nav_radio"] = "Contact"
             st.query_params["pg"] = "Contact"
             st.rerun()
 
@@ -1197,7 +1200,6 @@ elif page == "Home":
                     .execute()
                 )
                 bp_rows = getattr(bp_res, "data", [])
-                st.metric("Saved Blueprints", len(bp_rows))
                 if bp_rows:
                     st.markdown("**Recent Blueprints:**")
                     for bp_item in bp_rows:
@@ -1226,6 +1228,7 @@ elif page == "Home":
                                     ).eq("id", user["id"]).execute()
                                 except Exception:
                                     pass
+                                st.session_state["nav_radio"] = "Blueprint"
                                 st.query_params["pg"] = "Blueprint"
                                 st.rerun()
                     if st.button(
@@ -1241,6 +1244,7 @@ elif page == "Home":
                             ).eq("id", user["id"]).execute()
                         except Exception:
                             pass
+                        st.session_state["nav_radio"] = "Blueprint"
                         st.query_params["pg"] = "Blueprint"
                         st.rerun()
                 else:
@@ -1294,14 +1298,17 @@ elif page == "Home":
             qs_c1, qs_c2, qs_c3 = st.columns(3)
             with qs_c1:
                 if st.button("Analyze", use_container_width=True, key="qs_analyze"):
+                    st.session_state["nav_radio"] = "Analyze"
                     st.query_params["pg"] = "Analyze"
                     st.rerun()
             with qs_c2:
                 if st.button("Blueprint", use_container_width=True, key="qs_blueprint"):
+                    st.session_state["nav_radio"] = "Blueprint"
                     st.query_params["pg"] = "Blueprint"
                     st.rerun()
             with qs_c3:
-                if st.button("Engineering Log", use_container_width=True, key="qs_log"):
+                if st.button("Eng. Log", use_container_width=True, key="qs_log"):
+                    st.session_state["nav_radio"] = "Engineering Log"
                     st.query_params["pg"] = "Engineering Log"
                     st.rerun()
 
@@ -1786,7 +1793,7 @@ elif page == "Engineering Log":
         "Project Name", value=default_proj, key="log_project_name_input"
     )
     log_milestone_title = st.text_input(
-        "Milestone Title (required, max 40 chars)", max_chars=40, key="log_title_input"
+        "Milestone Title (optional)", max_chars=40, key="log_title_input"
     )
     log_progress = st.text_area("Progress / Milestone", key="log_progress_area")
     log_bugs = st.text_area("Bugs / Challenges", key="log_bugs_area")
@@ -1799,10 +1806,11 @@ elif page == "Engineering Log":
         ll_valid, _ = validate_input_length("learnings", log_learnings)
         pn_valid, _ = validate_input_length("project_name", log_project_name)
         title_val = log_milestone_title.strip()[:40]
-
         if not title_val:
-            st.error("Milestone title is required.")
-        elif not lp_valid or not lb_valid or not ll_valid or not pn_valid:
+            prog_clean = log_progress.strip()
+            title_val = prog_clean[:40] if prog_clean else "N/A"
+
+        if not lp_valid or not lb_valid or not ll_valid or not pn_valid:
             st.error("Input exceeds maximum allowed length. Please shorten your input.")
         elif (
             not log_progress.strip()
@@ -1822,9 +1830,11 @@ elif page == "Engineering Log":
                     "user_id": user["id"],
                     "project_name": log_project_name.strip() or "General",
                     "title": title_val,
-                    "progress": log_progress,
-                    "bugs": log_bugs,
-                    "learnings": log_learnings,
+                    "progress": log_progress.strip() if log_progress.strip() else "N/A",
+                    "bugs": log_bugs.strip() if log_bugs.strip() else "N/A",
+                    "learnings": (
+                        log_learnings.strip() if log_learnings.strip() else "N/A"
+                    ),
                 }
                 client.table("engineering_log").insert(payload).execute()
                 st.success("Engineering log entry saved successfully!")
@@ -1894,16 +1904,15 @@ elif page == "Engineering Log":
                     expander_label = f"[{date_display}] {proj_name} — {log_title}"
                     with st.expander(expander_label, expanded=False):
                         st.markdown(f"**Timestamp:** `{timestamp_display}`")
-                        if entry.get("progress"):
-                            st.markdown(
-                                f"**Progress / Milestone:**\n{entry.get('progress')}"
-                            )
-                        if entry.get("bugs"):
-                            st.markdown(f"**Bugs / Challenges:**\n{entry.get('bugs')}")
-                        if entry.get("learnings"):
-                            st.markdown(
-                                f"**Learnings / Insights:**\n{entry.get('learnings')}"
-                            )
+                        st.markdown(
+                            f"**Progress / Milestone:**\n{entry.get('progress') or 'N/A'}"
+                        )
+                        st.markdown(
+                            f"**Bugs / Challenges:**\n{entry.get('bugs') or 'N/A'}"
+                        )
+                        st.markdown(
+                            f"**Learnings / Insights:**\n{entry.get('learnings') or 'N/A'}"
+                        )
 
                         col_space, col_btn = st.columns([4, 1])
                         with col_btn:

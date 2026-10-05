@@ -152,15 +152,55 @@ def test_project_context_in_exports():
     assert "Important project" in md
     assert "Students" in md
 
-    # Legacy row without project_description and target_audience
-    legacy_bp = {
-        "project_name": "Legacy App",
+    # Row without project_description and target_audience renders N/A
+    missing_bp = {
+        "project_name": "No Context App",
         "tech_stack": ["Python"],
         "folder_structure": "app.py",
         "edge_cases": [],
         "roadmap": ["Step 1"],
         "summary": "Summary",
     }
-    md_legacy = render_blueprint_markdown(legacy_bp)
-    assert "Description not recorded for this legacy blueprint." in md_legacy
-    assert "Target audience not recorded for this legacy blueprint." in md_legacy
+    md_missing = render_blueprint_markdown(missing_bp)
+    assert "N/A" in md_missing
+
+
+def test_pdf_rewrite_functions():
+    """Test sanitize_pdf_text and build_pdf_lines contracts."""
+    from ai_engine import (build_pdf_lines, render_blueprint_pdf,
+                           sanitize_pdf_text)
+
+    tree = "root/\n  ├── file1\n  └── file2 :rocket: \u0123"
+    sanitized = sanitize_pdf_text(tree)
+    # Check ASCII-only and mapping
+    assert "├" not in sanitized
+    assert "└" not in sanitized
+    assert "|" in sanitized
+    assert "+" in sanitized
+    assert "-" in sanitized  # \u0123 > 255 becomes "-"
+
+    bp = {
+        "project_name": "PDF Test",
+        "project_description": "Desc",
+        "target_audience": "Aud",
+        "tech_stack": ["Python"],
+        "folder_structure": tree,
+        "edge_cases": ["Edge"],
+        "roadmap": ["1. Step 1", "2. Step 2"],
+        "summary": "Sum",
+    }
+    lines = build_pdf_lines(bp)
+    assert isinstance(lines, list)
+    # Check roadmap single numbering
+    roadmap_lines = [
+        l
+        for l in lines
+        if "Implementation Roadmap" in l or "1. Step 1" in l or "2. Step 2" in l
+    ]
+    assert any("1. Step 1" in l for l in lines)
+    assert any("2. Step 2" in l for l in lines)
+    assert not any("1. 1." in l for l in lines)
+
+    pdf_bytes = render_blueprint_pdf(bp)
+    assert isinstance(pdf_bytes, bytes)
+    assert pdf_bytes.startswith(b"%PDF")

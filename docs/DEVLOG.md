@@ -1,5 +1,18 @@
 # CodeBreaker Development Log
 
+## Entry 041: Codepoint Sanitizer + Multi_Cell-Only PDF Contract + Nav Single-Source Rule (v1.6.2)
+- **Date**: 2026-10-05
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.6.2 PDF Renderer Rewrite, Extend Provider Unification, Nav Single-Source, Context N/A, Home Count Removal, Log N/A + Optional Title
+
+### Design Notes & Architectural Decisions
+1. **PDF Renderer Rewrite (Strict Contract)**: Exposed `sanitize_pdf_text(s)` with codepoint-wise mapping (`├`→`|`, `└`→`+`, `─`→`-`, `│`→`|`, `–—‑`→`-`, etc.) plus fallback where any character with `ord > 255` becomes `"-"`. Exposed `build_pdf_lines(bp)` returning full document lines. Restricted `render_blueprint_pdf` to ONLY call `pdf.multi_cell(0, 5.5, line)` per line with `get_y()` page-break checks and `set_font(style="B")` for headers (zero cell/write calls for dynamic content).
+2. **Extend Provider Unification**: Unified `extend_blueprint` and `generate_blueprint` behind a shared `_call_ai` helper using exact same model constants, retry chain, and named provider error reporting.
+3. **Project Context N/A & Home Count Removal**: Missing/empty context fields render `"N/A"` (legacy sentences deleted). Removed "Saved Blueprints" count metric from Home dashboard.
+4. **Navigation Single Source**: Synchronized navigation via `nav_radio` session state key and `pg` query param across all navigation triggers (sidebar radio, Home open, view all blueprints, Quick Start buttons, About contact), ensuring second blueprint opens reliably every time.
+5. **Log N/A & Optional Milestone Title**: Milestone title made optional (`"Milestone Title (optional)"`, no validation error when blank, defaulting to progress excerpt or `"N/A"`). Empty progress/bugs/learnings store as `"N/A"`, and expanders always list all three fields. Quick Start button renamed to `"Eng. Log"`.
+6. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`), comprehensive test suite (`tests/test_v1_6_1.py`), and verified green test suite (`149 passed`).
+
 ## Entry 040: PDF/TXT Encoding, Roadmap Scaling & Project Context Storage (v1.6.1)
 - **Date**: 2026-10-05
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

@@ -28,7 +28,6 @@ def test_v1_5_0_persistent_blueprint_library_code():
 
     # 2. Home library list queries public.blueprints, renders Open button with redirect
     assert 'client.table("blueprints")' in content
-    assert "Saved Blueprints" in content
     assert '"Open"' in content
     assert 'st.query_params["pg"] = "Blueprint"' in content
 

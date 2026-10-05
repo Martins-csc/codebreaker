@@ -76,7 +76,6 @@ def test_v1_4_0_dashboard_and_hygiene_elements():
     assert "My Engineering Logs" in content
     assert "Quick Start" in content
     assert "Account" in content
-    assert "Saved Blueprints" in content
 
     # Quick Start buttons target check
     assert 'st.query_params["pg"] = "Analyze"' in content
