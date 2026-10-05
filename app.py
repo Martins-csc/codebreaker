@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 import streamlit as st
-from ai_engine import (BlueprintError, generate_blueprint,
+from ai_engine import (BlueprintError, extend_blueprint, generate_blueprint,
                        render_blueprint_html, render_blueprint_markdown,
                        render_blueprint_pdf, render_blueprint_text,
                        sanitize_filename)
@@ -1233,6 +1233,14 @@ elif page == "Home":
                         key="home_view_all_blueprints_btn",
                         use_container_width=True,
                     ):
+                        st.session_state["active_blueprint_id"] = None
+                        st.session_state.pop("blueprint", None)
+                        try:
+                            client.table("profiles").update(
+                                {"active_blueprint_id": None}
+                            ).eq("id", user["id"]).execute()
+                        except Exception:
+                            pass
                         st.query_params["pg"] = "Blueprint"
                         st.rerun()
                 else:
@@ -1360,6 +1368,9 @@ elif page == "Analyze":
                                 st.session_state["access_token"],
                                 st.session_state.get("refresh_token", ""),
                             )
+                        blueprint["project_description"] = prob_val
+                        blueprint["target_audience"] = ta_val
+                        blueprint["project_name"] = p_val.strip()
                         bp_payload = {
                             "user_id": user["id"],
                             "title": p_val.strip(),
@@ -1441,20 +1452,21 @@ elif page == "Blueprint":
         except Exception:
             pass
 
-    # Full blueprints library in sidebar
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Blueprint Library")
-    try:
-        all_bp_res = (
-            client.table("blueprints")
-            .select("id, title, created_at, version, blueprint_json")
-            .eq("user_id", user["id"])
-            .order("created_at", desc=True)
-            .execute()
-        )
-        all_bps = getattr(all_bp_res, "data", [])
-        if all_bps:
-            with st.sidebar.container(height=350):
+    blueprint = st.session_state.get("blueprint")
+
+    if not active_bp_id or not blueprint:
+        st.subheader("Blueprint Library")
+        st.write("Select a blueprint to open, extend, or manage.")
+        try:
+            all_bp_res = (
+                client.table("blueprints")
+                .select("id, title, created_at, version, blueprint_json")
+                .eq("user_id", user["id"])
+                .order("created_at", desc=True)
+                .execute()
+            )
+            all_bps = getattr(all_bp_res, "data", [])
+            if all_bps:
                 for item in all_bps:
                     b_id = item.get("id")
                     b_title = item.get("title") or "Untitled"
@@ -1467,136 +1479,165 @@ elif page == "Blueprint":
                         else ("N/A", "")
                     )
 
-                    st.markdown(f"**{b_title}{ver_tag}**\n`{date_str}`")
-                    bc1, bc2, bc3 = st.columns(3)
-                    with bc1:
-                        if st.button(
-                            "Open", key=f"bp_open_{b_id}", use_container_width=True
-                        ):
-                            st.session_state["active_blueprint_id"] = b_id
-                            b_json = item.get("blueprint_json")
-                            if isinstance(b_json, str):
-                                st.session_state["blueprint"] = json.loads(b_json)
-                            else:
-                                st.session_state["blueprint"] = b_json
-                            try:
-                                client.table("profiles").update(
-                                    {"active_blueprint_id": b_id}
-                                ).eq("id", user["id"]).execute()
-                            except Exception:
-                                pass
-                            st.rerun()
-                    with bc2:
-                        if st.button(
-                            "Extend", key=f"bp_extend_{b_id}", use_container_width=True
-                        ):
-                            st.session_state[f"extending_{b_id}"] = (
-                                not st.session_state.get(f"extending_{b_id}", False)
-                            )
-                            st.rerun()
-                    with bc3:
-                        del_key = f"confirm_del_bp_{b_id}"
-                        if not st.session_state.get(del_key, False):
+                    with st.container(border=True):
+                        st.markdown(f"**{b_title}{ver_tag}** — `({date_str})`")
+                        bc1, bc2, bc3 = st.columns(3)
+                        with bc1:
                             if st.button(
-                                "Delete", key=f"bp_del_{b_id}", use_container_width=True
+                                "Open", key=f"bp_open_{b_id}", use_container_width=True
                             ):
-                                st.session_state[del_key] = True
+                                st.session_state["active_blueprint_id"] = b_id
+                                b_json = item.get("blueprint_json")
+                                if isinstance(b_json, str):
+                                    st.session_state["blueprint"] = json.loads(b_json)
+                                else:
+                                    st.session_state["blueprint"] = b_json
+                                try:
+                                    client.table("profiles").update(
+                                        {"active_blueprint_id": b_id}
+                                    ).eq("id", user["id"]).execute()
+                                except Exception:
+                                    pass
                                 st.rerun()
-                        else:
+                        with bc2:
                             if st.button(
-                                "Confirm",
-                                key=f"bp_confirm_del_{b_id}",
+                                "Extend",
+                                key=f"bp_extend_{b_id}",
                                 use_container_width=True,
                             ):
-                                client.table("blueprints").delete().eq(
-                                    "id", b_id
-                                ).execute()
-                                if st.session_state.get("active_blueprint_id") == b_id:
-                                    st.session_state["active_blueprint_id"] = None
-                                    st.session_state.pop("blueprint", None)
-                                    try:
-                                        client.table("profiles").update(
-                                            {"active_blueprint_id": None}
-                                        ).eq("id", user["id"]).execute()
-                                    except Exception:
-                                        pass
+                                st.session_state[f"extending_{b_id}"] = (
+                                    not st.session_state.get(f"extending_{b_id}", False)
+                                )
                                 st.rerun()
-
-                    if st.session_state.get(f"extending_{b_id}", False):
-                        with st.container(border=True):
-                            st.markdown(f"**Extend: {b_title}**")
-                            ext_new = st.text_area(
-                                "What is new / changed?", key=f"ext_new_{b_id}"
-                            )
-                            ext_notes = st.text_area(
-                                "Optional notes", key=f"ext_notes_{b_id}"
-                            )
-                            if st.button(
-                                "Submit Extension",
-                                key=f"ext_submit_{b_id}",
-                                type="primary",
-                            ):
-                                if not ext_new.strip():
-                                    st.error("Please describe what is new or changed.")
-                                else:
-                                    with st.spinner("Extending blueprint with AI..."):
+                        with bc3:
+                            del_key = f"confirm_del_bp_{b_id}"
+                            if not st.session_state.get(del_key, False):
+                                if st.button(
+                                    "Delete",
+                                    key=f"bp_del_{b_id}",
+                                    use_container_width=True,
+                                ):
+                                    st.session_state[del_key] = True
+                                    st.rerun()
+                            else:
+                                if st.button(
+                                    "Confirm",
+                                    key=f"bp_confirm_del_{b_id}",
+                                    use_container_width=True,
+                                ):
+                                    client.table("blueprints").delete().eq(
+                                        "id", b_id
+                                    ).execute()
+                                    if (
+                                        st.session_state.get("active_blueprint_id")
+                                        == b_id
+                                    ):
+                                        st.session_state["active_blueprint_id"] = None
+                                        st.session_state.pop("blueprint", None)
                                         try:
-                                            old_json = item.get("blueprint_json")
-                                            if isinstance(old_json, str):
-                                                old_dict = json.loads(old_json)
-                                            else:
-                                                old_dict = old_json
-                                            change_ctx = f"What is new / changed: {ext_new}\nOptional notes: {ext_notes}"
-                                            new_dict = extend_blueprint(
-                                                old_dict, change_ctx
-                                            )
-                                            new_ver = int(b_ver) + 1
-                                            base_t = b_title.split(" — v")[0]
-                                            new_t = f"{base_t} — v{new_ver}"
-                                            new_payload = {
-                                                "user_id": user["id"],
-                                                "title": new_t,
-                                                "blueprint_json": new_dict,
-                                                "version": new_ver,
-                                                "parent_id": b_id,
-                                            }
-                                            ins_res = (
-                                                client.table("blueprints")
-                                                .insert(new_payload)
-                                                .execute()
-                                            )
-                                            ins_data = getattr(ins_res, "data", [])
-                                            if ins_data and isinstance(ins_data, list):
-                                                new_id = ins_data[0].get("id")
-                                                st.session_state[
-                                                    "active_blueprint_id"
-                                                ] = new_id
-                                                st.session_state["blueprint"] = new_dict
-                                                try:
-                                                    client.table("profiles").update(
-                                                        {"active_blueprint_id": new_id}
-                                                    ).eq("id", user["id"]).execute()
-                                                except Exception:
-                                                    pass
-                                            st.session_state[f"extending_{b_id}"] = (
-                                                False
-                                            )
-                                            st.success(
-                                                "Blueprint extended successfully!"
-                                            )
-                                            st.rerun()
-                                        except Exception as e:
-                                            st.error(f"Failed to extend blueprint: {e}")
-                    st.markdown("---")
-        else:
-            st.sidebar.write("No saved blueprints yet.")
-    except Exception:
-        st.sidebar.write("Library unavailable.")
+                                            client.table("profiles").update(
+                                                {"active_blueprint_id": None}
+                                            ).eq("id", user["id"]).execute()
+                                        except Exception:
+                                            pass
+                                    st.rerun()
 
-    blueprint = st.session_state.get("blueprint")
-    if not active_bp_id or not blueprint:
-        st.info("Open a blueprint from your library or generate a new one.")
+                        if st.session_state.get(f"extending_{b_id}", False):
+                            with st.container(border=True):
+                                st.markdown(f"**Extend: {b_title}**")
+                                ext_new = st.text_area(
+                                    "What is new / changed?", key=f"ext_new_{b_id}"
+                                )
+                                ext_notes = st.text_area(
+                                    "Optional notes", key=f"ext_notes_{b_id}"
+                                )
+                                if st.button(
+                                    "Submit Extension",
+                                    key=f"ext_submit_{b_id}",
+                                    type="primary",
+                                    use_container_width=True,
+                                ):
+                                    if not ext_new.strip():
+                                        st.error(
+                                            "Please describe what is new or changed."
+                                        )
+                                    else:
+                                        with st.spinner(
+                                            "Extending blueprint with AI..."
+                                        ):
+                                            try:
+                                                old_json = item.get("blueprint_json")
+                                                if isinstance(old_json, str):
+                                                    old_dict = json.loads(old_json)
+                                                else:
+                                                    old_dict = old_json
+                                                new_dict = extend_blueprint(
+                                                    old_dict, ext_new, ext_notes
+                                                )
+                                                new_ver = int(b_ver) + 1
+                                                base_t = b_title.split(" — v")[0]
+                                                new_t = f"{base_t} — v{new_ver}"
+                                                new_dict["project_name"] = new_t
+                                                new_payload = {
+                                                    "user_id": user["id"],
+                                                    "title": new_t,
+                                                    "blueprint_json": new_dict,
+                                                    "version": new_ver,
+                                                    "parent_id": b_id,
+                                                }
+                                                ins_res = (
+                                                    client.table("blueprints")
+                                                    .insert(new_payload)
+                                                    .execute()
+                                                )
+                                                ins_data = getattr(ins_res, "data", [])
+                                                if ins_data and isinstance(
+                                                    ins_data, list
+                                                ):
+                                                    new_id = ins_data[0].get("id")
+                                                    st.session_state[
+                                                        "active_blueprint_id"
+                                                    ] = new_id
+                                                    st.session_state["blueprint"] = (
+                                                        new_dict
+                                                    )
+                                                    try:
+                                                        client.table("profiles").update(
+                                                            {
+                                                                "active_blueprint_id": new_id
+                                                            }
+                                                        ).eq("id", user["id"]).execute()
+                                                    except Exception:
+                                                        pass
+                                                st.session_state[
+                                                    f"extending_{b_id}"
+                                                ] = False
+                                                st.success(
+                                                    "Blueprint extended successfully!"
+                                                )
+                                                st.rerun()
+                                            except Exception as e:
+                                                st.error(
+                                                    f"Failed to extend blueprint: {e}"
+                                                )
+            else:
+                st.info("Open a blueprint from your library or generate a new one.")
+        except Exception:
+            st.info("Library unavailable.")
     else:
+        if st.button(
+            "← Back to All Blueprints", use_container_width=False, key="back_to_all_bps"
+        ):
+            st.session_state["active_blueprint_id"] = None
+            st.session_state.pop("blueprint", None)
+            try:
+                client.table("profiles").update({"active_blueprint_id": None}).eq(
+                    "id", user["id"]
+                ).execute()
+            except Exception:
+                pass
+            st.rerun()
+
         col_title, col_export = st.columns([2, 2])
         with col_title:
             st.subheader(
@@ -1649,13 +1690,20 @@ elif page == "Blueprint":
             ]
 
             for lbl, dat, fn, mime_type, expl, k in formats_info:
-                rc1, rc2 = st.columns([5, 1])
+                rc1, rc2 = st.columns([0.82, 0.18])
                 with rc1:
+                    export_data = (
+                        dat.encode("utf-8-sig") if fn.endswith(".txt") else dat
+                    )
                     st.download_button(
                         label=lbl,
-                        data=dat,
+                        data=export_data,
                         file_name=fn,
-                        mime=mime_type,
+                        mime=(
+                            "text/plain; charset=utf-8"
+                            if fn.endswith(".txt")
+                            else mime_type
+                        ),
                         use_container_width=True,
                         key=k,
                     )

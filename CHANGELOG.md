@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-10-05
+
+### Added / Changed
+- Mission v1.6.1 — Responsive Layout, Extend Fix, Export Shape+Context, Library Placement, Home Linking, PDF+TXT Fixes, Roadmap Scaling:
+  - **Extend Blueprint Signature & Flow**: Defined `extend_blueprint(old_json, new_requirements, notes)` in `ai_engine.py` with schema preservation and context carry-over. Wired Submit Extension in `app.py` to save new versioned row (`v<N+1>`) and open it.
+  - **Export Shape & Project Context**: Export rows structured as 2 columns (`[0.82, 0.18]`) with full-width download button in col1 and single small `:material/info:` popover in col2. Stored `project_name`, `project_description`, and `target_audience` in `blueprint_json` at generation and extend. All exports begin with a Project Context block (Name / Description / Target Audience) with legacy fallback handling.
+  - **Library Placement & Home Linking**: Removed "Blueprint Library" from sidebar. Rendered full list in Blueprint page main area (`[Open]`, `[Extend]`, `[Delete(confirm)]`, full-width on mobile). Home `[Open]` sets DB pointer + session state + `pg=Blueprint` + rerun (overwriting previous pointer). `[View all blueprints]` lands on Blueprint page where the full list renders unconditionally.
+  - **PDF & TXT Encoding Fixes**: PDF sanitized for unicode (`├─→|-`, `└─→+`, `–—‑→-`, emoji→""), single roadmap numbering (`1. 1.` killed), 90-char wrapping, page-break check before each item, and footer once per page. TXT encoded with UTF-8 BOM (`utf-8-sig`) and ASCII tree (`|- +`).
+  - **Engine Roadmap Scaling**: Prompt states roadmap step count follows complexity (simple 3-4, medium 5-7, complex 8-10; never default to 5) with extend preserving scaling and no caps/pads to 5.
+  - **Testing & Documentation**: Enforced pre-seal compile gate (`py_compile`), comprehensive test suite (`tests/test_v1_6_1.py`), and verified green test suite (`148 passed`). CHANGELOG v1.6.1 and DEVLOG Entry 040.
+
 ## [1.6.0] - 2026-10-04
 
 ### Added / Changed

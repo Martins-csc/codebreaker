@@ -20,11 +20,13 @@ SYSTEM_PROMPT = """You are an expert AI system architect and software engineer.
 You must output STRICT JSON only, with no markdown commentary outside the JSON if possible, or wrapped in json code fences.
 The JSON object must contain exactly these top-level keys with specified types:
 1. "project_name": string
-2. "tech_stack": list of strings
-3. "folder_structure": string representing a text tree of folders and files
-4. "edge_cases": list of strings
-5. "roadmap": list of exactly 5 step strings
-6. "summary": string
+2. "project_description": string
+3. "target_audience": string
+4. "tech_stack": list of strings
+5. "folder_structure": string representing a text tree of folders and files
+6. "edge_cases": list of strings
+7. "roadmap": list of step strings (Implementation Roadmap step count follows complexity: simple 3-4, medium 5-7, complex 8-10; never default to 5)
+8. "summary": string
 """
 
 
@@ -159,9 +161,10 @@ Analyze the following project requirements and build a comprehensive system arch
 
     errors = []
 
+    res = None
     # Attempt Groq
     try:
-        return _call_groq(SYSTEM_PROMPT, user_prompt)
+        res = _call_groq(SYSTEM_PROMPT, user_prompt)
     except Exception as e:
         err_msg = str(e)
         for secret in [
@@ -173,46 +176,66 @@ Analyze the following project requirements and build a comprehensive system arch
         errors.append(f"Groq failed: {err_msg}")
 
     # Attempt Gemini fallback
-    try:
-        return _call_gemini(SYSTEM_PROMPT, user_prompt)
-    except Exception as e:
-        err_msg = str(e)
-        for secret in [
-            get_config("GROQ_API_KEY"),
-            get_config("GEMINI_API_KEY"),
-        ]:
-            if secret:
-                err_msg = err_msg.replace(secret, "[REDACTED]")
-        errors.append(f"Gemini failed: {err_msg}")
+    if not res:
+        try:
+            res = _call_gemini(SYSTEM_PROMPT, user_prompt)
+        except Exception as e:
+            err_msg = str(e)
+            for secret in [
+                get_config("GROQ_API_KEY"),
+                get_config("GEMINI_API_KEY"),
+            ]:
+                if secret:
+                    err_msg = err_msg.replace(secret, "[REDACTED]")
+            errors.append(f"Gemini failed: {err_msg}")
 
-    raise BlueprintError(f"All AI providers failed. Details: {'; '.join(errors)}")
+    if not res or not isinstance(res, dict):
+        raise BlueprintError(f"All AI providers failed. Details: {'; '.join(errors)}")
+
+    res["project_name"] = res.get("project_name") or analysis.get(
+        "project_name", "Untitled Project"
+    )
+    res["project_description"] = (
+        res.get("project_description")
+        or analysis.get("problem", "")
+        or analysis.get("project_description", "")
+    )
+    res["target_audience"] = res.get("target_audience") or analysis.get(
+        "target_audience", ""
+    )
+    return res
 
 
-def extend_blueprint(old_blueprint: dict, change_context: str) -> dict:
+def extend_blueprint(old_json: dict, new_requirements: str, notes: str = "") -> dict:
     """
-    Extend an existing blueprint with new changes/notes context, preserving confirmed content.
+    Extend an existing blueprint with new requirements and notes context, preserving confirmed content.
     """
-    if not isinstance(old_blueprint, dict):
+    if not isinstance(old_json, dict):
         raise BlueprintError("Old blueprint must be a dictionary.")
+
+    change_context = f"New Requirements / Changes: {new_requirements}"
+    if notes:
+        change_context += f"\nOptional Notes: {notes}"
 
     system_prompt = (
         SYSTEM_PROMPT
-        + "\nYou are extending an existing system architecture blueprint. You must preserve confirmed content from the existing blueprint while intelligently integrating the new requirements, features, or bug fixes provided in the change context. Output the complete updated blueprint in strict JSON matching the required schema."
+        + "\nYou are extending an existing system architecture blueprint. You must preserve confirmed content from the existing blueprint while intelligently integrating the new requirements, features, or bug fixes provided in the change context. Output the complete updated blueprint in strict JSON matching the required schema, preserving project_name, project_description, and target_audience."
     )
 
     user_prompt = f"""
 Existing Blueprint JSON:
-{json.dumps(old_blueprint, indent=2)}
+{json.dumps(old_json, indent=2)}
 
-New Changes / Additions / Context:
+Change Context:
 {change_context}
 
-Please generate the updated, extended system architecture blueprint incorporating these changes while retaining core structure and verified decisions.
+Please generate the updated, extended system architecture blueprint incorporating these changes while retaining core structure, project context, and verified decisions.
 """
 
     errors = []
+    res = None
     try:
-        return _call_groq(system_prompt, user_prompt)
+        res = _call_groq(system_prompt, user_prompt)
     except Exception as e:
         err_msg = str(e)
         for secret in [get_config("GROQ_API_KEY"), get_config("GEMINI_API_KEY")]:
@@ -220,18 +243,31 @@ Please generate the updated, extended system architecture blueprint incorporatin
                 err_msg = err_msg.replace(secret, "[REDACTED]")
         errors.append(f"Groq failed: {err_msg}")
 
-    try:
-        return _call_gemini(system_prompt, user_prompt)
-    except Exception as e:
-        err_msg = str(e)
-        for secret in [get_config("GROQ_API_KEY"), get_config("GEMINI_API_KEY")]:
-            if secret:
-                err_msg = err_msg.replace(secret, "[REDACTED]")
-        errors.append(f"Gemini failed: {err_msg}")
+    if not res:
+        try:
+            res = _call_gemini(system_prompt, user_prompt)
+        except Exception as e:
+            err_msg = str(e)
+            for secret in [get_config("GROQ_API_KEY"), get_config("GEMINI_API_KEY")]:
+                if secret:
+                    err_msg = err_msg.replace(secret, "[REDACTED]")
+            errors.append(f"Gemini failed: {err_msg}")
 
-    raise BlueprintError(
-        f"All AI providers failed during extend. Details: {'; '.join(errors)}"
+    if not res or not isinstance(res, dict):
+        raise BlueprintError(
+            f"All AI providers failed during extend. Details: {'; '.join(errors)}"
+        )
+
+    res["project_description"] = res.get("project_description") or old_json.get(
+        "project_description", ""
     )
+    res["target_audience"] = res.get("target_audience") or old_json.get(
+        "target_audience", ""
+    )
+    res["project_name"] = res.get("project_name") or old_json.get(
+        "project_name", "Untitled Project"
+    )
+    return res
 
 
 def _unicode_to_ascii_tree(tree_str: str) -> str:
@@ -272,9 +308,25 @@ def sanitize_filename(project_name: str) -> str:
     return f"{cleaned.lower()}_blueprint.md"
 
 
+def _get_project_context(blueprint: dict):
+    if not isinstance(blueprint, dict):
+        blueprint = {}
+    name = blueprint.get("project_name")
+    if not name or str(name).lower() == "none":
+        name = "Untitled Project"
+    desc = blueprint.get("project_description")
+    if not desc or str(desc).lower() == "none":
+        desc = "Description not recorded for this legacy blueprint."
+    aud = blueprint.get("target_audience")
+    if not aud or str(aud).lower() == "none":
+        aud = "Target audience not recorded for this legacy blueprint."
+    return name, desc, aud
+
+
 def render_blueprint_markdown(blueprint: dict, export_date: str = None) -> str:
     """
     Render blueprint dict into clean Markdown format:
+    - project context
     - title
     - summary
     - tech stack bullets
@@ -290,10 +342,7 @@ def render_blueprint_markdown(blueprint: dict, export_date: str = None) -> str:
     if not export_date:
         export_date = datetime.date.today().isoformat()
 
-    project_name = blueprint.get("project_name")
-    if project_name is None or str(project_name).lower() == "none":
-        project_name = "Untitled Project"
-
+    p_name, p_desc, p_aud = _get_project_context(blueprint)
     summary = blueprint.get("summary")
     if summary is None or str(summary).lower() == "none":
         summary = "No summary provided."
@@ -315,7 +364,15 @@ def render_blueprint_markdown(blueprint: dict, export_date: str = None) -> str:
         roadmap = []
 
     lines = []
-    lines.append(f"# {project_name}")
+    lines.append("# Project Context")
+    lines.append(f"- **Name**: {p_name}")
+    lines.append(f"- **Description**: {p_desc}")
+    lines.append(f"- **Target Audience**: {p_aud}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    lines.append(f"# {p_name}")
     lines.append("")
     lines.append("## Summary")
     lines.append(str(summary))
@@ -359,8 +416,14 @@ def render_blueprint_markdown(blueprint: dict, export_date: str = None) -> str:
         if isinstance(roadmap, list)
         else []
     )
-    if valid_roadmap:
-        for i, step in enumerate(valid_roadmap, 1):
+    cleaned_roadmap = []
+    for step in valid_roadmap:
+        step_str = str(step).strip()
+        step_str = re.sub(r"^(\d+[\.\)]\s*|-\s*)", "", step_str)
+        cleaned_roadmap.append(step_str)
+
+    if cleaned_roadmap:
+        for i, step in enumerate(cleaned_roadmap, 1):
             lines.append(f"{i}. {step}")
     else:
         lines.append("1. Not specified")
@@ -383,10 +446,7 @@ def render_blueprint_text(blueprint: dict, export_date: str = None) -> str:
     if not export_date:
         export_date = datetime.date.today().isoformat()
 
-    project_name = blueprint.get("project_name")
-    if project_name is None or str(project_name).lower() == "none":
-        project_name = "Untitled Project"
-
+    p_name, p_desc, p_aud = _get_project_context(blueprint)
     summary = blueprint.get("summary")
     if summary is None or str(summary).lower() == "none":
         summary = "No summary provided."
@@ -408,8 +468,17 @@ def render_blueprint_text(blueprint: dict, export_date: str = None) -> str:
         roadmap = []
 
     lines = []
-    lines.append(f"PROJECT: {project_name}")
-    lines.append("=" * len(f"PROJECT: {project_name}"))
+    lines.append("PROJECT CONTEXT")
+    lines.append("-" * 15)
+    lines.append(f"Name: {p_name}")
+    lines.append(f"Description: {p_desc}")
+    lines.append(f"Target Audience: {p_aud}")
+    lines.append("")
+    lines.append("=" * 40)
+    lines.append("")
+
+    lines.append(f"PROJECT: {p_name}")
+    lines.append("=" * len(f"PROJECT: {p_name}"))
     lines.append("")
     lines.append("SUMMARY")
     lines.append("-" * 7)
@@ -432,7 +501,7 @@ def render_blueprint_text(blueprint: dict, export_date: str = None) -> str:
 
     lines.append("FOLDER STRUCTURE")
     lines.append("-" * 16)
-    lines.append(str(folder_structure))
+    lines.append(_unicode_to_ascii_tree(str(folder_structure)))
     lines.append("")
 
     lines.append("EDGE CASES & RISKS")
@@ -456,8 +525,14 @@ def render_blueprint_text(blueprint: dict, export_date: str = None) -> str:
         if isinstance(roadmap, list)
         else []
     )
-    if valid_roadmap:
-        for i, step in enumerate(valid_roadmap, 1):
+    cleaned_roadmap = []
+    for step in valid_roadmap:
+        step_str = str(step).strip()
+        step_str = re.sub(r"^(\d+[\.\)]\s*|-\s*)", "", step_str)
+        cleaned_roadmap.append(step_str)
+
+    if cleaned_roadmap:
+        for i, step in enumerate(cleaned_roadmap, 1):
             lines.append(f"{i}. {step}")
     else:
         lines.append("1. Not specified")
@@ -553,6 +628,9 @@ def _latin1_safe(text) -> str:
         return ""
     if not isinstance(text, str):
         text = str(text)
+    # Remove emojis and pictographs
+    text = re.sub(r"[\U00010000-\U0010ffff]", "", text)
+    text = re.sub(r"[\u2600-\u27bf]", "", text)
     replacements = {
         "→": "->",
         "←": "<-",
@@ -563,15 +641,13 @@ def _latin1_safe(text) -> str:
         "‘": "'",
         "’": "'",
         "–": "-",
-        "—": "--",
+        "—": "-",
+        "‑": "-",
         "…": "...",
-        "✅": "[OK]",
-        "❌": "[X]",
-        "⚡": "[*]",
-        "🔍": "[?]",
-        "📐": "[#]",
-        "📝": "[*]",
-        "🚀": "[*]",
+        "├─": "|-",
+        "└─": "+-",
+        "└──": "+--",
+        "├──": "|--",
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
@@ -598,6 +674,7 @@ class CodeBreakerPDF(FPDF):
 def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     """
     Render blueprint dict into a professional PDF document as bytes:
+    - project context
     - title header (project name + tagline)
     - summary
     - tech stack bullets
@@ -614,10 +691,7 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     if not export_date:
         export_date = datetime.date.today().isoformat()
 
-    project_name = blueprint.get("project_name")
-    if project_name is None or str(project_name).lower() == "none":
-        project_name = "Untitled Project"
-
+    p_name, p_desc, p_aud = _get_project_context(blueprint)
     summary = blueprint.get("summary")
     if summary is None or str(summary).lower() == "none":
         summary = "No summary provided."
@@ -650,7 +724,7 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     pdf.cell(
         printable_w,
         10,
-        _latin1_safe(str(project_name)),
+        _latin1_safe(str(p_name)),
         new_x="LMARGIN",
         new_y="NEXT",
         align="L",
@@ -684,8 +758,26 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
         pdf.set_font("helvetica", "", 10)
         pdf.set_text_color(50, 50, 50)
 
+    # Project Context
+    add_section_heading("Project Context")
+    if pdf.y > 240:
+        pdf.add_page()
+    pdf.multi_cell(
+        printable_w,
+        5.5,
+        _latin1_safe(
+            _wrap_text(
+                f"Name: {p_name}\nDescription: {p_desc}\nTarget Audience: {p_aud}",
+                width=90,
+            )
+        ),
+    )
+    pdf.ln(3)
+
     # Summary
     add_section_heading("Summary")
+    if pdf.y > 240:
+        pdf.add_page()
     pdf.multi_cell(printable_w, 5.5, _latin1_safe(_wrap_text(str(summary), width=90)))
     pdf.ln(3)
 
@@ -698,10 +790,14 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     )
     if valid_tech:
         for tech in valid_tech:
+            if pdf.y > 240:
+                pdf.add_page()
             pdf.multi_cell(
                 printable_w, 5.5, _latin1_safe(_wrap_text(f"- {tech}", width=90))
             )
     else:
+        if pdf.y > 240:
+            pdf.add_page()
         pdf.cell(
             printable_w,
             5.5,
@@ -716,6 +812,8 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     pdf.set_font("Courier", size=9)
     pdf.set_fill_color(246, 248, 250)
     tree_text = _unicode_to_ascii_tree(str(folder_structure))
+    if pdf.y > 240:
+        pdf.add_page()
     pdf.multi_cell(
         printable_w, 4.5, _latin1_safe(_wrap_text(tree_text, width=90)), fill=True
     )
@@ -731,10 +829,14 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
     )
     if valid_edges:
         for edge in valid_edges:
+            if pdf.y > 240:
+                pdf.add_page()
             pdf.multi_cell(
                 printable_w, 5.5, _latin1_safe(_wrap_text(f"- {edge}", width=90))
             )
     else:
+        if pdf.y > 240:
+            pdf.add_page()
         pdf.cell(
             printable_w,
             5.5,
@@ -751,12 +853,22 @@ def render_blueprint_pdf(blueprint: dict, export_date: str = None) -> bytes:
         if isinstance(roadmap, list)
         else []
     )
-    if valid_roadmap:
-        for i, step in enumerate(valid_roadmap, 1):
+    cleaned_roadmap = []
+    for step in valid_roadmap:
+        step_str = str(step).strip()
+        step_str = re.sub(r"^(\d+[\.\)]\s*|-\s*)", "", step_str)
+        cleaned_roadmap.append(step_str)
+
+    if cleaned_roadmap:
+        for i, step in enumerate(cleaned_roadmap, 1):
+            if pdf.y > 240:
+                pdf.add_page()
             pdf.multi_cell(
                 printable_w, 5.5, _latin1_safe(_wrap_text(f"{i}. {step}", width=90))
             )
     else:
+        if pdf.y > 240:
+            pdf.add_page()
         pdf.cell(
             printable_w,
             5.5,

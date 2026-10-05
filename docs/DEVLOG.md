@@ -1,5 +1,18 @@
 # CodeBreaker Development Log
 
+## Entry 040: PDF/TXT Encoding, Roadmap Scaling & Project Context Storage (v1.6.1)
+- **Date**: 2026-10-05
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.6.1 Responsive Layout, Extend Fix, Export Shape+Context, Library Placement, Home Linking, PDF+TXT Fixes, Roadmap Scaling
+
+### Design Notes & Architectural Decisions
+1. **Extend Blueprint Signature**: Defined `extend_blueprint(old_json, new_requirements, notes)` in `ai_engine.py` incorporating change requirements and notes while preserving confirmed content and schema. Wired Submit Extension in `app.py` to save new versioned row (`v<N+1>`) and open it.
+2. **Export Shape & Project Context**: Export rows restructured into 2 columns (`[0.82, 0.18]`) with full-width download button and single `:material/info:` popover. Stored `project_name`, `project_description`, and `target_audience` inside `blueprint_json` at generation and extend. Every export (MD, TXT, HTML, PDF) begins with a Project Context block with robust legacy fallback messaging.
+3. **Library Placement & Home Linking**: Removed "Blueprint Library" from sidebar entirely. Rendered full list in Blueprint page main area (`[Open]`, `[Extend]`, `[Delete(confirm)]`, full-width on mobile). Home `[Open]` overwrites DB pointer and session state and lands on Blueprint page; `[View all blueprints]` renders the full list unconditionally.
+4. **PDF & TXT Formatting Fixes**: PDF sanitized for unicode (`├─→|-`, `└─→+`, `–—‑→-`, emoji→""), single roadmap numbering, 90-char wrapping, page-break checks before each item, and footer once per page. TXT encoded with UTF-8 BOM (`utf-8-sig`) and ASCII tree (`|- +`).
+5. **Engine Roadmap Scaling**: Prompt specifies step count follows complexity (simple 3-4, medium 5-7, complex 8-10; never default to 5). Extend preserves scaling, with zero caps/pads to 5.
+6. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`), comprehensive test suite (`tests/test_v1_6_1.py`), and verified green test suite (`148 passed`).
+
 ## Entry 036: Supabase Strips Custom State; Single-Slot Verifier Rationale (v1.5.6)
 - **Date**: 2026-10-03
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
