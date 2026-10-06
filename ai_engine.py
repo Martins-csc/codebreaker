@@ -329,7 +329,7 @@ def clean_roadmap_step(step) -> str:
 def build_pdf_lines(bp):
     ctx = bp.get("context") or {}
     L = [
-        "# " + (bp.get("project_name") or "Blueprint"),
+        "# " + sanitize_pdf_text(bp.get("project_name") or "Blueprint"),
         "CodeBreaker System Architecture Blueprint",
         "",
         "## Project Context",
