@@ -1,5 +1,18 @@
 # CodeBreaker Development Log
 
+## Entry 042: Single-Renderer Law, Version-Tag Deduplication, Delete Arm/Cancel & Keycap Stripping (v1.6.4)
+- **Date**: 2026-10-06
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.6.4 Single PDF Renderer, Version-Tag Dedupe, Delete Arm/Cancel, Copy + Nav Flash Fixes
+
+### Design Notes & Architectural Decisions
+1. **Single-Renderer Law**: Enforced single PDF generation function (`render_blueprint_pdf`) leveraging `build_pdf_lines` and `multi_cell` (zero `.cell(` calls in renderer). Deleted duplicate FPDF/render implementations and preserved non-ASCII error guard.
+2. **Version-Tag Deduplication**: Stopped appending `"— v2"` to stored blueprint titles on extend. Stored titles save base name, and render-time regex `r"\s*—\s*v\d+$"` strips any existing trailing `— vN` from legacy rows while displaying clean `(vN)` badges exclusively for version > 1.
+3. **Delete Arm/Cancel Pattern**: First Delete press arms the row exclusively; armed row renders `[Confirm delete]` + `[Cancel]`. Cancel disarms, and arm state auto-expires after 10 seconds via timestamp verification on every rerun. Un-armed rows show plain `[Delete]`.
+4. **Roadmap Display & Keycap Stripping**: Roadmap headings now dynamically report actual step count (`({len} Steps)`). Strip keycap glyphs (U+20E3, U+FE0F) and leading number prefixes at render time in-app and across all export formats, numbering each step exactly once.
+5. **Login Flash & Immediate Rerun**: Landing CTA handlers (`[Log In]`, `[Create Account]`) set `nav_pending` and call `st.rerun()` immediately.
+6. **Testing & Verification**: Enforced pre-seal compile gate (`py_compile`), source-scan test asserting single fpdf function and zero `.cell(` calls, unit tests (`tests/test_v1_6_4.py`), and verified green test suite (`159 passed`).
+
 ## Entry 041: Codepoint Sanitizer + Multi_Cell-Only PDF Contract + Nav Single-Source Rule (v1.6.2)
 - **Date**: 2026-10-05
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

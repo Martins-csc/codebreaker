@@ -69,5 +69,5 @@ def test_exports_contain_bullet_number_markers_and_tree():
     assert "root/" in md
 
     pdf_bytes = render_blueprint_pdf(bp)
-    assert isinstance(pdf_bytes, bytes)
+    assert isinstance(pdf_bytes, (bytes, bytearray))
     assert len(pdf_bytes) > 0

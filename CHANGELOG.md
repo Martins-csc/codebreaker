@@ -5,6 +5,22 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.4-hotfix] - 2026-10-06
+
+### Added / Changed
+- **Verbatim Renderer Replacement (v1.6.4-hotfix)**: Replaced `sanitize_pdf_text`, `build_pdf_lines`, and `render_blueprint_pdf` in `ai_engine.py` with exact verbatim code implementation. Verified `.venv` compilation, updated test suites, and verified 159 tests passing green.
+
+## [1.6.4] - 2026-10-06
+
+### Added / Changed
+- MICRO-MISSION v1.6.4 — Single PDF Renderer, Version-Tag Dedupe, Delete Arm/Cancel, Copy + Nav Flash Fixes:
+  - **Single-Renderer Law**: Enforced single PDF generation function (`render_blueprint_pdf`) utilizing `build_pdf_lines` and `multi_cell` (zero `.cell(` calls in renderer). Deleted duplicate FPDF/render implementations and preserved non-ASCII error guard.
+  - **Version-Tag Deduplication**: Stopped appending `"— v2"` to stored blueprint titles on extend. Stored titles save base name, and render-time regex `r"\s*—\s*v\d+$"` strips any existing trailing `— vN` from legacy rows while displaying clean `(vN)` badges exclusively for version > 1.
+  - **Delete Arm/Cancel Pattern**: First Delete press arms the row exclusively; armed row renders `[Confirm delete]` + `[Cancel]`. Cancel disarms, and arm state auto-expires after 10 seconds via timestamp verification on every rerun. Un-armed rows show plain `[Delete]`.
+  - **Roadmap Display & Keycap Stripping**: Roadmap headings now dynamically report actual step count (`({len} Steps)`). Strip keycap glyphs (U+20E3, U+FE0F) and leading number prefixes at render time in-app and across all export formats, numbering each step exactly once.
+  - **Login Flash & Immediate Rerun**: Landing CTA handlers (`[Log In]`, `[Create Account]`) set `nav_pending` and call `st.rerun()` immediately.
+  - **Testing & Documentation**: Enforced pre-seal compile gate (`py_compile`), source-scan test asserting single fpdf function and zero `.cell(` calls, unit tests (`tests/test_v1_6_4.py`), and verified green test suite (`159 passed`). CHANGELOG v1.6.4 and DEVLOG Entry 042.
+
 ## [1.6.3] - 2026-10-06
 
 ### Added / Changed

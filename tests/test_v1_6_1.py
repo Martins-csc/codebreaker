@@ -3,10 +3,10 @@ import py_compile
 from unittest.mock import MagicMock, patch
 
 import pytest
-from ai_engine import (BlueprintError, _latin1_safe, _wrap_text,
-                       extend_blueprint, generate_blueprint,
-                       render_blueprint_html, render_blueprint_markdown,
-                       render_blueprint_pdf, render_blueprint_text)
+from ai_engine import (BlueprintError, _wrap_text, extend_blueprint,
+                       generate_blueprint, render_blueprint_html,
+                       render_blueprint_markdown, render_blueprint_pdf,
+                       render_blueprint_text, sanitize_pdf_text)
 
 
 def test_py_compile_gate():
@@ -23,9 +23,9 @@ def test_py_compile_gate():
 
 
 def test_sanitizer_ascii_only():
-    """Test that _latin1_safe strips emojis and converts unicode arrows/dashes to ASCII."""
+    """Test that sanitize_pdf_text strips emojis and converts unicode arrows/dashes to ASCII."""
     dirty = "🚀 Deploy ✅ check ├─→|- └─→+ –—‑→-"
-    safe = _latin1_safe(dirty)
+    safe = sanitize_pdf_text(dirty)
     assert "🚀" not in safe
     assert "✅" not in safe
     assert "→" not in safe
@@ -202,5 +202,5 @@ def test_pdf_rewrite_functions():
     assert not any("1. 1." in l for l in lines)
 
     pdf_bytes = render_blueprint_pdf(bp)
-    assert isinstance(pdf_bytes, bytes)
+    assert isinstance(pdf_bytes, (bytes, bytearray))
     assert pdf_bytes.startswith(b"%PDF")

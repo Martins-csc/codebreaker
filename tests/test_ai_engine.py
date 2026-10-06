@@ -2,7 +2,6 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from ai_engine import (BlueprintError, _parse_json_response,
                        generate_blueprint, render_blueprint_html,
                        render_blueprint_markdown, render_blueprint_pdf,
@@ -223,8 +222,8 @@ def test_render_blueprint_pdf_success():
         "roadmap": ["Design DB", "Setup Auth", "Build UI", "Add Tests", "Deploy"],
         "summary": "A robust SaaS application.",
     }
-    pdf_bytes = render_blueprint_pdf(sample_blueprint, export_date="2026-03-30")
-    assert isinstance(pdf_bytes, bytes)
+    pdf_bytes = render_blueprint_pdf(sample_blueprint)
+    assert isinstance(pdf_bytes, (bytes, bytearray))
     assert pdf_bytes.startswith(b"%PDF")
     assert len(pdf_bytes) > 1024  # >1KB for a sample blueprint
     for secret in ["GROQ_API_KEY", "GEMINI_API_KEY", "sk-", "AIza", "gsk_", "eyJ"]:
@@ -242,7 +241,7 @@ def test_render_blueprint_pdf_none_values():
         "summary": None,
     }
     pdf_bytes = render_blueprint_pdf(bad_blueprint)
-    assert isinstance(pdf_bytes, bytes)
+    assert isinstance(pdf_bytes, (bytes, bytearray))
     assert pdf_bytes.startswith(b"%PDF")
     content_str = pdf_bytes.decode("latin1", errors="ignore")
     assert "None" not in content_str

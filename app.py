@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import re
 import secrets
 import time
 import urllib.parse
@@ -9,13 +10,23 @@ from zoneinfo import ZoneInfo
 
 import requests
 import streamlit as st
-from ai_engine import (BlueprintError, extend_blueprint, generate_blueprint,
-                       render_blueprint_html, render_blueprint_markdown,
-                       render_blueprint_pdf, render_blueprint_text,
-                       sanitize_filename)
+from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
+                       generate_blueprint, render_blueprint_html,
+                       render_blueprint_markdown, render_blueprint_pdf,
+                       render_blueprint_text, sanitize_filename)
 from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
+
+
+def format_display_title(title: str, version: int = 1) -> str:
+    if not title:
+        title = "Untitled"
+    base = re.sub(r"\s*—\s*v\d+", "", title)
+    base = re.sub(r"\s*\(v\d+\)", "", base).strip()
+    if version > 1:
+        return f"{base} (v{version})"
+    return base
 
 
 def get_config(key, default=None):
@@ -902,6 +913,7 @@ if not user:
             ):
                 st.session_state["auth_view"] = "login"
                 st.query_params["mode"] = "login"
+                st.session_state["nav_pending"] = "Home"
                 st.rerun()
         with col_cta2:
             if st.button(
@@ -909,6 +921,7 @@ if not user:
             ):
                 st.session_state["auth_view"] = "signup"
                 st.query_params["mode"] = "signup"
+                st.session_state["nav_pending"] = "Home"
                 st.rerun()
 
     st.stop()
@@ -1209,7 +1222,7 @@ elif page == "Home":
                     )
                 bp_res = (
                     client.table("blueprints")
-                    .select("id, title, created_at")
+                    .select("id, title, created_at, version")
                     .eq("user_id", user["id"])
                     .order("created_at", desc=True)
                     .limit(5)
@@ -1221,6 +1234,8 @@ elif page == "Home":
                     for bp_item in bp_rows:
                         bp_id = bp_item.get("id")
                         bp_title = bp_item.get("title") or "Untitled Project"
+                        bp_ver = bp_item.get("version", 1)
+                        display_title = format_display_title(bp_title, bp_ver)
                         bp_created = bp_item.get("created_at", "N/A")
                         date_str, _ = (
                             format_lagos_timestamp(bp_created)
@@ -1230,7 +1245,7 @@ elif page == "Home":
 
                         col_bl1, col_bl2 = st.columns([3, 1])
                         with col_bl1:
-                            st.markdown(f"- **{bp_title}** `({date_str})`")
+                            st.markdown(f"- **{display_title}** `({date_str})`")
                         with col_bl2:
                             if st.button(
                                 "Open",
@@ -1476,6 +1491,14 @@ elif page == "Blueprint":
         st.subheader("Blueprint Library")
         st.write("Select a blueprint to open, extend, or manage.")
         try:
+            now_t = time.time()
+            for k in list(st.session_state.keys()):
+                if k.startswith("arm_time_bp_"):
+                    b_id_k = k.replace("arm_time_bp_", "")
+                    if now_t - st.session_state.get(k, 0) > 10:
+                        st.session_state[f"arm_del_bp_{b_id_k}"] = False
+                        st.session_state.pop(k, None)
+
             all_bp_res = (
                 client.table("blueprints")
                 .select("id, title, created_at, version, blueprint_json")
@@ -1489,8 +1512,18 @@ elif page == "Blueprint":
                     b_id = item.get("id")
                     b_title = item.get("title") or "Untitled"
                     b_ver = item.get("version", 1)
-                    ver_tag = f" (v{b_ver})" if b_ver > 1 else ""
+                    display_title = format_display_title(b_title, b_ver)
                     b_created = item.get("created_at", "N/A")
+                    date_str, _ = (
+                        (
+                            format_lagos_timestamp(b_created)
+                            if bp_created != "N/A"
+                            else ("N/A", "")
+                        )
+                        if "bp_created" in locals() or True
+                        else ("N/A", "")
+                    )
+
                     date_str, _ = (
                         format_lagos_timestamp(b_created)
                         if b_created != "N/A"
@@ -1498,7 +1531,7 @@ elif page == "Blueprint":
                     )
 
                     with st.container(border=True):
-                        st.markdown(f"**{b_title}{ver_tag}** — `({date_str})`")
+                        st.markdown(f"**{display_title}** — `({date_str})`")
                         bc1, bc2, bc3 = st.columns(3)
                         with bc1:
                             if st.button(
@@ -1529,41 +1562,59 @@ elif page == "Blueprint":
                                 )
                                 st.rerun()
                         with bc3:
-                            del_key = f"confirm_del_bp_{b_id}"
-                            if not st.session_state.get(del_key, False):
+                            del_armed_key = f"arm_del_bp_{b_id}"
+                            del_time_key = f"arm_time_bp_{b_id}"
+                            is_armed = st.session_state.get(del_armed_key, False)
+                            if not is_armed:
                                 if st.button(
                                     "Delete",
                                     key=f"bp_del_{b_id}",
                                     use_container_width=True,
                                 ):
-                                    st.session_state[del_key] = True
+                                    st.session_state[del_armed_key] = True
+                                    st.session_state[del_time_key] = time.time()
                                     st.rerun()
                             else:
-                                if st.button(
-                                    "Confirm",
-                                    key=f"bp_confirm_del_{b_id}",
-                                    use_container_width=True,
-                                ):
-                                    client.table("blueprints").delete().eq(
-                                        "id", b_id
-                                    ).execute()
-                                    if (
-                                        st.session_state.get("active_blueprint_id")
-                                        == b_id
+                                dc1, dc2 = st.columns(2)
+                                with dc1:
+                                    if st.button(
+                                        "Confirm delete",
+                                        key=f"bp_confirm_del_{b_id}",
+                                        use_container_width=True,
                                     ):
-                                        st.session_state["active_blueprint_id"] = None
-                                        st.session_state.pop("blueprint", None)
-                                        try:
-                                            client.table("profiles").update(
-                                                {"active_blueprint_id": None}
-                                            ).eq("id", user["id"]).execute()
-                                        except Exception:
-                                            pass
-                                    st.rerun()
+                                        client.table("blueprints").delete().eq(
+                                            "id", b_id
+                                        ).execute()
+                                        if (
+                                            st.session_state.get("active_blueprint_id")
+                                            == b_id
+                                        ):
+                                            st.session_state["active_blueprint_id"] = (
+                                                None
+                                            )
+                                            st.session_state.pop("blueprint", None)
+                                            try:
+                                                client.table("profiles").update(
+                                                    {"active_blueprint_id": None}
+                                                ).eq("id", user["id"]).execute()
+                                            except Exception:
+                                                pass
+                                        st.session_state.pop(del_armed_key, None)
+                                        st.session_state.pop(del_time_key, None)
+                                        st.rerun()
+                                with dc2:
+                                    if st.button(
+                                        "Cancel",
+                                        key=f"bp_cancel_del_{b_id}",
+                                        use_container_width=True,
+                                    ):
+                                        st.session_state[del_armed_key] = False
+                                        st.session_state.pop(del_time_key, None)
+                                        st.rerun()
 
                         if st.session_state.get(f"extending_{b_id}", False):
                             with st.container(border=True):
-                                st.markdown(f"**Extend: {b_title}**")
+                                st.markdown(f"**Extend: {display_title}**")
                                 ext_new = st.text_area(
                                     "What is new / changed?", key=f"ext_new_{b_id}"
                                 )
@@ -1581,9 +1632,7 @@ elif page == "Blueprint":
                                             "Please describe what is new or changed."
                                         )
                                     else:
-                                        with st.spinner(
-                                            "Extending blueprint with AI..."
-                                        ):
+                                        with st.spinner("Extending blueprint..."):
                                             try:
                                                 old_json = item.get("blueprint_json")
                                                 if isinstance(old_json, str):
@@ -1594,8 +1643,10 @@ elif page == "Blueprint":
                                                     old_dict, ext_new, ext_notes
                                                 )
                                                 new_ver = int(b_ver) + 1
-                                                base_t = b_title.split(" — v")[0]
-                                                new_t = f"{base_t} — v{new_ver}"
+                                                base_t = re.sub(
+                                                    r"\s*—\s*v\d+$", "", b_title
+                                                ).strip()
+                                                new_t = base_t  # NEVER append "— vN" to stored title!
                                                 new_dict["project_name"] = new_t
                                                 new_payload = {
                                                     "user_id": user["id"],
@@ -1766,10 +1817,14 @@ elif page == "Blueprint":
                 st.write("No edge cases specified.")
 
         with tab_roadmap:
-            st.markdown("### Implementation Roadmap (5 Steps)")
             roadmap = blueprint.get("roadmap", [])
-            if roadmap:
-                for i, step in enumerate(roadmap, 1):
+            valid_roadmap = [
+                r for r in roadmap if r is not None and str(r).lower() != "none"
+            ]
+            cleaned_roadmap = [clean_roadmap_step(s) for s in valid_roadmap]
+            st.markdown(f"### Implementation Roadmap ({len(cleaned_roadmap)} Steps)")
+            if cleaned_roadmap:
+                for i, step in enumerate(cleaned_roadmap, 1):
                     st.markdown(f"**Step {i}:** {step}")
             else:
                 st.write("No roadmap specified.")

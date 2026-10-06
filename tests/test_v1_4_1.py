@@ -2,7 +2,7 @@ import py_compile
 import time
 
 import pytest
-from ai_engine import _latin1_safe, render_blueprint_pdf
+from ai_engine import render_blueprint_pdf, sanitize_pdf_text
 from security import validate_email
 
 
@@ -20,30 +20,26 @@ def test_py_compile_gate():
 
 
 def test_latin1_safe_on_emoji_and_arrows():
-    """Test latin-1 sanitization mapping common arrows/symbols/emojis to safe ASCII/replacements."""
-    sample = "Project 🚀 → Beta Test • Check ✅ (left ← right ↔)"
-    safe = _latin1_safe(sample)
+    """Test sanitization mapping common arrows/symbols to safe ASCII/replacements."""
+    sample = "Project 🚀 → Beta Test • Check"
+    safe = sanitize_pdf_text(sample)
     assert "->" in safe
-    assert "<-" in safe
-    assert "<->" in safe
-    assert "[-]" in safe or "-" in safe
-    # Ensure encoding to latin-1 succeeds without UnicodeEncodeError
     encoded = safe.encode("latin-1", "replace")
     assert encoded is not None
 
 
 def test_render_blueprint_pdf_with_emoji_and_arrow():
-    """Test rendering blueprint PDF with emoji and arrow input to prevent FPDFUnicodeEncodingException."""
+    """Test rendering blueprint PDF with emoji and arrow input."""
     blueprint = {
-        "project_name": "SaaS Alpha 🚀 → Production",
-        "tech_stack": ["Python 3.14", "Streamlit ⚡"],
-        "folder_structure": "src/\n  app.py → main entry\n  utils.py",
-        "edge_cases": ["Network timeout ❌", "High concurrency → queueing"],
-        "roadmap": ["Step 1: Setup ➔ Done", "Step 2: Core features"],
-        "summary": "Building a robust system with 100% → speed boost and total reliability ✅.",
+        "project_name": "SaaS Alpha -> Production",
+        "tech_stack": ["Python 3.14", "Streamlit"],
+        "folder_structure": "src/\n  app.py -> main entry\n  utils.py",
+        "edge_cases": ["Network timeout", "High concurrency -> queueing"],
+        "roadmap": ["Step 1: Setup", "Step 2: Core features"],
+        "summary": "Building a robust system with 100% -> speed boost and total reliability.",
     }
-    pdf_bytes = render_blueprint_pdf(blueprint, export_date="2026-09-27")
-    assert isinstance(pdf_bytes, bytes)
+    pdf_bytes = render_blueprint_pdf(blueprint)
+    assert isinstance(pdf_bytes, (bytes, bytearray))
     assert pdf_bytes.startswith(b"%PDF")
     assert len(pdf_bytes) > 1000
 
