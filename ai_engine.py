@@ -385,7 +385,7 @@ def render_blueprint_pdf(bp):
         else:
             pdf.multi_cell(0, 5.5, line if line.strip() else " ")
             pdf.set_x(pdf.l_margin)
-    return pdf.output()
+    return bytes(pdf.output())
 
 
 def render_blueprint_markdown(blueprint: dict, export_date: str = None) -> str:
