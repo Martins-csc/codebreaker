@@ -950,8 +950,15 @@ else:
     _pg = st.query_params.get("pg")
     if isinstance(_pg, list):
         _pg = _pg[0] if _pg else None
-    if "nav_radio" not in st.session_state and _pg in options:
+
+    if "nav_pending" in st.session_state:
+        _nav_val = st.session_state.pop("nav_pending")
+        st.session_state["nav_radio"] = _nav_val
+        st.query_params["pg"] = _nav_val
+        _pg = _nav_val
+    elif "nav_radio" not in st.session_state and _pg in options:
         st.session_state["nav_radio"] = _pg
+
     default_index = options.index(_pg) if _pg in options else 0
     page = st.sidebar.radio(
         "", options, index=default_index, label_visibility="collapsed", key="nav_radio"
@@ -971,6 +978,16 @@ else:
             st.write(f"**RT Present**: {rt_present}")
             st.write(f"**Last Verify Result**: {last_verify}")
             st.write(f"**Gate Flags**: {gate_flags}")
+
+            st.markdown("**Provider Keys Status:**")
+            for pkey in [
+                "GROQ_API_KEY",
+                "GEMINI_API_KEY",
+                "SUPABASE_URL",
+                "SUPABASE_ANON_KEY",
+            ]:
+                p_status = "PRESENT" if bool(get_config(pkey)) else "MISSING"
+                st.write(f"- `{pkey}`: **{p_status}**")
 
     st.sidebar.markdown("---")
     if st.sidebar.button("Sign Out", key="sidebar_sign_out_btn"):
@@ -1081,8 +1098,7 @@ if page == "About":
         st.markdown("**Built by CodeBreaker Dev**")
     with col_ab2:
         if st.button("Contact us", key="about_contact_btn", use_container_width=True):
-            st.session_state["nav_radio"] = "Contact"
-            st.query_params["pg"] = "Contact"
+            st.session_state["nav_pending"] = "Contact"
             st.rerun()
 
 elif page == "Contact":
@@ -1228,8 +1244,7 @@ elif page == "Home":
                                     ).eq("id", user["id"]).execute()
                                 except Exception:
                                     pass
-                                st.session_state["nav_radio"] = "Blueprint"
-                                st.query_params["pg"] = "Blueprint"
+                                st.session_state["nav_pending"] = "Blueprint"
                                 st.rerun()
                     if st.button(
                         "View all blueprints",
@@ -1244,8 +1259,7 @@ elif page == "Home":
                             ).eq("id", user["id"]).execute()
                         except Exception:
                             pass
-                        st.session_state["nav_radio"] = "Blueprint"
-                        st.query_params["pg"] = "Blueprint"
+                        st.session_state["nav_pending"] = "Blueprint"
                         st.rerun()
                 else:
                     st.write("No saved blueprints yet.")
@@ -1298,18 +1312,15 @@ elif page == "Home":
             qs_c1, qs_c2, qs_c3 = st.columns(3)
             with qs_c1:
                 if st.button("Analyze", use_container_width=True, key="qs_analyze"):
-                    st.session_state["nav_radio"] = "Analyze"
-                    st.query_params["pg"] = "Analyze"
+                    st.session_state["nav_pending"] = "Analyze"
                     st.rerun()
             with qs_c2:
                 if st.button("Blueprint", use_container_width=True, key="qs_blueprint"):
-                    st.session_state["nav_radio"] = "Blueprint"
-                    st.query_params["pg"] = "Blueprint"
+                    st.session_state["nav_pending"] = "Blueprint"
                     st.rerun()
             with qs_c3:
                 if st.button("Eng. Log", use_container_width=True, key="qs_log"):
-                    st.session_state["nav_radio"] = "Engineering Log"
-                    st.query_params["pg"] = "Engineering Log"
+                    st.session_state["nav_pending"] = "Engineering Log"
                     st.rerun()
 
     with col_t4:
@@ -1505,6 +1516,7 @@ elif page == "Blueprint":
                                     ).eq("id", user["id"]).execute()
                                 except Exception:
                                     pass
+                                st.session_state["nav_pending"] = "Blueprint"
                                 st.rerun()
                         with bc2:
                             if st.button(

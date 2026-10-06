@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.3] - 2026-10-06
+
+### Added / Changed
+- MICRO-MISSION v1.6.3 — nav pending-flag fix + AI key presence diagnostic:
+  - **Nav Pending-Flag Pattern**: Removed EVERY post-instantiation assignment to `st.session_state["nav_radio"]` (lines ~1301/1306/1311 and others). Replaced with `st.session_state["nav_pending"] = ...` followed by `st.rerun()`. At the top of the script before sidebar radio instantiation, `nav_pending` is popped into `nav_radio` and mirrored into `pg` query param, eliminating Streamlit API state mutation exceptions.
+  - **AI Key Presence Diagnostic**: Added admin-only diagnostic inside Persistence Debug panel listing which provider and system keys (`GROQ_API_KEY`, `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`) are PRESENT or MISSING (names and presence only, never values).
+  - **Testing & Documentation**: Enforced pre-seal compile gate (`py_compile`), source-scan test asserting zero post-instantiation `nav_radio` assignments and top-level `nav_pending` handling, comprehensive unit tests (`tests/test_v1_6_3.py`), and verified green test suite (`.venv/bin/pytest`). CHANGELOG v1.6.3.
+
 ## [1.6.2] - 2026-10-05
 
 ### Added / Changed

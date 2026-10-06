@@ -29,7 +29,7 @@ def test_v1_5_0_persistent_blueprint_library_code():
     # 2. Home library list queries public.blueprints, renders Open button with redirect
     assert 'client.table("blueprints")' in content
     assert '"Open"' in content
-    assert 'st.query_params["pg"] = "Blueprint"' in content
+    assert 'st.session_state["nav_pending"] = "Blueprint"' in content
 
     # 3. Blueprint page loads from DB using active_blueprint_id
     assert 'active_bp_id = st.session_state.get("active_blueprint_id")' in content

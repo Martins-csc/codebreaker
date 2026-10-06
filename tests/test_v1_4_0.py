@@ -78,9 +78,9 @@ def test_v1_4_0_dashboard_and_hygiene_elements():
     assert "Account" in content
 
     # Quick Start buttons target check
-    assert 'st.query_params["pg"] = "Analyze"' in content
-    assert 'st.query_params["pg"] = "Blueprint"' in content
-    assert 'st.query_params["pg"] = "Engineering Log"' in content
+    assert 'st.session_state["nav_pending"] = "Analyze"' in content
+    assert 'st.session_state["nav_pending"] = "Blueprint"' in content
+    assert 'st.session_state["nav_pending"] = "Engineering Log"' in content
 
     # Copy hygiene: Skill level selectbox deleted from Analyze
     assert "skill_level = st.selectbox" not in content
