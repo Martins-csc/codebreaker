@@ -370,8 +370,7 @@ def render_blueprint_pdf(bp):
     pdf.add_page()
     pdf.set_font("Helvetica", "", 10)
     for line in build_pdf_lines(bp):
-        if any(ord(c) > 255 for c in line):
-            raise ValueError("non-ascii reached pdf renderer: " + line[:40])
+        line = sanitize_pdf_text(line)
         if line.startswith("# "):
             pdf.set_font("Helvetica", "B", 15)
             pdf.multi_cell(0, 9, line[2:])
