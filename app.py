@@ -1751,7 +1751,7 @@ elif page == "Blueprint":
                 ),
                 (
                     "Export as PDF (.pdf)",
-                    render_blueprint_pdf(blueprint),
+                    bytes(render_blueprint_pdf(blueprint)),
                     pdf_fname,
                     "application/pdf",
                     "fixed-layout for print & share",
