@@ -294,23 +294,18 @@ def _get_project_context(blueprint: dict):
 
 
 def sanitize_pdf_text(s):
-    m = {
-        "\u251c": "|",
-        "\u2514": "+",
-        "\u2500": "-",
-        "\u2502": "|",
-        "\u2011": "-",
-        "\u2013": "-",
-        "\u2014": "-",
-        "\u2022": "-",
-        "\u2192": "->",
-        "\u00a0": " ",
-        "\u20e3": "",
-        "\ufe0f": "",
-    }
-    return "".join(m.get(ch, "-" if ord(ch) > 255 else ch) for ch in str(s))
-
-
+    m = {"\u251c": "|", "\u2514": "+", "\u2500": "-", "\u2502": "|", "\u2011": "-",
+         "\u2013": "-", "\u2014": "-", "\u2022": "-", "\u2192": "->", "\u00a0": " ",
+         "\u20e3": "", "\ufe0f": "", "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'}
+    out = []
+    for ch in str(s):
+        if ch in m:
+            out.append(m[ch])
+        elif ord(ch) > 255:
+            out.append("-")
+        else:
+            out.append(ch)
+    return "".join(out)
 def _clean_item(item):
     import re as _re
 
