@@ -1692,7 +1692,7 @@ elif page == "Blueprint":
             else:
                 st.info("Open a blueprint from your library or generate a new one.")
         except Exception:
-            st.info("Library unavailable.")
+            st.error("LIBRARY-WITNESS:\n" + __import__("traceback").format_exc()[-900:])
     else:
         if st.button(
             "← Back to All Blueprints", use_container_width=False, key="back_to_all_bps"
