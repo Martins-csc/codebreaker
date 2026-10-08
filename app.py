@@ -1235,10 +1235,10 @@ elif page == "Home":
                         bp_title = bp_item.get("title") or "Untitled Project"
                         bp_ver = bp_item.get("version", 1)
                         display_title = format_display_title(bp_title, bp_ver)
-                        bp_created = bp_item.get("created_at", "N/A")
+                        b_created = bp_item.get("created_at", "N/A")
                         date_str, _ = (
-                            format_lagos_timestamp(bp_created)
-                            if bp_created != "N/A"
+                            format_lagos_timestamp(b_created)
+                            if b_created != "N/A"
                             else ("N/A", "")
                         )
 
@@ -1516,10 +1516,10 @@ elif page == "Blueprint":
                     date_str, _ = (
                         (
                             format_lagos_timestamp(b_created)
-                            if bp_created != "N/A"
+                            if b_created != "N/A"
                             else ("N/A", "")
                         )
-                        if "bp_created" in locals() or True
+                        if "b_created" in locals() or True
                         else ("N/A", "")
                     )
 
@@ -1692,7 +1692,7 @@ elif page == "Blueprint":
             else:
                 st.info("Open a blueprint from your library or generate a new one.")
         except Exception:
-            st.error("LIBRARY-WITNESS:\n" + __import__("traceback").format_exc()[-900:])
+            st.info("Library unavailable.")
     else:
         if st.button(
             "← Back to All Blueprints", use_container_width=False, key="back_to_all_bps"
