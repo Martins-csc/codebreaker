@@ -5,6 +5,18 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.6] - 2026-10-08
+
+### Added / Changed
+- MICRO-MISSION v1.6.6 — Consolidated residuals closure (PDF Courier tree + italic footer chrome + heading count removal + login flash + radio label + arm/cancel final layout + N/A law):
+  - **N/A Law Enforcement**: Enforced rigorous `"N/A"` fallback across all empty slots (log fields, export Project Context, etc.), banning `"Null"` or blank fallbacks, validated by source-scan test asserting zero `"Null"` fallback literals exist in `app.py` or `ai_engine.py`.
+  - **Stacked Full-Width & Two-Row Layout Rule**: Blueprint library armed row renders two stacked rows — row1 `[Open][Extend]`, row2 `[Confirm][Cancel]` (labels exactly `"Confirm"` and `"Cancel"`, zero ellipsis, `use_container_width=True`). Engineering Log armed entry renders `[Confirm]` then `[Cancel]` as two stacked full-width buttons in a single column (`use_container_width=True`), with un-armed showing one full-width `[Delete]`.
+  - **Arm Expiry & Self-Disarm**: Per-row arm timestamps stored in `session_state`, with automatic expiry clearing stale arms older than 10 seconds on render.
+  - **PDF Courier Tree & Footer Chrome**: `build_pdf_lines` free of footer string; PDF title and subtitle on page 1; footer rendered once via `pdf.set_y(pdf.get_page_height() - 15)` on last page; Courier font applied to folder structure lines.
+  - **Login Flash & Rerun Finalization**: Landing `[Log In]` and `[Create Account]` handlers set `nav_pending` and call `st.rerun()` as the final statement of the branch.
+  - **Roadmap Heading**: Exactly `"Implementation Roadmap"` everywhere, deleting any `(N Steps)` count suffix.
+  - **Testing & Documentation**: Enforced pre-seal compile gate (`py_compile`), comprehensive test suites including new `tests/test_v1_6_6.py`, and verified green test suite (`173 tests passed`). CHANGELOG v1.6.6 and DEVLOG Entry 043.
+
 ## [1.6.5] - 2026-10-08
 
 ### Added / Changed

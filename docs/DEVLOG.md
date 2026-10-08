@@ -1,5 +1,27 @@
 # CodeBreaker Development Log
 
+## Entry 043: Consolidated Residuals Closure, N/A Law & Stacked Full-Width Button Rules (v1.6.6)
+- **Date**: 2026-10-08
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.6.6 MICRO-MISSION — PDF Courier tree + italic footer chrome + heading count removal + login flash + radio label + arm/cancel final layout + N/A law
+
+### Design Notes & Architectural Decisions
+1. **N/A Law Enforcement**:
+   - Enforced rigorous `"N/A"` fallback across all empty slots (engineering log fields, export Project Context, etc.), banning `"Null"` or blank fallbacks. Added a source-scan test asserting no `"Null"` fallback literal exists in `app.py` or `ai_engine.py`.
+2. **Stacked Full-Width & Two-Row Layout Rule**:
+   - *Blueprint Library Armed Row*: Renders two stacked rows — row1 `[Open][Extend]`, row2 `[Confirm][Cancel]` (labels exactly `"Confirm"` and `"Cancel"`, zero ellipsis, `use_container_width=True`).
+   - *Engineering Log Armed Entry*: Renders `[Confirm]` then `[Cancel]` as two stacked full-width buttons in a single column (`use_container_width=True`), with un-armed showing one full-width `[Delete]`.
+3. **Arm Expiry & Self-Disarm**:
+   - Per-row arm timestamps stored in `session_state` (`arm_time_bp_...`, `arm_time_log_...`), with automatic expiry clearing stale arms older than 10 seconds on render.
+4. **PDF Courier Tree & Footer Chrome**:
+   - `build_pdf_lines` free of footer string; PDF title and subtitle on page 1; footer rendered once via `pdf.set_y(pdf.get_page_height() - 15)` on last page; Courier font applied to folder structure lines.
+5. **Login Flash & Rerun Finalization**:
+   - Landing `[Log In]` and `[Create Account]` handlers set `nav_pending` and call `st.rerun()` as the final statement of the branch.
+6. **Roadmap Heading**:
+   - Exactly `"Implementation Roadmap"` everywhere, deleting any `(N Steps)` count suffix.
+7. **Testing & Verification**:
+   - Enforced pre-seal compile gate (`py_compile`), comprehensive test suites including new `tests/test_v1_6_6.py`, and verified green test suite (`173 tests passed`).
+
 ## Entry 042: PDF Tree Monospace, Footer Chrome, Heading Count Removal & Cloud Hot-Reload Cache Law (v1.6.5)
 - **Date**: 2026-10-08
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

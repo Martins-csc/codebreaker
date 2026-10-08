@@ -6,8 +6,9 @@ import textwrap
 
 import markdown
 import requests
-from config import get_config
 from fpdf import FPDF
+
+from config import get_config
 
 
 class BlueprintError(Exception):
@@ -620,7 +621,7 @@ def render_blueprint_text(blueprint: dict, export_date: str = None) -> str:
         else []
     )
     cleaned_roadmap = [clean_roadmap_step(s) for s in valid_roadmap]
-    heading_text = f"IMPLEMENTATION ROADMAP ({len(cleaned_roadmap)} Steps)"
+    heading_text = "IMPLEMENTATION ROADMAP"
     lines.append(heading_text)
     lines.append("-" * len(heading_text))
 

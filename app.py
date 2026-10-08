@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 import streamlit as st
+
 from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
                        generate_blueprint, render_blueprint_html,
                        render_blueprint_markdown, render_blueprint_pdf,
@@ -1531,8 +1532,12 @@ elif page == "Blueprint":
 
                     with st.container(border=True):
                         st.markdown(f"**{display_title}** — `({date_str})`")
-                        bc1, bc2, bc3 = st.columns(3)
-                        with bc1:
+                        del_armed_key = f"arm_del_bp_{b_id}"
+                        del_time_key = f"arm_time_bp_{b_id}"
+                        is_armed = st.session_state.get(del_armed_key, False)
+
+                        rc1, rc2 = st.columns(2)
+                        with rc1:
                             if st.button(
                                 "Open", key=f"bp_open_{b_id}", use_container_width=True
                             ):
@@ -1550,7 +1555,7 @@ elif page == "Blueprint":
                                     pass
                                 st.session_state["nav_pending"] = "Blueprint"
                                 st.rerun()
-                        with bc2:
+                        with rc2:
                             if st.button(
                                 "Extend",
                                 key=f"bp_extend_{b_id}",
@@ -1560,56 +1565,52 @@ elif page == "Blueprint":
                                     not st.session_state.get(f"extending_{b_id}", False)
                                 )
                                 st.rerun()
-                        with bc3:
-                            del_armed_key = f"arm_del_bp_{b_id}"
-                            del_time_key = f"arm_time_bp_{b_id}"
-                            is_armed = st.session_state.get(del_armed_key, False)
-                            if not is_armed:
+
+                        if not is_armed:
+                            if st.button(
+                                "Delete",
+                                key=f"bp_del_{b_id}",
+                                use_container_width=True,
+                            ):
+                                st.session_state[del_armed_key] = True
+                                st.session_state[del_time_key] = time.time()
+                                st.rerun()
+                        else:
+                            dc1, dc2 = st.columns(2)
+                            with dc1:
                                 if st.button(
-                                    "Delete",
-                                    key=f"bp_del_{b_id}",
+                                    "Confirm",
+                                    key=f"bp_confirm_del_{b_id}",
+                                    type="primary",
                                     use_container_width=True,
                                 ):
-                                    st.session_state[del_armed_key] = True
-                                    st.session_state[del_time_key] = time.time()
+                                    client.table("blueprints").delete().eq(
+                                        "id", b_id
+                                    ).execute()
+                                    if (
+                                        st.session_state.get("active_blueprint_id")
+                                        == b_id
+                                    ):
+                                        st.session_state["active_blueprint_id"] = None
+                                        st.session_state.pop("blueprint", None)
+                                        try:
+                                            client.table("profiles").update(
+                                                {"active_blueprint_id": None}
+                                            ).eq("id", user["id"]).execute()
+                                        except Exception:
+                                            pass
+                                    st.session_state.pop(del_armed_key, None)
+                                    st.session_state.pop(del_time_key, None)
                                     st.rerun()
-                            else:
-                                dc1, dc2 = st.columns(2)
-                                with dc1:
-                                    if st.button(
-                                        "Confirm delete",
-                                        key=f"bp_confirm_del_{b_id}",
-                                        use_container_width=True,
-                                    ):
-                                        client.table("blueprints").delete().eq(
-                                            "id", b_id
-                                        ).execute()
-                                        if (
-                                            st.session_state.get("active_blueprint_id")
-                                            == b_id
-                                        ):
-                                            st.session_state["active_blueprint_id"] = (
-                                                None
-                                            )
-                                            st.session_state.pop("blueprint", None)
-                                            try:
-                                                client.table("profiles").update(
-                                                    {"active_blueprint_id": None}
-                                                ).eq("id", user["id"]).execute()
-                                            except Exception:
-                                                pass
-                                        st.session_state.pop(del_armed_key, None)
-                                        st.session_state.pop(del_time_key, None)
-                                        st.rerun()
-                                with dc2:
-                                    if st.button(
-                                        "Cancel",
-                                        key=f"bp_cancel_del_{b_id}",
-                                        use_container_width=True,
-                                    ):
-                                        st.session_state[del_armed_key] = False
-                                        st.session_state.pop(del_time_key, None)
-                                        st.rerun()
+                            with dc2:
+                                if st.button(
+                                    "Cancel",
+                                    key=f"bp_cancel_del_{b_id}",
+                                    use_container_width=True,
+                                ):
+                                    st.session_state[del_armed_key] = False
+                                    st.session_state.pop(del_time_key, None)
+                                    st.rerun()
 
                         if st.session_state.get(f"extending_{b_id}", False):
                             with st.container(border=True):
@@ -1929,6 +1930,14 @@ elif page == "Engineering Log":
                 st.session_state["access_token"],
                 st.session_state.get("refresh_token", ""),
             )
+        now_t = time.time()
+        for k in list(st.session_state.keys()):
+            if k.startswith("arm_time_log_"):
+                log_id_k = k.replace("arm_time_log_", "")
+                if now_t - st.session_state.get(k, 0) > 10:
+                    st.session_state[f"confirm_del_{log_id_k}"] = False
+                    st.session_state.pop(k, None)
+
         response = (
             client.table("engineering_log")
             .select("*")
@@ -1985,54 +1994,49 @@ elif page == "Engineering Log":
                             f"**Learnings / Insights:**\n{entry.get('learnings') or 'N/A'}"
                         )
 
-                        col_space, col_btn = st.columns([4, 1])
-                        with col_btn:
-                            confirm_del_key = f"confirm_del_{entry_id}"
-                            if not st.session_state.get(confirm_del_key, False):
-                                if st.button(
-                                    "Delete",
-                                    key=f"del_log_{entry_id}",
-                                    use_container_width=True,
-                                ):
-                                    st.session_state[confirm_del_key] = True
+                        confirm_del_key = f"confirm_del_{entry_id}"
+                        arm_time_key = f"arm_time_log_{entry_id}"
+                        is_log_armed = st.session_state.get(confirm_del_key, False)
+                        if not is_log_armed:
+                            if st.button(
+                                "Delete",
+                                key=f"del_log_{entry_id}",
+                                use_container_width=True,
+                            ):
+                                st.session_state[confirm_del_key] = True
+                                st.session_state[arm_time_key] = time.time()
+                                st.rerun()
+                        else:
+                            if st.button(
+                                "Confirm",
+                                key=f"conf_del_{entry_id}",
+                                type="primary",
+                                use_container_width=True,
+                            ):
+                                try:
+                                    client = get_client()
+                                    if "access_token" in st.session_state:
+                                        client.auth.set_session(
+                                            st.session_state["access_token"],
+                                            st.session_state.get("refresh_token", ""),
+                                        )
+                                    client.table("engineering_log").delete().eq(
+                                        "id", entry_id
+                                    ).eq("user_id", user["id"]).execute()
+                                    st.session_state[confirm_del_key] = False
+                                    st.session_state.pop(arm_time_key, None)
+                                    st.success("Log entry deleted successfully.")
                                     st.rerun()
-                            else:
-                                st.write("Delete entry?")
-                                col_c1, col_c2 = st.columns(2)
-                                with col_c1:
-                                    if st.button(
-                                        "Delete",
-                                        key=f"conf_del_{entry_id}",
-                                        type="primary",
-                                        use_container_width=True,
-                                    ):
-                                        try:
-                                            client = get_client()
-                                            if "access_token" in st.session_state:
-                                                client.auth.set_session(
-                                                    st.session_state["access_token"],
-                                                    st.session_state.get(
-                                                        "refresh_token", ""
-                                                    ),
-                                                )
-                                            client.table("engineering_log").delete().eq(
-                                                "id", entry_id
-                                            ).eq("user_id", user["id"]).execute()
-                                            st.session_state[confirm_del_key] = False
-                                            st.success(
-                                                "Log entry deleted successfully."
-                                            )
-                                            st.rerun()
-                                        except Exception as e:
-                                            st.error(f"Failed to delete log entry: {e}")
-                                with col_c2:
-                                    if st.button(
-                                        "Cancel",
-                                        key=f"canc_del_{entry_id}",
-                                        use_container_width=True,
-                                    ):
-                                        st.session_state[confirm_del_key] = False
-                                        st.rerun()
+                                except Exception as e:
+                                    st.error(f"Failed to delete log entry: {e}")
+                            if st.button(
+                                "Cancel",
+                                key=f"canc_del_{entry_id}",
+                                use_container_width=True,
+                            ):
+                                st.session_state[confirm_del_key] = False
+                                st.session_state.pop(arm_time_key, None)
+                                st.rerun()
 
             st.markdown("---")
             all_confirm_key = "confirm_delete_all_logs"
