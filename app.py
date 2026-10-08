@@ -10,7 +10,6 @@ from zoneinfo import ZoneInfo
 
 import requests
 import streamlit as st
-
 from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
                        generate_blueprint, render_blueprint_html,
                        render_blueprint_markdown, render_blueprint_pdf,
@@ -364,21 +363,22 @@ try:
                     st.session_state["expires_at"] = getattr(
                         res.session, "expires_at", time.time() + 3600
                     )
-                st.success(
-                    "Recovery session established. Please set your new password."
+                st.session_state["auth_flash"] = (
+                    "success",
+                    "Recovery session established. Please set your new password.",
                 )
             elif type_param == "signup":
-                st.success("Email confirmed - please log in")
+                st.session_state["auth_flash"] = (
+                    "success",
+                    "Email confirmed - please log in",
+                )
                 st.session_state["email_confirmed_success"] = True
         else:
-            st.warning("This link has expired or is invalid. Please request a new one.")
-            col_res1, col_res2 = st.columns(2)
-            with col_res1:
-                if st.button("Resend confirmation email"):
-                    st.session_state["show_resend_link"] = True
-            with col_res2:
-                if st.button("Forgot password?"):
-                    st.session_state["show_forgot_password"] = True
+            st.session_state["auth_flash"] = (
+                "warning",
+                "This link has expired or is invalid. Please request a new one.",
+            )
+            st.session_state["show_resend_link"] = True
 
         st.query_params.clear()
         st.rerun()
@@ -412,8 +412,13 @@ try:
             )
             state_rows = getattr(state_res, "data", [])
             if not state_rows:
-                st.error("Sign-in session expired — tap Continue with GitHub again.")
-                st.stop()
+                st.session_state["auth_flash"] = (
+                    "error",
+                    "Sign-in session expired — tap Continue with GitHub again.",
+                )
+                for p in ["code", "state"]:
+                    st.query_params.pop(p, None)
+                st.rerun()
             else:
                 verifier = state_rows[0].get("code_verifier")
 
@@ -467,7 +472,10 @@ try:
                                 "state", "pending"
                             ).execute()
 
-                            st.success("Successfully logged in with GitHub!")
+                            st.session_state["auth_flash"] = (
+                                "success",
+                                "Successfully logged in with GitHub!",
+                            )
                             st.query_params["pg"] = "Home"
                             for p in [
                                 "code",
@@ -484,17 +492,25 @@ try:
                                 st.query_params.pop(p, None)
                             st.rerun()
                         else:
-                            st.error(
-                                "Failed to retrieve user profile after OAuth exchange."
+                            st.session_state["auth_flash"] = (
+                                "error",
+                                "Failed to retrieve user profile after OAuth exchange.",
                             )
                     else:
-                        st.error(
-                            "Invalid token response received from authentication server."
+                        st.session_state["auth_flash"] = (
+                            "error",
+                            "Invalid token response received from authentication server.",
                         )
                 else:
-                    st.error(resp.text if resp else "OAuth token exchange failed")
+                    st.session_state["auth_flash"] = (
+                        "error",
+                        resp.text if resp else "OAuth token exchange failed",
+                    )
         except Exception as e:
-            st.error(f"GitHub OAuth exchange failed: {e}")
+            st.session_state["auth_flash"] = (
+                "error",
+                f"GitHub OAuth exchange failed: {e}",
+            )
 
         for p in ["code", "state"]:
             st.query_params.pop(p, None)
@@ -507,7 +523,7 @@ try:
         except Exception:
             pass
 except ConfigError as ce:
-    st.error(f"Configuration Error: {ce}")
+    st.session_state["config_error"] = str(ce)
 
 user = st.session_state.get("user")
 if not user:
@@ -521,6 +537,23 @@ if not user:
         """,
         unsafe_allow_html=True,
     )
+    if st.session_state.get("config_error"):
+        st.error(f"Configuration Error: {st.session_state.pop('config_error')}")
+    if st.session_state.get("auth_flash"):
+        ftype, fmsg = st.session_state.pop("auth_flash")
+        if ftype == "success":
+            st.success(fmsg)
+        elif ftype == "warning":
+            st.warning(fmsg)
+            col_res1, col_res2 = st.columns(2)
+            with col_res1:
+                if st.button("Resend confirmation email", key="resend_conf_btn"):
+                    st.session_state["show_resend_link"] = True
+            with col_res2:
+                if st.button("Forgot password?", key="forgot_pwd_btn"):
+                    st.session_state["show_forgot_password"] = True
+        elif ftype == "error":
+            st.error(fmsg)
     if st.session_state.get("auth_view"):
         if st.button("← Back to overview", key="auth_back_to_overview"):
             del st.session_state["auth_view"]
@@ -1578,12 +1611,24 @@ elif page == "Blueprint":
                         else:
                             dc1, dc2 = st.columns(2)
                             with dc1:
-                                if st.button(
-                                    "Confirm",
-                                    key=f"bp_confirm_del_{b_id}",
-                                    type="primary",
-                                    use_container_width=True,
-                                ):
+                                try:
+                                    confirm_clicked = st.button(
+                                        "Confirm",
+                                        key=f"bp_confirm_del_{b_id}",
+                                        color="red",
+                                        use_container_width=True,
+                                    )
+                                except TypeError:
+                                    confirm_clicked = st.button(
+                                        "Confirm",
+                                        key=f"bp_confirm_del_{b_id}",
+                                        use_container_width=True,
+                                    )
+                                    st.markdown(
+                                        '<style>div.stButton button:has(p:contains("Confirm")) { background-color: #ff4b4b !important; color: white !important; border-color: #ff4b4b !important; }</style>',
+                                        unsafe_allow_html=True,
+                                    )
+                                if confirm_clicked:
                                     client.table("blueprints").delete().eq(
                                         "id", b_id
                                     ).execute()
@@ -2007,12 +2052,24 @@ elif page == "Engineering Log":
                                 st.session_state[arm_time_key] = time.time()
                                 st.rerun()
                         else:
-                            if st.button(
-                                "Confirm",
-                                key=f"conf_del_{entry_id}",
-                                type="primary",
-                                use_container_width=True,
-                            ):
+                            try:
+                                log_confirm_clicked = st.button(
+                                    "Confirm",
+                                    key=f"conf_del_{entry_id}",
+                                    color="red",
+                                    use_container_width=True,
+                                )
+                            except TypeError:
+                                log_confirm_clicked = st.button(
+                                    "Confirm",
+                                    key=f"conf_del_{entry_id}",
+                                    use_container_width=True,
+                                )
+                                st.markdown(
+                                    '<style>div.stButton button:has(p:contains("Confirm")) { background-color: #ff4b4b !important; color: white !important; border-color: #ff4b4b !important; }</style>',
+                                    unsafe_allow_html=True,
+                                )
+                            if log_confirm_clicked:
                                 try:
                                     client = get_client()
                                     if "access_token" in st.session_state:
