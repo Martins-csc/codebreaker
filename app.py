@@ -939,23 +939,14 @@ if not user:
         st.markdown("---")
         col_cta1, col_cta2 = st.columns(2)
         with col_cta1:
-            if st.button(
-                "Log In",
-                type="primary",
-                use_container_width=True,
-                key="landing_login_cta",
-            ):
+            if st.button("Log In", key="cta_login", use_container_width=True):
                 st.session_state["auth_view"] = "login"
-                st.query_params["mode"] = "login"
-                st.session_state["nav_pending"] = "Home"
+                st.session_state["nav_pending"] = "Auth"
                 st.rerun()
         with col_cta2:
-            if st.button(
-                "Create Account", use_container_width=True, key="landing_signup_cta"
-            ):
+            if st.button("Create Account", key="cta_signup", use_container_width=True):
                 st.session_state["auth_view"] = "signup"
-                st.query_params["mode"] = "signup"
-                st.session_state["nav_pending"] = "Home"
+                st.session_state["nav_pending"] = "Auth"
                 st.rerun()
 
     st.stop()
@@ -1609,53 +1600,46 @@ elif page == "Blueprint":
                                 st.session_state[del_time_key] = time.time()
                                 st.rerun()
                         else:
-                            dc1, dc2 = st.columns(2)
-                            with dc1:
-                                try:
-                                    confirm_clicked = st.button(
-                                        "Confirm",
-                                        key=f"bp_confirm_del_{b_id}",
-                                        color="red",
-                                        use_container_width=True,
-                                    )
-                                except TypeError:
-                                    confirm_clicked = st.button(
-                                        "Confirm",
-                                        key=f"bp_confirm_del_{b_id}",
-                                        use_container_width=True,
-                                    )
-                                    st.markdown(
-                                        '<style>div.stButton button:has(p:contains("Confirm")) { background-color: #ff4b4b !important; color: white !important; border-color: #ff4b4b !important; }</style>',
-                                        unsafe_allow_html=True,
-                                    )
-                                if confirm_clicked:
-                                    client.table("blueprints").delete().eq(
-                                        "id", b_id
-                                    ).execute()
-                                    if (
-                                        st.session_state.get("active_blueprint_id")
-                                        == b_id
-                                    ):
-                                        st.session_state["active_blueprint_id"] = None
-                                        st.session_state.pop("blueprint", None)
-                                        try:
-                                            client.table("profiles").update(
-                                                {"active_blueprint_id": None}
-                                            ).eq("id", user["id"]).execute()
-                                        except Exception:
-                                            pass
-                                    st.session_state.pop(del_armed_key, None)
-                                    st.session_state.pop(del_time_key, None)
-                                    st.rerun()
-                            with dc2:
+
+                            def do_delete(rid):
+                                client.table("blueprints").delete().eq(
+                                    "id", rid
+                                ).execute()
+                                if st.session_state.get("active_blueprint_id") == rid:
+                                    st.session_state["active_blueprint_id"] = None
+                                    st.session_state.pop("blueprint", None)
+                                    try:
+                                        client.table("profiles").update(
+                                            {"active_blueprint_id": None}
+                                        ).eq("id", user["id"]).execute()
+                                    except Exception:
+                                        pass
+                                st.session_state.pop(del_armed_key, None)
+                                st.session_state.pop(del_time_key, None)
+                                st.rerun()
+
+                            def disarm(rid):
+                                st.session_state[del_armed_key] = False
+                                st.session_state.pop(del_time_key, None)
+                                st.rerun()
+
+                            row_id = b_id
+                            ca, cb = st.columns(2)
+                            with ca:
                                 if st.button(
-                                    "Cancel",
-                                    key=f"bp_cancel_del_{b_id}",
+                                    "Confirm",
+                                    key=f"arm_confirm_{row_id}",
+                                    color="red",
                                     use_container_width=True,
                                 ):
-                                    st.session_state[del_armed_key] = False
-                                    st.session_state.pop(del_time_key, None)
-                                    st.rerun()
+                                    do_delete(row_id)
+                            with cb:
+                                if st.button(
+                                    "Cancel",
+                                    key=f"arm_cancel_{row_id}",
+                                    use_container_width=True,
+                                ):
+                                    disarm(row_id)
 
                         if st.session_state.get(f"extending_{b_id}", False):
                             with st.container(border=True):
@@ -2052,24 +2036,8 @@ elif page == "Engineering Log":
                                 st.session_state[arm_time_key] = time.time()
                                 st.rerun()
                         else:
-                            try:
-                                log_confirm_clicked = st.button(
-                                    "Confirm",
-                                    key=f"conf_del_{entry_id}",
-                                    color="red",
-                                    use_container_width=True,
-                                )
-                            except TypeError:
-                                log_confirm_clicked = st.button(
-                                    "Confirm",
-                                    key=f"conf_del_{entry_id}",
-                                    use_container_width=True,
-                                )
-                                st.markdown(
-                                    '<style>div.stButton button:has(p:contains("Confirm")) { background-color: #ff4b4b !important; color: white !important; border-color: #ff4b4b !important; }</style>',
-                                    unsafe_allow_html=True,
-                                )
-                            if log_confirm_clicked:
+
+                            def do_delete(rid):
                                 try:
                                     client = get_client()
                                     if "access_token" in st.session_state:
@@ -2078,7 +2046,7 @@ elif page == "Engineering Log":
                                             st.session_state.get("refresh_token", ""),
                                         )
                                     client.table("engineering_log").delete().eq(
-                                        "id", entry_id
+                                        "id", rid
                                     ).eq("user_id", user["id"]).execute()
                                     st.session_state[confirm_del_key] = False
                                     st.session_state.pop(arm_time_key, None)
@@ -2086,14 +2054,29 @@ elif page == "Engineering Log":
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Failed to delete log entry: {e}")
-                            if st.button(
-                                "Cancel",
-                                key=f"canc_del_{entry_id}",
-                                use_container_width=True,
-                            ):
+
+                            def disarm(rid):
                                 st.session_state[confirm_del_key] = False
                                 st.session_state.pop(arm_time_key, None)
                                 st.rerun()
+
+                            row_id = entry_id
+                            ca, cb = st.columns(2)
+                            with ca:
+                                if st.button(
+                                    "Confirm",
+                                    key=f"arm_confirm_{row_id}",
+                                    color="red",
+                                    use_container_width=True,
+                                ):
+                                    do_delete(row_id)
+                            with cb:
+                                if st.button(
+                                    "Cancel",
+                                    key=f"arm_cancel_{row_id}",
+                                    use_container_width=True,
+                                ):
+                                    disarm(row_id)
 
             st.markdown("---")
             all_confirm_key = "confirm_delete_all_logs"

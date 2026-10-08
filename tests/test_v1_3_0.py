@@ -59,8 +59,8 @@ def test_landing_and_auth_elements():
     assert "Forgot Password" in content
     assert "query_params" in content
     assert '"mode"' in content
-    assert "landing_login_cta" in content
-    assert "landing_signup_cta" in content
+    assert "cta_login" in content
+    assert "cta_signup" in content
     assert "card_signup_btn" in content
     assert "GitHub OAuth exchange failed:" in content
     assert "Supabase Redirect URLs" in content

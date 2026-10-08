@@ -3,7 +3,6 @@ import py_compile
 import time
 
 import pytest
-
 from ai_engine import build_pdf_lines, render_blueprint_pdf
 
 
@@ -72,8 +71,8 @@ def test_login_cta_rerun_source_scan():
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
-    assert "landing_login_cta" in content
-    assert "landing_signup_cta" in content
+    assert "cta_login" in content
+    assert "cta_signup" in content
     assert content.count("st.rerun()") > 5
 
 

@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.8] - 2026-10-08
+
+### Added / Changed
+- MICRO-MISSION v1.6.8 — Verbatim law (red Confirm, footer chrome, login flash):
+  - **Verbatim Red Confirm & Footer Chrome**: Adopted exact button pattern (`ca, cb = st.columns(2)` with `color="red"` on Confirm and `disarm(row_id)` on Cancel) for Blueprint library and Engineering Log entry delete; implemented exact PDF footer chrome (`pdf.set_y(pdf.get_page_height() - 15)`, italic 8 footer string, and `CodeBreaker System Architecture Blueprint` title/subtitle handling) and clean `build_pdf_lines`.
+  - **Landing CTAs & Auth Flow**: Landing CTAs updated to `cta_login` and `cta_signup` setting `nav_pending = "Auth"` and calling `st.rerun()`.
+  - **Testing & Documentation**: Enforced compile gate (`py_compile`), source-scan and unit tests (`tests/test_v1_6_8.py`), and verified green test suite (`182 tests passed`). CHANGELOG v1.6.8.
+
 ## [1.6.7] - 2026-10-08
 
 ### Added / Changed
