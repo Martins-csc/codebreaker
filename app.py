@@ -969,12 +969,11 @@ else:
         st.session_state["nav_radio"] = _nav_val
         st.query_params["pg"] = _nav_val
         _pg = _nav_val
-    elif "nav_radio" not in st.session_state and _pg in options:
-        st.session_state["nav_radio"] = _pg
+    elif "nav_radio" not in st.session_state:
+        st.session_state["nav_radio"] = _pg if _pg in options else "Home"
 
-    default_index = options.index(_pg) if _pg in options else 0
     page = st.sidebar.radio(
-        "", options, index=default_index, label_visibility="collapsed", key="nav_radio"
+        "Section", options, label_visibility="collapsed", key="nav_radio"
     )
     if page != _pg:
         st.query_params["pg"] = page
@@ -1710,9 +1709,14 @@ elif page == "Blueprint":
 
         col_title, col_export = st.columns([2, 2])
         with col_title:
-            st.subheader(
-                f"Blueprint for: {blueprint.get('project_name', 'Untitled Project')}"
+            b_ver = blueprint.get("version", 1) if isinstance(blueprint, dict) else 1
+            p_name = (
+                blueprint.get("project_name")
+                or blueprint.get("title")
+                or "Untitled Project"
             )
+            display_title = format_display_title(p_name, b_ver)
+            st.subheader(f"Blueprint for: {display_title}")
         with col_export:
             base_fname = sanitize_filename(blueprint.get("project_name", "blueprint"))
             if base_fname.endswith(".md"):
@@ -1822,7 +1826,7 @@ elif page == "Blueprint":
                 r for r in roadmap if r is not None and str(r).lower() != "none"
             ]
             cleaned_roadmap = [clean_roadmap_step(s) for s in valid_roadmap]
-            st.markdown(f"### Implementation Roadmap ({len(cleaned_roadmap)} Steps)")
+            st.markdown("### Implementation Roadmap")
             if cleaned_roadmap:
                 for i, step in enumerate(cleaned_roadmap, 1):
                     st.markdown(f"**Step {i}:** {step}")
