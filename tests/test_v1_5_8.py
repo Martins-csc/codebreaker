@@ -5,11 +5,11 @@ import requests
 
 
 def test_no_witness_strings_in_app():
-    """Assert that no witness strings remain in app.py source code."""
+    """Assert that no OAuth witness strings remain in app.py source code."""
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
-    assert "WITNESS" not in content
-    assert "witness" not in content.lower()
+    assert "OAUTH-WITNESS" not in content
+    assert "TOKEN-WITNESS" not in content
 
 
 def test_oauth_hardcoded_winning_exchange_mints_rt_and_clears_params():

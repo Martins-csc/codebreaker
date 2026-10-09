@@ -939,7 +939,9 @@ if not user:
         st.markdown("---")
         col_cta1, col_cta2 = st.columns(2)
         with col_cta1:
-            if st.button("Log In", key="cta_login", type="primary", use_container_width=True):
+            if st.button(
+                "Log In", key="cta_login", type="primary", use_container_width=True
+            ):
                 st.session_state["auth_view"] = "login"
                 st.session_state["nav_pending"] = "Auth"
                 st.rerun()
@@ -1626,10 +1628,14 @@ elif page == "Blueprint":
                             row_id = b_id
                             ca, cb = st.columns(2)
                             with ca:
+                                st.markdown(
+                                    '<span style="color:#c0392b; font-size:0.85em">Confirming will permanently delete this item.</span>',
+                                    unsafe_allow_html=True,
+                                )
                                 if st.button(
                                     "Confirm",
                                     key=f"arm_confirm_{row_id}",
-                                    color="red",
+                                    type="primary",
                                     use_container_width=True,
                                 ):
                                     do_delete(row_id)
@@ -2063,10 +2069,14 @@ elif page == "Engineering Log":
                             row_id = entry_id
                             ca, cb = st.columns(2)
                             with ca:
+                                st.markdown(
+                                    '<span style="color:#c0392b; font-size:0.85em">Confirming will permanently delete this item.</span>',
+                                    unsafe_allow_html=True,
+                                )
                                 if st.button(
                                     "Confirm",
                                     key=f"arm_confirm_{row_id}",
-                                    color="red",
+                                    type="primary",
                                     use_container_width=True,
                                 ):
                                     do_delete(row_id)

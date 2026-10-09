@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.6.9] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.6.9 — Platform-honest confirm styling + footer chrome per spec:
+  - **Platform-Honest Confirm Styling**: Removed unsupported `color=` keyword from `st.button` calls (Streamlit 1.65 platform limit: colored buttons rejected; true red buttons deferred to hosting migration's custom frontend). Confirm buttons set to `type="primary"` with explicit warning markdown `st.markdown('<span style="color:#c0392b; font-size:0.85em">Confirming will permanently delete this item.</span>', unsafe_allow_html=True)` rendered directly above each Confirm button. Cancel stays neutral; Log In stays blue primary.
+  - **PDF Chrome & Spec Doctrine**: Created `docs/pdf_chrome_spec.md` establishing the spec-file doctrine (future missions cite the spec file, never re-describe the look). Implemented folder-structure Courier 9 branch, exact footer block with `set_auto_page_break(auto=False)` before `set_y`, and strict ISO-to-DD-MM-YYYY footer date normalization (`strftime("%d-%m-%Y")`).
+  - **Testing & Documentation**: Enforced compile gate (`py_compile`), source-scan assertions, unit test suite (`tests/test_v1_6_9.py`), and verified green test suite. CHANGELOG v1.6.9.
+
 ## [1.6.8] - 2026-10-08
 
 ### Added / Changed

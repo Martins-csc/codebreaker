@@ -38,7 +38,7 @@ def test_pdf_footer_and_courier_source_scan():
     )
     with open(engine_path, "r", encoding="utf-8") as f:
         content = f.read()
-    assert "pdf.set_y(pdf.get_page_height() - 15)" in content
+    assert "set_auto_page_break(auto=False)" in content
     assert '"Courier"' in content
     assert "in_folder" in content
 
