@@ -17,6 +17,7 @@ from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
                        render_blueprint_markdown, render_blueprint_pdf,
                        render_blueprint_text, sanitize_filename)
 
+import ai_engine
 _AE_MT = _os.path.getmtime(ai_engine.__file__)
 if st.session_state.get("_ae_mt") != _AE_MT:
     _importlib.reload(ai_engine)
