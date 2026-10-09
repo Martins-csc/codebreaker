@@ -939,7 +939,7 @@ if not user:
         st.markdown("---")
         col_cta1, col_cta2 = st.columns(2)
         with col_cta1:
-            if st.button("Log In", key="cta_login", use_container_width=True):
+            if st.button("Log In", key="cta_login", type="primary", use_container_width=True):
                 st.session_state["auth_view"] = "login"
                 st.session_state["nav_pending"] = "Auth"
                 st.rerun()
@@ -1722,7 +1722,7 @@ elif page == "Blueprint":
             else:
                 st.info("Open a blueprint from your library or generate a new one.")
         except Exception:
-            st.info("Library unavailable.")
+            st.error("LIBRARY-WITNESS:\n" + __import__("traceback").format_exc()[-900:])
     else:
         if st.button(
             "← Back to All Blueprints", use_container_width=False, key="back_to_all_bps"
