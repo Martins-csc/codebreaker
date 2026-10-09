@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.1 — Library red confirm, cross-links restyle, ai_engine reload cure:
+  - **Library Confirm Red**: Applied the identical CSS mechanism used on Engineering Log (`div[data-testid="stContainer"] div.stButton > button[kind="primary"]`) to the Blueprint library Confirm button so both render red (`#d33`).
+  - **Auth Cross-Links Restyle**: Removed boxed switch buttons under Log In/Create Account rows; rendered each switch at the bottom of the auth view, centered via `st.columns([0.25, 0.5, 0.25])` with middle column holding `st.button(..., type="tertiary", use_container_width=True, key=...)`. Injected CSS targeting tertiary buttons (`color: #1a73e8; font-weight: 600; font-size: 1.05em;`). Handlers preserve `nav_pending` + `st.rerun()`.
+  - **Module-Cache Cure (`ai_engine` Hot-Reload & Rebind)**: Inserted mtime-based reload block immediately after `ai_engine` import in `app.py` (`_importlib.reload(ai_engine)` and rebinding loop over imported names into `globals()`), curing module staleness across edits without requiring manual server reboots (while Reboot remains the reliable backup).
+  - **Testing & Documentation**: Enforced compile gate (`py_compile`), source-scan and unit tests (`tests/test_v1_7_1.py`), and verified green test suite (`191 passed`). CHANGELOG v1.7.1 and DEVLOG Entry 046.
+
 ## [1.7.0] - 2026-10-09
 
 ### Added / Changed

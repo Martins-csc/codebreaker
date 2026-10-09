@@ -1,5 +1,24 @@
 # CodeBreaker Development Log
 
+## Entry 046: Library Red Confirm, Cross-Links Restyle & Module-Cache Cure (v1.7.1)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.1 MICRO-MISSION — Library red confirm, cross-links restyle, ai_engine reload cure
+
+### Design Notes & Architectural Decisions
+1. **Library Confirm Red Unification**:
+   - Inspected the exact CSS injection mechanism used to make Engineering Log confirm buttons red (`div[data-testid="stExpander"] div.stButton > button[kind="primary"]`).
+   - Applied the identical mechanism to Blueprint library containers (`div[data-testid="stContainer"] div.stButton > button[kind="primary"]`) so both render red (`#d33`) instead of default blue.
+2. **Auth Cross-Links Restyle**:
+   - Deleted boxed switch buttons from under the Log In / Create Account rows.
+   - Rendered each switch at the bottom of the auth view, centered via `st.columns([0.25, 0.5, 0.25])` in the middle column (`col_ac2`), using `type="tertiary"`, `use_container_width=True`, and existing keys (`auth_switch_to_signup` / `auth_switch_to_login`).
+   - Injected ONCE via `st.markdown(unsafe_allow_html=True)` the CSS targeting `div[data-testid="stButton"] button[kind="tertiary"]` (`color: #1a73e8; font-weight: 600; font-size: 1.05em;`). Handlers maintain `nav_pending` + `st.rerun()`.
+3. **The Imported-Module Cache Law & Module-Cache Cure**:
+   - **Law**: Streamlit hot-reloads `app.py` on file save, but does **not** automatically reload imported non-Streamlit modules (`ai_engine.py`). Consequently, code changes in `ai_engine.py` were not reflected in the running application without a full server reboot.
+   - **Cure**: Inserted an mtime-based reload block immediately after the `ai_engine` import in `app.py` checking `os.path.getmtime(ai_engine.__file__)` against session state (`_ae_mt`), invoking `importlib.reload(ai_engine)`, and rebinding every imported name into `globals()`. Reboot remains the ultimate backup.
+4. **Testing & Verification**:
+   - Enforced pre-seal compile gate (`python3 -m py_compile`) and 100% test pass rate (`pytest tests/ -q` — 191 tests passed).
+
 ## Entry 045: Confirm Unification, DD-MM-YYYY Display Law & Auth UX (v1.7.0)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

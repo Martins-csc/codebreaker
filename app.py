@@ -1,6 +1,8 @@
 import base64
 import hashlib
+import importlib as _importlib
 import json
+import os as _os
 import re
 import secrets
 import time
@@ -14,6 +16,24 @@ from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
                        generate_blueprint, render_blueprint_html,
                        render_blueprint_markdown, render_blueprint_pdf,
                        render_blueprint_text, sanitize_filename)
+
+_AE_MT = _os.path.getmtime(ai_engine.__file__)
+if st.session_state.get("_ae_mt") != _AE_MT:
+    _importlib.reload(ai_engine)
+    for _n in (
+        "BlueprintError",
+        "clean_roadmap_step",
+        "extend_blueprint",
+        "generate_blueprint",
+        "render_blueprint_html",
+        "render_blueprint_markdown",
+        "render_blueprint_pdf",
+        "render_blueprint_text",
+        "sanitize_filename",
+    ):
+        if hasattr(ai_engine, _n):
+            globals()[_n] = getattr(ai_engine, _n)
+    st.session_state["_ae_mt"] = _AE_MT
 from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
@@ -593,6 +613,11 @@ if not user:
                 .stForm [data-testid="InputInstructions"], div[data-baseweb="input"] + div {
                     display: none !important;
                 }
+                div[data-testid="stButton"] button[kind="tertiary"] {
+                    color: #1a73e8;
+                    font-weight: 600;
+                    font-size: 1.05em;
+                }
                 </style>
                 """,
                 unsafe_allow_html=True,
@@ -634,26 +659,6 @@ if not user:
                     use_container_width=True,
                     key="card_signup_btn",
                 )
-
-            st.markdown(
-                '<div style="text-align: center; margin-top: 15px;">',
-                unsafe_allow_html=True,
-            )
-            if auth_mode == "login":
-                if st.button(
-                    "Don't have an account? Sign up", key="auth_switch_to_signup"
-                ):
-                    st.session_state["auth_view"] = "signup"
-                    st.query_params["mode"] = "signup"
-                    st.rerun()
-            else:
-                if st.button(
-                    "Already have an account? Log in", key="auth_switch_to_login"
-                ):
-                    st.session_state["auth_view"] = "login"
-                    st.query_params["mode"] = "login"
-                    st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
 
             if login_submitted:
                 if not auth_email.strip():
@@ -933,6 +938,29 @@ if not user:
                     use_container_width=True,
                     key="card_github_link_btn",
                 )
+
+                col_ac1, col_ac2, col_ac3 = st.columns([0.25, 0.5, 0.25])
+                with col_ac2:
+                    if auth_mode == "login":
+                        if st.button(
+                            "Don't have an account? Sign up",
+                            type="tertiary",
+                            use_container_width=True,
+                            key="auth_switch_to_signup",
+                        ):
+                            st.session_state["auth_view"] = "signup"
+                            st.query_params["mode"] = "signup"
+                            st.rerun()
+                    else:
+                        if st.button(
+                            "Already have an account? Log in",
+                            type="tertiary",
+                            use_container_width=True,
+                            key="auth_switch_to_login",
+                        ):
+                            st.session_state["auth_view"] = "login"
+                            st.query_params["mode"] = "login"
+                            st.rerun()
             except Exception as e:
                 st.error(f"Could not generate GitHub OAuth link: {e}")
     else:
@@ -1551,6 +1579,18 @@ elif page == "Blueprint":
     blueprint = st.session_state.get("blueprint")
 
     if not active_bp_id or not blueprint:
+        st.markdown(
+            """
+            <style>
+            div[data-testid="stContainer"] div.stButton > button[kind="primary"] {
+                background-color: #d33;
+                color: #fff;
+                border-color: #d33;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
         st.subheader("Blueprint Library")
         st.write("Select a blueprint to open, extend, or manage.")
         try:
