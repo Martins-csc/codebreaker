@@ -10,6 +10,7 @@ import urllib.parse
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+import ai_engine
 import requests
 import streamlit as st
 from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
@@ -17,7 +18,6 @@ from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
                        render_blueprint_markdown, render_blueprint_pdf,
                        render_blueprint_text, sanitize_filename)
 
-import ai_engine
 _AE_MT = _os.path.getmtime(ai_engine.__file__)
 if st.session_state.get("_ae_mt") != _AE_MT:
     _importlib.reload(ai_engine)
@@ -568,6 +568,11 @@ except ConfigError as ce:
 
 user = st.session_state.get("user")
 if not user:
+    mode_param = st.query_params.get("mode")
+    if mode_param in ("signup", "login"):
+        st.session_state["auth_view"] = mode_param
+        st.query_params.pop("mode", None)
+        st.rerun()
     st.markdown(
         """
         <style>
@@ -943,25 +948,15 @@ if not user:
                 col_ac1, col_ac2, col_ac3 = st.columns([0.25, 0.5, 0.25])
                 with col_ac2:
                     if auth_mode == "login":
-                        if st.button(
-                            "Don't have an account? Sign up",
-                            type="tertiary",
-                            use_container_width=True,
-                            key="auth_switch_to_signup",
-                        ):
-                            st.session_state["auth_view"] = "signup"
-                            st.query_params["mode"] = "signup"
-                            st.rerun()
+                        st.markdown(
+                            '<div style="text-align: center;">Don\'t have an account? <a href="?mode=signup">Sign up</a></div>',
+                            unsafe_allow_html=True,
+                        )
                     else:
-                        if st.button(
-                            "Already have an account? Log in",
-                            type="tertiary",
-                            use_container_width=True,
-                            key="auth_switch_to_login",
-                        ):
-                            st.session_state["auth_view"] = "login"
-                            st.query_params["mode"] = "login"
-                            st.rerun()
+                        st.markdown(
+                            '<div style="text-align: center;">Already have an account? <a href="?mode=login">Log in</a></div>',
+                            unsafe_allow_html=True,
+                        )
             except Exception as e:
                 st.error(f"Could not generate GitHub OAuth link: {e}")
     else:
@@ -1583,7 +1578,7 @@ elif page == "Blueprint":
         st.markdown(
             """
             <style>
-            div[data-testid="stContainer"] div.stButton > button[kind="primary"] {
+            div[data-testid="stExpander"] div.stButton > button[kind="primary"] {
                 background-color: #d33;
                 color: #fff;
                 border-color: #d33;
@@ -1620,8 +1615,8 @@ elif page == "Blueprint":
                     b_created = item.get("created_at", "N/A")
                     date_str = fmt_date(b_created)
 
-                    with st.container(border=True):
-                        st.markdown(f"**{display_title}** — `({date_str})`")
+                    expander_label = f"{display_title} — ({date_str})"
+                    with st.expander(expander_label, expanded=False):
                         del_armed_key = f"arm_del_bp_{b_id}"
                         del_time_key = f"arm_time_bp_{b_id}"
                         is_armed = st.session_state.get(del_armed_key, False)
@@ -1788,7 +1783,7 @@ elif page == "Blueprint":
             else:
                 st.info("Open a blueprint from your library or generate a new one.")
         except Exception:
-            st.error("LIBRARY-WITNESS:\n" + __import__("traceback").format_exc()[-900:])
+            st.info("Library unavailable.")
     else:
         if st.button(
             "← Back to All Blueprints", use_container_width=False, key="back_to_all_bps"

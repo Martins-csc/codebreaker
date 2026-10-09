@@ -1,5 +1,24 @@
 # CodeBreaker Development Log
 
+## Entry 047: Red Library Confirm, Two-Tone Cross-Links & Witness Retirement (v1.7.2)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.2 MICRO-MISSION — Red library Confirm, two-tone cross-links, witness retirement
+
+### Design Notes & Architectural Decisions
+1. **Red Library Confirm via Expander Mechanism**:
+   - Identified that Engineering Log successfully produces red confirms by housing entries in `st.expander` and targeting `div[data-testid="stExpander"] div.stButton > button[kind="primary"]`.
+   - Converted Blueprint library items from `st.container` to `st.expander`, enabling the identical shared CSS mechanism so both library and log confirm buttons render in uniform red (`#d33`).
+2. **Two-Tone Cross-Links & Boot Mode Handler**:
+   - Deleted full-blue tertiary buttons.
+   - Rendered bottom-centered markdown links (`"Don't have an account? <a href=\"?mode=signup\">Sign up</a>"` / `"Already have an account? <a href=\"?mode=login\">Log in</a>"`), where text stays default black and the anchor inherits theme primary blue without inline color overrides.
+   - Added boot query-param handler (`st.query_params.get("mode") in ("signup", "login")`) to instantly switch auth view, delete param, and rerun.
+3. **Witness Retirement & PDF Saga Final Closure**:
+   - Permanently retired LIBRARY-WITNESS traceback rendering, restoring the library except branch to `st.info("Library unavailable.")` as the library is proven healthy.
+   - PDF saga final closure (Hulk PDF as proof artifact) and adherence to two-tone link rule.
+4. **Testing & Verification**:
+   - Enforced pre-seal compile gate (`py_compile`), unit tests (`tests/test_v1_7_2.py`), and verified green test suite (`193 tests passed`).
+
 ## Entry 046: Library Red Confirm, Cross-Links Restyle & Module-Cache Cure (v1.7.1)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

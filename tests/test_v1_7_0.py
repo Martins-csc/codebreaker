@@ -29,8 +29,10 @@ def test_v1_7_0_requirements_source_scan():
     assert "fmt_date(" in app_content
 
     # 3. Both cross-link strings present
-    assert "Don't have an account? Sign up" in app_content
-    assert "Already have an account? Log in" in app_content
+    assert "?mode=signup" in app_content
+    assert "?mode=login" in app_content
+    assert '<a href="?mode=signup">' in app_content
+    assert '<a href="?mode=login">' in app_content
 
     # 4. initial_sidebar_state="collapsed" present
     assert 'initial_sidebar_state="collapsed"' in app_content

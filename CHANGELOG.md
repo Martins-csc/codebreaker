@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.2 — Red library Confirm, two-tone cross-links, witness retirement:
+  - **Red Library Confirm Unification**: Standardized Blueprint library items to render via `st.expander` (matching Engineering Log), enabling the exact shared CSS selector `div[data-testid="stExpander"] div.stButton > button[kind="primary"]` so both render red (`#d33`).
+  - **Two-Tone Cross-Links & Boot Mode Handler**: Deleted full-blue tertiary buttons; rendered bottom-centered markdown links (`"Don't have an account? <a href=\"?mode=signup\">Sign up</a>"` / `"Already have an account? <a href=\"?mode=login\">Log in</a>"`), inheriting theme primary blue without inline color override. Added boot query-param mode handler (`st.query_params.get("mode") in ("signup", "login")`).
+  - **Witness Retirement**: Permanently retired LIBRARY-WITNESS traceback rendering, restoring library except branch to `st.info("Library unavailable.")`.
+  - **Testing & Documentation**: Enforced compile gate (`py_compile`), source-scan and unit tests (`tests/test_v1_7_2.py`), and verified green test suite (`193 passed`). CHANGELOG v1.7.2 and DEVLOG Entry 047.
+
 ## [1.7.1] - 2026-10-09
 
 ### Added / Changed
