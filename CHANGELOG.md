@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.3] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.3 — Provider-diversity rule, library copy rename, sidebar auto-open verdict:
+  - **Provider-Diversity Rule**: Inserted verbatim provider-diversity guidelines into `ai_engine.py` generation and extend prompts requiring explicit cost, privacy, offline, and latency evaluation before defaulting to OpenAI GPT-4o.
+  - **Blueprint Library Copy Rename**: Renamed button label from `"← Back to All Blueprints"` to `"← Blueprint Library"`.
+  - **Sidebar Auto-Open Platform Verdict**: Investigated and confirmed branch (b) platform-side — Streamlit mobile persists sidebar open/close state in client storage until site data is cleared or incognito is used. Documented reset note in DEVLOG.
+  - **Testing & Documentation**: Enforced compile gate (`py_compile`), source-scan assertions, unit tests (`tests/test_v1_7_3.py`), and verified green test suite. CHANGELOG v1.7.3 and DEVLOG Entry 048.
+
 ## [1.7.2] - 2026-10-09
 
 ### Added / Changed

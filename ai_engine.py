@@ -27,6 +27,8 @@ The JSON object must contain exactly these top-level keys with specified types:
 6. "edge_cases": list of strings
 7. "roadmap": list of step strings (Implementation Roadmap step count follows complexity: simple 3-4, medium 5-7, complex 8-10; never default to 5)
 8. "summary": string
+
+When the project requires an LLM/AI API or any third-party API, weigh alternatives (OpenAI, Google Gemini, Anthropic Claude, open-source models via Groq/Ollama) against the user's stated constraints (cost, privacy, offline use, latency); select the best-fit provider, reflect it in the tech stack, and justify the choice in one sentence inside the summary; never default to OpenAI GPT-4o without explicit justification.
 """
 
 

@@ -1,5 +1,22 @@
 # CodeBreaker Development Log
 
+## Entry 048: Provider-Diversity Rule, Blueprint Library Button Rename & Sidebar Platform Verdict (v1.7.3)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.3 MICRO-MISSION — Provider-diversity rule, library copy rename, sidebar auto-open verdict
+
+### Design Notes & Architectural Decisions
+1. **Provider-Diversity Rule**:
+   - Inserted verbatim rule text into `ai_engine.py` SYSTEM_PROMPT (affecting both generation and extend prompts): `"When the project requires an LLM/AI API or any third-party API, weigh alternatives (OpenAI, Google Gemini, Anthropic Claude, open-source models via Groq/Ollama) against the user's stated constraints (cost, privacy, offline use, latency); select the best-fit provider, reflect it in the tech stack, and justify the choice in one sentence inside the summary; never default to OpenAI GPT-4o without explicit justification."`
+2. **Blueprint Library Button Copy Rename**:
+   - Replaced button label `"← Back to All Blueprints"` with `"← Blueprint Library"` in `app.py`.
+3. **Sidebar Auto-Open Verdict & Reset Note**:
+   - Investigated branch (a) code-side vs (b) platform-side. Verified that `st.set_page_config` is called exactly once with `initial_sidebar_state="collapsed"`.
+   - **Verdict**: Branch (b) platform-side is true. Streamlit mobile persists sidebar open/close state in client storage across sessions.
+   - **Reset Note**: `"clear site data or use incognito to reset the persisted sidebar preference"`.
+4. **Testing & Verification**:
+   - Enforced pre-seal compile gate (`py_compile`), source-scan unit tests (`tests/test_v1_7_3.py`), and verified green test suite.
+
 ## Entry 047: Red Library Confirm, Two-Tone Cross-Links & Witness Retirement (v1.7.2)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

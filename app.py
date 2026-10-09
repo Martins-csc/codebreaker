@@ -1786,7 +1786,7 @@ elif page == "Blueprint":
             st.info("Library unavailable.")
     else:
         if st.button(
-            "← Back to All Blueprints", use_container_width=False, key="back_to_all_bps"
+            "← Blueprint Library", use_container_width=False, key="back_to_all_bps"
         ):
             st.session_state["active_blueprint_id"] = None
             st.session_state.pop("blueprint", None)
