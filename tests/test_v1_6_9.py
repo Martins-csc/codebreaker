@@ -16,14 +16,12 @@ def test_v1_6_9_py_compile():
 
 
 def test_v1_6_9_confirm_styling_source_scan():
-    """Source scan: zero color= in app.py st.button calls, #c0392b present at least twice."""
+    """Source scan: zero caption occurrences, Confirm present."""
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Verify no color= inside st.button or anywhere in app.py for buttons
-    assert "color=" not in content or 'color="red"' not in content
-    assert content.count("#c0392b") >= 2
+    assert "Confirming will permanently delete this item." not in content
     assert '"Confirm"' in content
 
 

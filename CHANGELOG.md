@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.0 — Confirm unification, DD-MM-YYYY display law, auth UX cross-links & sidebar rename:
+  - **Confirm Unification & Caption Elimination**: Standardized Blueprint library and Engineering Log confirms to share the identical red confirm mechanism (`type="primary"`, side-by-side equal columns via `st.columns(2)`, `use_container_width=True`) and removed every instance of the `"Confirming will permanently delete this item."` caption from both surfaces.
+  - **DD-MM-YYYY Display Law**: Added `fmt_date(d)` helper in `app.py` parsing ISO timestamps into Africa/Lagos calendar dates formatted as `"DD-MM-YYYY"`. Applied uniformly across library date chips, Home recent chips, log `[date]` prefixes, and expander Timestamp lines (retaining `HH:MM:SS`). DB storage remains ISO forever (`created_at`). PDF footer renders `DD-MM-YYYY` via `strftime("%d-%m-%Y")`. `build_pdf_lines` emits subtitle `"CodeBreaker System Architecture Blueprint"` (italic 9) and footer per `docs/pdf_chrome_spec.md`.
+  - **Auth UX & Sidebar Rename**: Added bottom-centered cross-links `"Don't have an account? Sign up"` on login view and `"Already have an account? Log in"` on create-account view. Renamed sidebar `"Sign Out"` to `"Log Out"`. Set `initial_sidebar_state="collapsed"` in `st.set_page_config`. Both auth paths execute all session work before first render (render-after-work).
+  - **Accepted Platform Artifacts & Verification**: Accepted platform repaint and mobile sidebar overlay behaviors; enforced `py_compile`, source-scan rules, quoted-lines report rule, and verified green pytest suite.
+
 ## [1.6.9] - 2026-10-09
 
 ### Added / Changed

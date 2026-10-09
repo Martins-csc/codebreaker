@@ -74,7 +74,7 @@ def test_sidebar_order_contract():
     admin_pulse_idx = content.find("Admin Pulse")
     radio_idx = content.find('label_visibility="collapsed"')
     debug_idx = content.rfind("Persistence Debug")
-    signout_idx = content.rfind("Sign Out")
+    signout_idx = content.rfind("Log Out")
 
     assert admin_pulse_idx != -1
     assert radio_idx != -1

@@ -16,11 +16,11 @@ def test_v1_6_8_py_compile():
 
 
 def test_v1_6_8_red_confirm_source_scan():
-    """Source scan: #c0392b present on Confirm warning banners in app.py."""
+    """Source scan: Confirm buttons present and caption absent."""
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
-    assert content.count("#c0392b") >= 2
+    assert "Confirming will permanently delete this item." not in content
     assert '"Confirm"' in content
 
 

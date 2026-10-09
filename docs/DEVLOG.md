@@ -1,5 +1,25 @@
 # CodeBreaker Development Log
 
+## Entry 045: Confirm Unification, DD-MM-YYYY Display Law & Auth UX (v1.7.0)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.0 MICRO-MISSION — Confirm unification, DD-MM-YYYY display law, auth UX cross-links & sidebar rename
+
+### Design Notes & Architectural Decisions
+1. **Confirm Unification & Caption Elimination**:
+   - Standardized Blueprint library and Engineering Log deletes to share the identical red confirm mechanism (`type="primary"`, side-by-side equal columns via `st.columns(2)`, `use_container_width=True`).
+   - Completely deleted every instance of the `"Confirming will permanently delete this item."` caption from both surfaces, ensuring cleaner cards and unified destructive confirmation UX.
+2. **ISO-Store / DD-MM-YYYY-Display Law**:
+   - Implemented `fmt_date(d)` helper in `app.py` parsing ISO timestamps into Africa/Lagos calendar dates formatted as `"DD-MM-YYYY"`.
+   - Applied uniformly across library date chips, Home recent chips, log `[date]` prefixes, and expander Timestamp lines (retaining `HH:MM:SS`).
+   - DB storage remains ISO forever (`created_at`). PDF footer renders `DD-MM-YYYY` via `strftime("%d-%m-%Y")`. `build_pdf_lines` emits subtitle `"CodeBreaker System Architecture Blueprint"` (italic 9) and footer per `docs/pdf_chrome_spec.md`.
+3. **Auth UX Cross-Links & Sidebar Rename**:
+   - Added bottom-centered cross-links `"Don't have an account? Sign up"` on login view and `"Already have an account? Log in"` on create-account view.
+   - Renamed sidebar `"Sign Out"` to `"Log Out"`.
+   - Configured `initial_sidebar_state="collapsed"` in `st.set_page_config`. Both auth paths execute all session work before first render (render-after-work).
+4. **Accepted Platform Artifacts & Verification**:
+   - Accepted platform repaint and mobile sidebar overlay behaviors; enforced `py_compile`, source-scan rules, quoted-lines report rule, and verified green pytest suite.
+
 ## Entry 044: Red Confirm Law & Render-After-Work Pattern for Transition Cleanliness (v1.6.7)
 - **Date**: 2026-10-08
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

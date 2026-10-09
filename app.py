@@ -42,7 +42,10 @@ def get_config(key, default=None):
 
 
 st.set_page_config(
-    page_title="CodeBreaker", page_icon=":material/terminal:", layout="wide"
+    page_title="CodeBreaker",
+    page_icon=":material/terminal:",
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 st.markdown(
@@ -81,6 +84,23 @@ def format_lagos_timestamp(created_at_str):
             else str(created_at_str)
         )
         return d, str(created_at_str)
+
+
+def fmt_date(created_at_str):
+    if not created_at_str or created_at_str == "N/A":
+        return "N/A"
+    try:
+        clean_str = str(created_at_str).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(clean_str)
+        dt_lagos = dt.astimezone(ZoneInfo("Africa/Lagos"))
+        return dt_lagos.strftime("%d-%m-%Y")
+    except Exception:
+        s = str(created_at_str).split("T")[0]
+        try:
+            dt = datetime.strptime(s, "%Y-%m-%d")
+            return dt.strftime("%d-%m-%Y")
+        except Exception:
+            return str(created_at_str)
 
 
 def format_member_since(created_at_val):
@@ -615,6 +635,26 @@ if not user:
                     key="card_signup_btn",
                 )
 
+            st.markdown(
+                '<div style="text-align: center; margin-top: 15px;">',
+                unsafe_allow_html=True,
+            )
+            if auth_mode == "login":
+                if st.button(
+                    "Don't have an account? Sign up", key="auth_switch_to_signup"
+                ):
+                    st.session_state["auth_view"] = "signup"
+                    st.query_params["mode"] = "signup"
+                    st.rerun()
+            else:
+                if st.button(
+                    "Already have an account? Log in", key="auth_switch_to_login"
+                ):
+                    st.session_state["auth_view"] = "login"
+                    st.query_params["mode"] = "login"
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
             if login_submitted:
                 if not auth_email.strip():
                     st.error("Email cannot be empty.")
@@ -1029,7 +1069,7 @@ else:
                 st.write(f"- `{pkey}`: **{p_status}**")
 
     st.sidebar.markdown("---")
-    if st.sidebar.button("Sign Out", key="sidebar_sign_out_btn"):
+    if st.sidebar.button("Log Out", key="sidebar_sign_out_btn"):
         try:
             rt_param = st.query_params.get("rt")
             if isinstance(rt_param, list):
@@ -1263,11 +1303,7 @@ elif page == "Home":
                         bp_ver = bp_item.get("version", 1)
                         display_title = format_display_title(bp_title, bp_ver)
                         b_created = bp_item.get("created_at", "N/A")
-                        date_str, _ = (
-                            format_lagos_timestamp(b_created)
-                            if b_created != "N/A"
-                            else ("N/A", "")
-                        )
+                        date_str = fmt_date(b_created)
 
                         col_bl1, col_bl2 = st.columns([3, 1])
                         with col_bl1:
@@ -1339,7 +1375,8 @@ elif page == "Home":
                             row.get("title")
                             or str(row.get("progress", "Milestone"))[:40]
                         )
-                        st.markdown(f"- **{proj}** — {ttl}")
+                        d_str = fmt_date(row.get("created_at"))
+                        st.markdown(f"- `({d_str})` **{proj}** — {ttl}")
                 else:
                     st.write("No logs recorded yet.")
             except Exception:
@@ -1540,21 +1577,7 @@ elif page == "Blueprint":
                     b_ver = item.get("version", 1)
                     display_title = format_display_title(b_title, b_ver)
                     b_created = item.get("created_at", "N/A")
-                    date_str, _ = (
-                        (
-                            format_lagos_timestamp(b_created)
-                            if b_created != "N/A"
-                            else ("N/A", "")
-                        )
-                        if "b_created" in locals() or True
-                        else ("N/A", "")
-                    )
-
-                    date_str, _ = (
-                        format_lagos_timestamp(b_created)
-                        if b_created != "N/A"
-                        else ("N/A", "")
-                    )
+                    date_str = fmt_date(b_created)
 
                     with st.container(border=True):
                         st.markdown(f"**{display_title}** — `({date_str})`")
@@ -1628,10 +1651,6 @@ elif page == "Blueprint":
                             row_id = b_id
                             ca, cb = st.columns(2)
                             with ca:
-                                st.markdown(
-                                    '<span style="color:#c0392b; font-size:0.85em">Confirming will permanently delete this item.</span>',
-                                    unsafe_allow_html=True,
-                                )
                                 if st.button(
                                     "Confirm",
                                     key=f"arm_confirm_{row_id}",
@@ -2011,7 +2030,15 @@ elif page == "Engineering Log":
                 for entry in proj_entries:
                     entry_id = entry.get("id")
                     created_at = entry.get("created_at", "N/A")
-                    date_display, timestamp_display = format_lagos_timestamp(created_at)
+                    date_display = fmt_date(created_at)
+                    try:
+                        clean_str = str(created_at).replace("Z", "+00:00")
+                        dt = datetime.fromisoformat(clean_str)
+                        dt_lagos = dt.astimezone(ZoneInfo("Africa/Lagos"))
+                        time_display = dt_lagos.strftime("%H:%M:%S")
+                    except Exception:
+                        time_display = "00:00:00"
+                    timestamp_display = f"{date_display} {time_display}"
                     log_title = (
                         entry.get("title")
                         or str(entry.get("progress", "Milestone"))[:40]
@@ -2069,10 +2096,6 @@ elif page == "Engineering Log":
                             row_id = entry_id
                             ca, cb = st.columns(2)
                             with ca:
-                                st.markdown(
-                                    '<span style="color:#c0392b; font-size:0.85em">Confirming will permanently delete this item.</span>',
-                                    unsafe_allow_html=True,
-                                )
                                 if st.button(
                                     "Confirm",
                                     key=f"arm_confirm_{row_id}",

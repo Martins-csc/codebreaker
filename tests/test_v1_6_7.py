@@ -16,12 +16,13 @@ def test_v1_6_7_py_compile():
 
 
 def test_red_confirm_buttons_source_scan():
-    """Source scan: Confirm buttons in Blueprint library and Engineering Log render with type='primary' and red warning markdown."""
+    """Source scan: Confirm buttons in Blueprint library and Engineering Log render with type='primary' and caption absent."""
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
-    assert "#c0392b" in content
+    assert "Confirming will permanently delete this item." not in content
     assert '"Confirm"' in content
+    assert 'type="primary"' in content
 
 
 def test_auth_branch_render_order_scan():
