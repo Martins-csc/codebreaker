@@ -27,12 +27,9 @@ def test_v1_7_2_source_scan():
     assert "background-color: #d33" in content
     assert "with st.expander(" in content
 
-    # 2. Cross-link markdown contains '<a href="?mode=' with no color style on anchor
-    assert '<a href="?mode=signup">Sign up</a>' in content
-    assert '<a href="?mode=login">Log in</a>' in content
-    assert '<a href="?mode=' in content
-    assert 'style="color:' not in content.split("?mode=signup")[0][-30:]
-    assert 'style="color:' not in content.split("?mode=login")[0][-30:]
+    # 2. In-place cross-link tertiary buttons present
+    assert "auth_switch_to_signup" in content
+    assert "auth_switch_to_login" in content
 
     # 3. Zero LIBRARY-WITNESS strings remain
     assert "LIBRARY-WITNESS" not in content

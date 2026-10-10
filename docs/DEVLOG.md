@@ -1,5 +1,23 @@
 # CodeBreaker Development Log
 
+## Entry 051: In-Place Cross-Links, Single-Page Render & Minimal Toolbar (v1.7.6)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.6 MICRO-MISSION — In-place cross-links, single-page render + light auth, minimal toolbar
+
+### Design Notes & Architectural Decisions
+1. **In-Place Cross-Links & Anchor-New-Tab Law**:
+   - **Law**: Markdown/HTML anchors (`<a href="?mode=...">`) in Streamlit render as browser navigation elements that can trigger new tabs or full-page reloads.
+   - **Mitigation**: Deleted all HTML/markdown anchors. Rebuilt auth switching cross-links using centered spacer columns `[0.3, 0.4, 0.3]` with the middle split into text (left column, default black) and tertiary button (right column, `type="tertiary"`, styled with `text-decoration: underline; color: #1a73e8;`) executing `st.session_state["auth_view"] = ...` and `st.rerun()` in-place. Zero anchors remain.
+2. **Single-Page Render & Light Auth (Progressive Repaint)**:
+   - Audited page gating: exactly one section renders per run (`if not user:` auth/landing block strictly `elif`/`else`-gated against authenticated workspace).
+   - Auth form render path performs zero Supabase/network calls when no session token exists in `session_state`.
+   - Login-success path clears email/password input widget states from `st.session_state` before triggering navigation rerun.
+3. **Minimal Toolbar Decision**:
+   - Created `.streamlit/config.toml` configuring `[client] toolbarMode = "minimal"`, suppressing extraneous development toolbar items for a clean production presentation.
+4. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan unit tests (`tests/test_v1_7_6.py`), and verified green test suite.
+
 ## Entry 050: Relocate Log Out to Kill Sidebar Auto-Open Trigger (v1.7.4)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

@@ -619,11 +619,12 @@ if not user:
                 .stForm [data-testid="InputInstructions"], div[data-baseweb="input"] + div {
                     display: none !important;
                 }
-                div[data-testid="stButton"] button[kind="tertiary"] {
-                    color: #1a73e8;
-                    font-weight: 600;
-                    font-size: 1.05em;
-                }
+                 div[data-testid="stButton"] button[kind="tertiary"] {
+                     color: #1a73e8;
+                     font-weight: 600;
+                     font-size: 1.05em;
+                     text-decoration: underline;
+                 }
                 </style>
                 """,
                 unsafe_allow_html=True,
@@ -736,6 +737,9 @@ if not user:
                                     client, user_obj.id, res.session.refresh_token
                                 )
                                 st.success("Logged in successfully!")
+                                st.session_state.pop("auth_card_email", None)
+                                st.session_state.pop("auth_card_password", None)
+                                st.session_state.pop("auth_card_display_name", None)
                                 del st.session_state["auth_view"]
                                 st.rerun()
                         except Exception as e:
@@ -945,18 +949,27 @@ if not user:
                     key="card_github_link_btn",
                 )
 
-                col_ac1, col_ac2, col_ac3 = st.columns([0.25, 0.5, 0.25])
-                with col_ac2:
-                    if auth_mode == "login":
-                        st.markdown(
-                            '<div style="text-align: center;">Don\'t have an account? <a href="?mode=signup">Sign up</a></div>',
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.markdown(
-                            '<div style="text-align: center;">Already have an account? <a href="?mode=login">Log in</a></div>',
-                            unsafe_allow_html=True,
-                        )
+                col_c1, col_c2, col_c3 = st.columns([0.3, 0.4, 0.3])
+                with col_c2:
+                    sub_l, sub_r = st.columns([0.65, 0.35])
+                    with sub_l:
+                        if auth_mode == "login":
+                            st.markdown("Don't have an account? ")
+                        else:
+                            st.markdown("Already have an account? ")
+                    with sub_r:
+                        if auth_mode == "login":
+                            if st.button(
+                                "Sign up", type="tertiary", key="auth_switch_to_signup"
+                            ):
+                                st.session_state["auth_view"] = "signup"
+                                st.rerun()
+                        else:
+                            if st.button(
+                                "Log in", type="tertiary", key="auth_switch_to_login"
+                            ):
+                                st.session_state["auth_view"] = "login"
+                                st.rerun()
             except Exception as e:
                 st.error(f"Could not generate GitHub OAuth link: {e}")
     else:

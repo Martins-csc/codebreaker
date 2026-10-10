@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.6] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.6 — In-place cross-links, single-page render + light auth, minimal toolbar:
+  - **In-Place Cross-Links (Anchor-New-Tab Law)**: Deleted all markdown/HTML anchors (`href="?mode=..."`) used for auth switching. Rebuilt switches as centered spacer columns `[0.3, 0.4, 0.3]` with middle split into two columns: left column text in default black, right column `type="tertiary"` button styled with underline (`text-decoration: underline; color: #1a73e8;`) reading as an in-place link without opening new tabs.
+  - **Single-Page Render & Light Auth**: Audited page gating so exactly one section renders per run (auth block strictly `elif`-gated against landing/home; home gated on active session). Auth form render path performs zero network calls when no session token exists. Login success path clears email/password widget state before navigation rerun.
+  - **Minimal Toolbar**: Created `.streamlit/config.toml` configuring `[client] toolbarMode = "minimal"`.
+  - **Documentation & Testing**: Recorded anchor-new-tab law, progressive-repaint explanation, and toolbar decision in DEVLOG Entry 051. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_6.py`), and verified green test suite. CHANGELOG v1.7.6 and DEVLOG Entry 051.
+
 ## [1.7.4] - 2026-10-09
 
 ### Added / Changed

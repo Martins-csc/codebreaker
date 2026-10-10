@@ -24,17 +24,14 @@ def test_v1_7_1_source_scan():
     assert 'div[data-testid="stExpander"]' in content
     assert "background-color: #d33" in content
 
-    # 2. Anchor cross-links with <a href="?mode=
-    assert "?mode=signup" in content
-    assert "?mode=login" in content
-    assert '<a href="?mode=signup">Sign up</a>' in content
-    assert '<a href="?mode=login">Log in</a>' in content
+    # 2. In-place cross-link tertiary buttons present
+    assert "auth_switch_to_signup" in content
+    assert "auth_switch_to_login" in content
 
-    # 3. Centering columns present: st.columns([0.25, 0.5, 0.25])
+    # 3. Centering columns present: st.columns([0.3, 0.4, 0.3])
     assert (
-        "st.columns([0.25, 0.5, 0.25])" in content
-        or "st.columns([0.25,0.5,0.25])" in content
-        or "st.columns([0.25, 0.5, 0.25])" in content
+        "st.columns([0.3, 0.4, 0.3])" in content
+        or "st.columns([0.3,0.4,0.3])" in content
     )
 
     # 4. Reload block present with rebind loop
