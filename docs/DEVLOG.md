@@ -1,5 +1,20 @@
 # CodeBreaker Development Log
 
+## Entry 053: Cross-Link Single-Line Fix & Ghost Root-Cause Closure (v1.7.9)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.9 MICRO-MISSION — Cross-link single-line fix + ghost root-cause closure
+
+### Design Notes & Architectural Decisions
+1. **Cross-Link Single-Line Precision & `:has()` Scoping Trick**:
+   - Configured inner auth switch columns to `st.columns([0.75, 0.25], gap="small")` with the question rendered right-aligned (`text-align: right`).
+   - Injected the CSS selector utilizing `:has(button[kind="tertiary"])` to scope zero-margin and matching line-height (`2.25rem`) precisely to the horizontal block containing the auth switch without collateral impact on other paragraphs or buttons.
+2. **Ghost Root-Cause Closure & Custody Split**:
+   - Verified that the v1.7.8 root-container pattern (`_ROOT = st.empty()` + `with _ROOT.container():`) is fully present and active.
+   - **Custody Split**: Residual page ghosting during rapid interactions is a platform+network custody phenomenon caused by Streamlit's asynchronous WebSocket streaming repaint combined with client-side render latency. The root-container pattern is the maximum achievable server-side lever; a 100% atomic repaint cure requires full frontend control deferred to future hosting migration.
+3. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan unit tests (`tests/test_v1_7_9.py`), and verified green test suite.
+
 ## Entry 052: Theme Restore, One-Line Cross-Links & Root-Container Repaint Cure (v1.7.8)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.9] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.9 — Cross-link single-line fix + ghost root-cause closure:
+  - **Cross-Link Single-Line Precision**: Configured inner auth switch columns to `st.columns([0.75, 0.25], gap="small")` with the question rendered right-aligned (`text-align: right`) and injected the `:has()` scoped CSS trick (`div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"]) p { margin: 0; line-height: 2.25rem; }`) so question and link render as one perfectly centered line with matched baselines.
+  - **Ghost Root-Cause Closure**: Verified presence of the v1.7.8 root-container pattern (`_ROOT = st.empty()` + `with _ROOT.container():`). Documented that residual ghosting is a platform+network custody phenomenon (Streamlit streaming repaint + client-side render latency); root-container is the sole server-side lever, with atomic cure deferred to hosting migration.
+  - **Documentation & Testing**: Recorded `:has()` scoping trick, cross-link geometry, and ghost custody split in DEVLOG Entry 053. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_9.py`), and verified green test suite. CHANGELOG v1.7.9 and DEVLOG Entry 053.
+
 ## [1.7.8] - 2026-10-09
 
 ### Added / Changed

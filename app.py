@@ -642,6 +642,8 @@ with _ROOT.container():
                         margin: 0;
                         line-height: inherit;
                     }
+                    div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"]) p { margin: 0; line-height: 2.25rem; }
+                    div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"]) button[kind="tertiary"] { min-height: 0; padding: 0; line-height: 2.25rem; }
                     </style>
                     """,
                     unsafe_allow_html=True,
@@ -982,9 +984,12 @@ with _ROOT.container():
 
                     outer = st.columns([0.25, 0.5, 0.25])
                     with outer[1]:
-                        q, l = st.columns([0.72, 0.28])
+                        q, l = st.columns([0.75, 0.25], gap="small")
                         if auth_mode == "login":
-                            q.markdown("Don't have an account?")
+                            q.markdown(
+                                '<div style="text-align: right;">Don\'t have an account?</div>',
+                                unsafe_allow_html=True,
+                            )
                             if l.button(
                                 "Sign up",
                                 type="tertiary",
@@ -994,7 +999,10 @@ with _ROOT.container():
                                 st.session_state["auth_view"] = "signup"
                                 st.rerun()
                         else:
-                            q.markdown("Already have an account?")
+                            q.markdown(
+                                '<div style="text-align: right;">Already have an account?</div>',
+                                unsafe_allow_html=True,
+                            )
                             if l.button(
                                 "Log in",
                                 type="tertiary",
