@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.8] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.8 — Theme restore, one-line cross-links, root-container repaint cure:
+  - **Theme Restore & Config-Override Law**: Restored full `[theme]` configuration alongside `[client] toolbarMode = "minimal"` in `.streamlit/config.toml`. Established config-override law that future edits must preserve `[theme]` verbatim.
+  - **One-Line Cross-Links**: Replaced scattered cross-link blocks with `outer = st.columns([0.25, 0.5, 0.25])` and inner `q, l = st.columns([0.72, 0.28])` rendering the question and tertiary link on one centered line via injected alignment CSS (`p {margin: 0;}` and tertiary button padding/margin reset).
+  - **Root-Container Repaint Cure**: Inserted `_ROOT = st.empty()` immediately after `st.set_page_config` and wrapped the entire remaining UI in `with _ROOT.container():` via mechanical indentation, clearing previous page content atomically before streaming the new run.
+  - **Documentation & Testing**: Recorded config-override law, cross-link alignment spec, and root-container repaint pattern in DEVLOG Entry 052. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_8.py`), and verified green test suite. CHANGELOG v1.7.8 and DEVLOG Entry 052.
+
 ## [1.7.6] - 2026-10-09
 
 ### Added / Changed

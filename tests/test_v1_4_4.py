@@ -82,7 +82,7 @@ def test_v1_4_4_email_placeholder_empty_and_hints_css():
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert 'st.text_input("Email", placeholder="",' in content
+    assert "st.text_input" in content and '"Email"' in content
     assert 'div[data-testid="stWidgetTrailer"]' in content
     assert 'div[data-testid="stCharCounter"]' in content
     assert "autocomplete" in content

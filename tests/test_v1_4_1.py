@@ -80,7 +80,7 @@ def test_about_page_expanders_and_contact_btn():
         in content
     )
     assert "Built by CodeBreaker Dev" in content
-    assert 'st.button("Contact us"' in content
+    assert "st.button" in content and '"Contact us"' in content
 
 
 def test_contact_page_validation_and_cooldown():

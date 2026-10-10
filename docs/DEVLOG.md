@@ -1,5 +1,23 @@
 # CodeBreaker Development Log
 
+## Entry 052: Theme Restore, One-Line Cross-Links & Root-Container Repaint Cure (v1.7.8)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.8 MICRO-MISSION — Theme restore, one-line cross-links, root-container repaint cure
+
+### Design Notes & Architectural Decisions
+1. **Theme Restore & Config-Override Law**:
+   - Restored full `[theme]` configuration (`primaryColor = "#1a73e8"`, `backgroundColor = "#ffffff"`, `secondaryBackgroundColor = "#f0f2f6"`, `textColor = "#111111"`, `font = "sans serif"`) alongside `[client] toolbarMode = "minimal"` in `.streamlit/config.toml`.
+   - **Law**: Any future `config.toml` edit must preserve `[theme]` verbatim.
+2. **One-Line Cross-Links Spec**:
+   - Replaced scattered cross-link blocks with `outer = st.columns([0.25, 0.5, 0.25])` and inner `q, l = st.columns([0.72, 0.28])`.
+   - Injected alignment CSS (`p {margin: 0;}` and `div[data-testid="stButton"] button[kind="tertiary"] {padding: 0; margin: 0; line-height: inherit;}`) so question and link sit on one cleanly centered line.
+3. **Root-Container Repaint Pattern**:
+   - Inserted `_ROOT = st.empty()` immediately after `st.set_page_config(...)`.
+   - Wrapped the entire remaining UI in `with _ROOT.container():` via uniform mechanical indentation. This guarantees that each Streamlit run atomically clears the previous page content before streaming the new run.
+4. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan unit tests (`tests/test_v1_7_8.py`), and verified green test suite.
+
 ## Entry 051: In-Place Cross-Links, Single-Page Render & Minimal Toolbar (v1.7.6)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
