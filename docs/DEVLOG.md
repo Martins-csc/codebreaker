@@ -1,5 +1,22 @@
 # CodeBreaker Development Log
 
+## Entry 050: Relocate Log Out to Kill Sidebar Auto-Open Trigger (v1.7.4)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.4 MICRO-MISSION — Relocate Log Out to kill sidebar auto-open trigger
+
+### Design Notes & Architectural Decisions
+1. **Sidebar Auto-Open Root Cause & Mitigation**:
+   - Sidebar open/close state is client-persisted across reruns. `initial_sidebar_state` applies only on fresh loads. Interacting with or logging out from a sidebar control previously acted as the auto-open trigger.
+   - Deleted the Log Out button from the sidebar entirely, converting the sidebar into a pure navigation-only component (`Section` radio).
+2. **Account Card Log Out Relocation**:
+   - Added a full-width `"Log Out"` button (`type="secondary"`, `use_container_width=True`) inside the Account card on Home, directly below the Member Since line.
+   - Its handler performs the identical sign-out sequence (Supabase sign-out, session/token clears, nav to landing, rerun).
+3. **Residual Law**:
+   - A manually-opened sidebar survives logout→login (client memory) — close manually or reload the page to reset.
+4. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan unit tests (`tests/test_v1_7_4.py`), and verified green test suite.
+
 ## Entry 048: Provider-Diversity Rule, Blueprint Library Button Rename & Sidebar Platform Verdict (v1.7.3)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

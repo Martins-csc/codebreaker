@@ -1092,43 +1092,6 @@ else:
                 p_status = "PRESENT" if bool(get_config(pkey)) else "MISSING"
                 st.write(f"- `{pkey}`: **{p_status}**")
 
-    st.sidebar.markdown("---")
-    if st.sidebar.button("Log Out", key="sidebar_sign_out_btn"):
-        try:
-            rt_param = st.query_params.get("rt")
-            if isinstance(rt_param, list):
-                rt_param = rt_param[0] if rt_param else None
-            if rt_param:
-                token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
-                client.rpc(
-                    "revoke_resume_token", {"p_token_hash": token_hash}
-                ).execute()
-        except Exception:
-            pass
-        try:
-            client.auth.sign_out()
-        except Exception:
-            pass
-        auth_params = [
-            "rt",
-            "pg",
-            "code",
-            "state",
-            "type",
-            "token",
-            "token_hash",
-            "error",
-            "error_description",
-            "oauth_state",
-            "mode",
-            "auth_view",
-        ]
-        for p in auth_params:
-            st.query_params.pop(p, None)
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.success("Signed out successfully.")
-        st.rerun()
 
 # First-run onboarding tour for authenticated sessions
 user_meta = user.get("user_metadata", {}) if user else {}
@@ -1431,6 +1394,49 @@ elif page == "Home":
             st.markdown(f"**Display Name:** {user.get('display_name', 'N/A')}")
             st.markdown(f"**Email:** {user.get('email', 'N/A')}")
             st.markdown(f"**Member Since:** {user.get('member_since', 'N/A')}")
+            if st.button(
+                "Log Out",
+                type="secondary",
+                use_container_width=True,
+                key="home_log_out_btn",
+            ):
+                try:
+                    rt_param = st.query_params.get("rt")
+                    if isinstance(rt_param, list):
+                        rt_param = rt_param[0] if rt_param else None
+                    if rt_param:
+                        token_hash = hashlib.sha256(
+                            rt_param.encode("utf-8")
+                        ).hexdigest()
+                        client.rpc(
+                            "revoke_resume_token", {"p_token_hash": token_hash}
+                        ).execute()
+                except Exception:
+                    pass
+                try:
+                    client.auth.sign_out()
+                except Exception:
+                    pass
+                auth_params = [
+                    "rt",
+                    "pg",
+                    "code",
+                    "state",
+                    "type",
+                    "token",
+                    "token_hash",
+                    "error",
+                    "error_description",
+                    "oauth_state",
+                    "mode",
+                    "auth_view",
+                ]
+                for p in auth_params:
+                    st.query_params.pop(p, None)
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.success("Signed out successfully.")
+                st.rerun()
 
 elif page == "Analyze":
     st.title("Analyze & Architecture Generation")

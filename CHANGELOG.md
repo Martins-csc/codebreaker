@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.4] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.4 — Relocate Log Out to kill sidebar auto-open trigger:
+  - **Sidebar Log Out Deletion**: Deleted the Log Out button and sign-out handler from the sidebar entirely, turning the sidebar into a pure navigation-only component (`Section` radio).
+  - **Account Card Log Out Relocation**: Added a full-width `"Log Out"` button (`type="secondary"`, `use_container_width=True`) inside the Account card on Home, directly below the Member Since line, executing the identical sign-out sequence (Supabase sign-out, session/token cleanup, param removal, redirect, rerun).
+  - **Auto-Open Root Cause & Residual Law**: Identified sidebar interaction as the trigger for client-persisted sidebar auto-open. Documented in DEVLOG Entry 050 that `initial_sidebar_state` applies only on fresh loads, logout from sidebar was the trigger, and a manually-opened sidebar survives logout→login via client memory (requiring manual close or page reload to reset).
+  - **Testing & Documentation**: Enforced compile gate (`py_compile`), source-scan assertions, unit tests (`tests/test_v1_7_4.py`), and verified green test suite. CHANGELOG v1.7.4 and DEVLOG Entry 050.
+
 ## [1.7.3] - 2026-10-09
 
 ### Added / Changed

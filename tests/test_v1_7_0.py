@@ -37,8 +37,8 @@ def test_v1_7_0_requirements_source_scan():
     # 4. initial_sidebar_state="collapsed" present
     assert 'initial_sidebar_state="collapsed"' in app_content
 
-    # 5. Sidebar sign out renamed to Log Out
-    assert 'st.sidebar.button("Log Out"' in app_content
+    # 5. Log Out button present in app
+    assert '"Log Out"' in app_content
 
     engine_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "../ai_engine.py")
