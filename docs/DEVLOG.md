@@ -1,5 +1,23 @@
 # CodeBreaker Development Log
 
+## Entry 054: True Single-Line Cross-Links, Auth Form Isolation & Uniform Module Cards (v1.7.10)
+- **Date**: 2026-10-09
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.10 MICRO-MISSION — True single-line cross-links, auth form isolation, uniform module cards
+
+### Design Notes & Architectural Decisions
+1. **True Single-Line Cross-Links & `data-testid` Selector Law**:
+   - Configured inner columns to `st.columns([0.7, 0.3], gap="small")` with right-aligned question text and left-aligned link button.
+   - **Law**: Applied exact `data-testid` selectors (`button[data-testid="stBaseButton-tertiary"]`) and `:has()` scoping (`div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"])`), completely purging legacy `button[kind=` selectors.
+2. **Auth Form Isolation Rule**:
+   - Defined `clear_auth_form_state()` managing the full key list (`auth_card_email`, `auth_card_password`, `auth_card_display_name`).
+   - Enforced key deletion on every view transition (cross-links, landing CTAs, back-to-overview) and upon successful sign-in/sign-up, ensuring no credentials survive a view switch.
+3. **Equal-Height Card Grid Rule**:
+   - Rebuilt Workspace Modules cards to share a unified `.module-card` CSS class with a fixed min-height (`210px`) for equal vertical sizing.
+   - Standardized the third card header to the identical icon + single-title pattern (`**Engineering Log**`, zero `"JOURNAL"` strings).
+4. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan unit tests (`tests/test_v1_7_10.py`), and verified green test suite.
+
 ## Entry 053: Cross-Link Single-Line Fix & Ghost Root-Cause Closure (v1.7.9)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

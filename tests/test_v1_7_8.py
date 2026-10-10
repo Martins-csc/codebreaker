@@ -24,8 +24,8 @@ def test_v1_7_8_source_scan():
     assert "_ROOT = st.empty()" in app_content
     assert "with _ROOT.container():" in app_content
 
-    # 2. Cross-link inner columns [0.75, 0.25] present
-    assert "[0.75, 0.25]" in app_content
+    # 2. Cross-link inner columns [0.7, 0.3] present
+    assert "[0.7, 0.3]" in app_content
 
     # 3. Alignment CSS present
     assert "p" in app_content

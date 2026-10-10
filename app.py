@@ -90,6 +90,14 @@ with _ROOT.container():
         unsafe_allow_html=True,
     )
 
+    def clear_auth_form_state():
+        for k in [
+            "auth_card_email",
+            "auth_card_password",
+            "auth_card_display_name",
+        ]:
+            st.session_state.pop(k, None)
+
     def format_lagos_timestamp(created_at_str):
         if not created_at_str or created_at_str == "N/A":
             return "N/A", "N/A"
@@ -613,6 +621,7 @@ with _ROOT.container():
                 st.error(fmsg)
         if st.session_state.get("auth_view"):
             if st.button("← Back to overview", key="auth_back_to_overview"):
+                clear_auth_form_state()
                 del st.session_state["auth_view"]
                 st.rerun()
 
@@ -633,7 +642,7 @@ with _ROOT.container():
                     p {
                         margin: 0;
                     }
-                    div[data-testid="stButton"] button[kind="tertiary"] {
+                    div[data-testid="stButton"] button[data-testid="stBaseButton-tertiary"] {
                         color: #1a73e8;
                         font-weight: 600;
                         font-size: 1.05em;
@@ -642,8 +651,8 @@ with _ROOT.container():
                         margin: 0;
                         line-height: inherit;
                     }
-                    div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"]) p { margin: 0; line-height: 2.25rem; }
-                    div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"]) button[kind="tertiary"] { min-height: 0; padding: 0; line-height: 2.25rem; }
+                    div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) p { margin: 0; line-height: 2.5rem; }
+                    div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) button[data-testid="stBaseButton-tertiary"] { min-height: 0; padding: 0; line-height: 2.5rem; }
                     </style>
                     """,
                     unsafe_allow_html=True,
@@ -762,9 +771,7 @@ with _ROOT.container():
                                         client, user_obj.id, res.session.refresh_token
                                     )
                                     st.success("Logged in successfully!")
-                                    st.session_state.pop("auth_card_email", None)
-                                    st.session_state.pop("auth_card_password", None)
-                                    st.session_state.pop("auth_card_display_name", None)
+                                    clear_auth_form_state()
                                     del st.session_state["auth_view"]
                                     st.rerun()
                             except Exception as e:
@@ -916,6 +923,7 @@ with _ROOT.container():
                                         st.success(
                                             "Account created and logged in successfully!"
                                         )
+                                        clear_auth_form_state()
                                         del st.session_state["auth_view"]
                                         st.rerun()
                             except Exception as e:
@@ -984,7 +992,7 @@ with _ROOT.container():
 
                     outer = st.columns([0.25, 0.5, 0.25])
                     with outer[1]:
-                        q, l = st.columns([0.75, 0.25], gap="small")
+                        q, l = st.columns([0.7, 0.3], gap="small")
                         if auth_mode == "login":
                             q.markdown(
                                 '<div style="text-align: right;">Don\'t have an account?</div>',
@@ -996,6 +1004,7 @@ with _ROOT.container():
                                 key="auth_switch_to_signup",
                                 use_container_width=True,
                             ):
+                                clear_auth_form_state()
                                 st.session_state["auth_view"] = "signup"
                                 st.rerun()
                         else:
@@ -1009,6 +1018,7 @@ with _ROOT.container():
                                 key="auth_switch_to_login",
                                 use_container_width=True,
                             ):
+                                clear_auth_form_state()
                                 st.session_state["auth_view"] = "login"
                                 st.rerun()
                 except Exception as e:
@@ -1040,18 +1050,35 @@ with _ROOT.container():
 
             st.markdown("---")
             st.subheader("Workspace Modules")
+            st.markdown(
+                """
+                <style>
+                .module-card {
+                    min-height: 210px;
+                    padding: 1rem;
+                    background-color: #f8f9fa;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
             col_m1, col_m2, col_m3 = st.columns(3)
             with col_m1:
-                st.info(
-                    ":material/analytics: **Analyze**\n\nTransform project requirements into structured technical specs."
+                st.markdown(
+                    '<div class="module-card">:material/analytics: **Analyze**<br><br>Transform project requirements into structured technical specs.</div>',
+                    unsafe_allow_html=True,
                 )
             with col_m2:
-                st.info(
-                    ":material/description: **Blueprint**\n\nExplore multi-tab system architecture, tech stacks, and exportable documentation."
+                st.markdown(
+                    '<div class="module-card">:material/description: **Blueprint**<br><br>Explore multi-tab system architecture, tech stacks, and exportable documentation.</div>',
+                    unsafe_allow_html=True,
                 )
             with col_m3:
-                st.info(
-                    ":material/journal: **Engineering Log**\n\nMaintain a secure, chronological record of daily progress and technical insights."
+                st.markdown(
+                    '<div class="module-card">:material/journal: **Engineering Log**<br><br>Maintain a secure, chronological record of daily progress and technical insights.</div>',
+                    unsafe_allow_html=True,
                 )
 
             st.markdown("---")
@@ -1060,6 +1087,7 @@ with _ROOT.container():
                 if st.button(
                     "Log In", key="cta_login", type="primary", use_container_width=True
                 ):
+                    clear_auth_form_state()
                     st.session_state["auth_view"] = "login"
                     st.session_state["nav_pending"] = "Auth"
                     st.rerun()
@@ -1067,6 +1095,7 @@ with _ROOT.container():
                 if st.button(
                     "Create Account", key="cta_signup", use_container_width=True
                 ):
+                    clear_auth_form_state()
                     st.session_state["auth_view"] = "signup"
                     st.session_state["nav_pending"] = "Auth"
                     st.rerun()

@@ -15,14 +15,17 @@ def test_v1_7_9_py_compile():
 
 
 def test_v1_7_9_source_scan():
-    """Source scan: :has() CSS present, right-aligned question column, _ROOT pattern present, [0.75, 0.25] split with gap='small'."""
+    """Source scan: :has() CSS present, right-aligned question column, _ROOT pattern present, [0.7, 0.3] split with gap='small'."""
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
     # 1. :has() CSS block present verbatim
     assert (
-        'div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"])' in content
+        'div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"])'
+        in content
+        or 'div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"])'
+        in content
     )
 
     # 2. Question column right-aligned
@@ -32,9 +35,9 @@ def test_v1_7_9_source_scan():
     assert "_ROOT = st.empty()" in content
     assert "with _ROOT.container():" in content
 
-    # 4. [0.75, 0.25] split with gap="small"
+    # 4. [0.7, 0.3] split with gap="small"
     assert (
-        "st.columns([0.75, 0.25]" in content
-        or 'st.columns([0.75, 0.25], gap="small")' in content
+        "st.columns([0.7, 0.3]" in content
+        or 'st.columns([0.7, 0.3], gap="small")' in content
     )
     assert 'gap="small"' in content

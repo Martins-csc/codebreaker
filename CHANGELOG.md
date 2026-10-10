@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.10] - 2026-10-09
+
+### Added / Changed
+- MICRO-MISSION v1.7.10 — True single-line cross-links, auth form isolation, uniform module cards:
+  - **True Single-Line Cross-Links & Selector Law**: Configured inner auth switch columns to `st.columns([0.7, 0.3], gap="small")` with right-aligned question markdown and left-aligned link button. Replaced all previous cross-link CSS with exact `data-testid` selectors (`button[data-testid="stBaseButton-tertiary"]` and `:has()` scoped block), completely removing all legacy `button[kind=` selectors.
+  - **Auth Form Isolation Rule**: Defined the full auth widget key list (`auth_card_email`, `auth_card_password`, `auth_card_display_name`) and enforced deletion (`clear_auth_form_state()`) across every view transition (cross-links, landing CTAs, back-to-overview) and upon successful sign-in/sign-up, ensuring credential isolation.
+  - **Equal-Height Card Grid Rule**: Rebuilt the three Workspace Modules cards to share a unified `.module-card` CSS class with a fixed min-height (`210px`) and standardized the third card header to the identical icon + single-title pattern (`**Engineering Log**`, zero `"JOURNAL"` strings).
+  - **Documentation & Testing**: Recorded data-testid selector law, auth form isolation rule, and equal-height card grid rule in DEVLOG Entry 054. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_10.py`), and verified green test suite. CHANGELOG v1.7.10 and DEVLOG Entry 054.
+
 ## [1.7.9] - 2026-10-09
 
 ### Added / Changed
