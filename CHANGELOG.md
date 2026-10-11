@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.13] - 2026-10-11
+
+### Added / Changed
+- MICRO-MISSION v1.7.13 — Cross-link baseline fix + JOURNAL line removal:
+  - **Cross-Link Baseline (`_XLINK_CSS`)**: Defined `_XLINK_CSS` once near the top of `app.py` and injected via `st.markdown(_XLINK_CSS, unsafe_allow_html=True)` to ensure Streamlit correctly compiles and applies the cross-link baseline styles.
+  - **JOURNAL Line Removal**: Replaced the third Workspace Modules card content with the exact markdown string containing `:material_journal:` and purged every standalone "JOURNAL" display string across `app.py`.
+  - **Documentation & Testing**: Recorded CSS injection law (style blocks require `unsafe_allow_html=True`) in DEVLOG Entry 057. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_13.py`), and verified green test suite. CHANGELOG v1.7.13 and DEVLOG Entry 057.
+
 ## [1.7.12] - 2026-10-11
 
 ### Added / Changed

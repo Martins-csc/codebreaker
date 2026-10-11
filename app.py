@@ -90,6 +90,14 @@ with _ROOT.container():
         unsafe_allow_html=True,
     )
 
+    _XLINK_CSS = """
+    <style>
+    div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) p { margin: 0; line-height: 2.5rem; }
+    button[data-testid="stBaseButton-tertiary"] { min-height: 0; height: 2.5rem; padding: 0; line-height: 2.5rem; }
+    </style>
+    """
+    st.markdown(_XLINK_CSS, unsafe_allow_html=True)
+
     _AUTH_WIDGET_KEYS = [
         "auth_card_email",
         "auth_card_password",

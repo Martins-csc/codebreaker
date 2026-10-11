@@ -1,5 +1,20 @@
 # CodeBreaker Development Log
 
+## Entry 057: Cross-Link Baseline Fix & JOURNAL Line Removal (v1.7.13)
+- **Date**: 2026-10-11
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.13 MICRO-MISSION — Cross-link baseline fix + JOURNAL line removal
+
+### Design Notes & Architectural Decisions
+1. **CSS Injection Law (`_XLINK_CSS`)**:
+   - Established the strict CSS Injection Law: style blocks are dead without `unsafe_allow_html=True`. Every future CSS mission must show the injection line (`st.markdown(_XLINK_CSS, unsafe_allow_html=True)`) in its quoted report.
+   - Defined `_XLINK_CSS` once near the top of `app.py` and injected it with `unsafe_allow_html=True`, resolving cross-link baseline alignment across both auth views.
+2. **JOURNAL Line Removal & Strict Naming**:
+   - Replaced the third Workspace Modules card content with the exact markdown string utilizing `:material_journal:`.
+   - Purged every standalone occurrence of the word "JOURNAL" (case-insensitive) across `app.py`, ensuring `:material_journal:` is the sole allowed occurrence.
+3. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan assertions, unit tests (`tests/test_v1_7_13.py`), and verified green test suite.
+
 ## Entry 056: Verbatim Law for UI: One-Line Cross-Links, Auth Form Isolation & Equal-Height Icon Cards (v1.7.12)
 - **Date**: 2026-10-11
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
