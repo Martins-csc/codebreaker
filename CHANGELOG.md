@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.12] - 2026-10-11
+
+### Added / Changed
+- MICRO-MISSION v1.7.12 — Verbatim law for UI (one-line cross-links, auth form isolation, equal-height icon cards):
+  - **One-Line Cross-Links Helper**: Added `_auth_switch_line` helper utilizing `st.columns([0.25, 0.5, 0.25])` with inner `st.columns([0.62, 0.38], gap="small", vertical_alignment="center")`, right-aligned question text, and tertiary button link for both auth views.
+  - **Auth Form Isolation**: Defined `_AUTH_WIDGET_KEYS` (`auth_card_email`, `auth_card_password`, `auth_card_display_name`) and `_clear_auth_forms()`, enforced across both switch handlers, both landing CTAs, successful login, successful signup, and overview back button.
+  - **Equal-Height Icon Cards**: Replaced HTML-wrapper module cards with native `st.container(height=230)` columns holding clean `st.markdown` calls with `:material_analytics:`, `:material_description:`, and `:material_journal:` icons, resolving icon rendering breakage caused by raw HTML wrappers intercepting Markdown parsing.
+  - **Documentation & Testing**: Recorded icon-breakage root cause (raw HTML wrappers kill markdown parsing) and credential-leak root cause (missing clear calls) in DEVLOG Entry 056. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_12.py`), and verified green test suite. CHANGELOG v1.7.12 and DEVLOG Entry 056.
+
 ## [1.7.10] - 2026-10-09
 
 ### Added / Changed

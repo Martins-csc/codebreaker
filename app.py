@@ -90,13 +90,29 @@ with _ROOT.container():
         unsafe_allow_html=True,
     )
 
+    _AUTH_WIDGET_KEYS = [
+        "auth_card_email",
+        "auth_card_password",
+        "auth_card_display_name",
+    ]
+
+    def _clear_auth_forms():
+        for _k in _AUTH_WIDGET_KEYS:
+            st.session_state.pop(_k, None)
+
     def clear_auth_form_state():
-        for k in [
-            "auth_card_email",
-            "auth_card_password",
-            "auth_card_display_name",
-        ]:
-            st.session_state.pop(k, None)
+        _clear_auth_forms()
+
+    def _auth_switch_line(question, link_label, key):
+        outer = st.columns([0.25, 0.5, 0.25])
+        with outer[1]:
+            q, l = st.columns([0.62, 0.38], gap="small", vertical_alignment="center")
+            q.markdown(
+                f"<div style='text-align:right'>{question}</div>",
+                unsafe_allow_html=True,
+            )
+            with l:
+                return st.button(link_label, key=key, type="tertiary")
 
     def format_lagos_timestamp(created_at_str):
         if not created_at_str or created_at_str == "N/A":
@@ -621,7 +637,7 @@ with _ROOT.container():
                 st.error(fmsg)
         if st.session_state.get("auth_view"):
             if st.button("← Back to overview", key="auth_back_to_overview"):
-                clear_auth_form_state()
+                _clear_auth_forms()
                 del st.session_state["auth_view"]
                 st.rerun()
 
@@ -771,7 +787,7 @@ with _ROOT.container():
                                         client, user_obj.id, res.session.refresh_token
                                     )
                                     st.success("Logged in successfully!")
-                                    clear_auth_form_state()
+                                    _clear_auth_forms()
                                     del st.session_state["auth_view"]
                                     st.rerun()
                             except Exception as e:
@@ -920,12 +936,12 @@ with _ROOT.container():
                                             user_obj.id,
                                             session_obj.refresh_token,
                                         )
-                                        st.success(
-                                            "Account created and logged in successfully!"
-                                        )
-                                        clear_auth_form_state()
-                                        del st.session_state["auth_view"]
-                                        st.rerun()
+                                    st.success(
+                                        "Account created and logged in successfully!"
+                                    )
+                                    _clear_auth_forms()
+                                    del st.session_state["auth_view"]
+                                    st.rerun()
                             except Exception as e:
                                 err_str = str(e)
                                 if (
@@ -990,37 +1006,20 @@ with _ROOT.container():
                         key="card_github_link_btn",
                     )
 
-                    outer = st.columns([0.25, 0.5, 0.25])
-                    with outer[1]:
-                        q, l = st.columns([0.7, 0.3], gap="small")
-                        if auth_mode == "login":
-                            q.markdown(
-                                '<div style="text-align: right;">Don\'t have an account?</div>',
-                                unsafe_allow_html=True,
-                            )
-                            if l.button(
-                                "Sign up",
-                                type="tertiary",
-                                key="auth_switch_to_signup",
-                                use_container_width=True,
-                            ):
-                                clear_auth_form_state()
-                                st.session_state["auth_view"] = "signup"
-                                st.rerun()
-                        else:
-                            q.markdown(
-                                '<div style="text-align: right;">Already have an account?</div>',
-                                unsafe_allow_html=True,
-                            )
-                            if l.button(
-                                "Log in",
-                                type="tertiary",
-                                key="auth_switch_to_login",
-                                use_container_width=True,
-                            ):
-                                clear_auth_form_state()
-                                st.session_state["auth_view"] = "login"
-                                st.rerun()
+                    if auth_mode == "login":
+                        if _auth_switch_line(
+                            "Don't have an account?", "Sign up", "auth_switch_to_signup"
+                        ):
+                            _clear_auth_forms()
+                            st.session_state["auth_view"] = "signup"
+                            st.rerun()
+                    else:
+                        if _auth_switch_line(
+                            "Already have an account?", "Log in", "auth_switch_to_login"
+                        ):
+                            _clear_auth_forms()
+                            st.session_state["auth_view"] = "login"
+                            st.rerun()
                 except Exception as e:
                     st.error(f"Could not generate GitHub OAuth link: {e}")
         else:
@@ -1050,36 +1049,22 @@ with _ROOT.container():
 
             st.markdown("---")
             st.subheader("Workspace Modules")
-            st.markdown(
-                """
-                <style>
-                .module-card {
-                    min-height: 210px;
-                    padding: 1rem;
-                    background-color: #f8f9fa;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
-            col_m1, col_m2, col_m3 = st.columns(3)
-            with col_m1:
-                st.markdown(
-                    '<div class="module-card">:material/analytics: **Analyze**<br><br>Transform project requirements into structured technical specs.</div>',
-                    unsafe_allow_html=True,
-                )
-            with col_m2:
-                st.markdown(
-                    '<div class="module-card">:material/description: **Blueprint**<br><br>Explore multi-tab system architecture, tech stacks, and exportable documentation.</div>',
-                    unsafe_allow_html=True,
-                )
-            with col_m3:
-                st.markdown(
-                    '<div class="module-card">:material/journal: **Engineering Log**<br><br>Maintain a secure, chronological record of daily progress and technical insights.</div>',
-                    unsafe_allow_html=True,
-                )
+            _c1, _c2, _c3 = st.columns(3)
+            with _c1:
+                with st.container(height=230):
+                    st.markdown(
+                        ":material_analytics: **Analyze**\n\nTransform project requirements into structured technical specs."
+                    )
+            with _c2:
+                with st.container(height=230):
+                    st.markdown(
+                        ":material_description: **Blueprint**\n\nExplore multi-tab system architecture, tech stacks, and exportable documentation."
+                    )
+            with _c3:
+                with st.container(height=230):
+                    st.markdown(
+                        ":material_journal: **Engineering Log**\n\nMaintain a secure, chronological record of daily progress and technical insights."
+                    )
 
             st.markdown("---")
             col_cta1, col_cta2 = st.columns(2)
@@ -1087,7 +1072,7 @@ with _ROOT.container():
                 if st.button(
                     "Log In", key="cta_login", type="primary", use_container_width=True
                 ):
-                    clear_auth_form_state()
+                    _clear_auth_forms()
                     st.session_state["auth_view"] = "login"
                     st.session_state["nav_pending"] = "Auth"
                     st.rerun()
@@ -1095,7 +1080,7 @@ with _ROOT.container():
                 if st.button(
                     "Create Account", key="cta_signup", use_container_width=True
                 ):
-                    clear_auth_form_state()
+                    _clear_auth_forms()
                     st.session_state["auth_view"] = "signup"
                     st.session_state["nav_pending"] = "Auth"
                     st.rerun()

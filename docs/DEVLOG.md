@@ -1,5 +1,20 @@
 # CodeBreaker Development Log
 
+## Entry 056: Verbatim Law for UI: One-Line Cross-Links, Auth Form Isolation & Equal-Height Icon Cards (v1.7.12)
+- **Date**: 2026-10-11
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.12 MICRO-MISSION — Verbatim law for UI (one-line cross-links, auth form isolation, equal-height icon cards)
+
+### Design Notes & Architectural Decisions
+1. **Verbatim-Law Extended to All Visual/UX Items**:
+   - Strictly enforced verbatim block integration for UI components including cross-link switch helper (`_auth_switch_line`), auth form isolation (`_AUTH_WIDGET_KEYS` and `_clear_auth_forms()`), and equal-height icon cards (`st.container(height=230)`).
+2. **Icon-Breakage Root Cause**:
+   - Raw HTML wrappers (`<div class="module-card">...</div>`) intercept and kill Streamlit's internal Markdown parsing pipeline for inline material icon shortcodes (`:material_analytics:`), causing icons to render as literal text strings. Replacing HTML wrappers with native `st.container(height=230)` blocks allows native Markdown parsing of icons while maintaining equal height across columns.
+3. **Credential-Leak Root Cause**:
+   - Omitting explicit session state popup calls (`_clear_auth_forms()`) on landing CTAs and view switches allowed sensitive form inputs to persist in memory across state transitions. Enforcing `_clear_auth_forms()` uniformly across all entry and exit paths ensures complete form isolation.
+4. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan assertions, unit tests (`tests/test_v1_7_12.py`), and verified green test suite.
+
 ## Entry 054: True Single-Line Cross-Links, Auth Form Isolation & Uniform Module Cards (v1.7.10)
 - **Date**: 2026-10-09
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

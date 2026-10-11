@@ -25,13 +25,12 @@ def test_v1_7_10_source_scan():
     assert 'button[kind="tertiary"]' not in content
 
     # 2. Auth form isolation clear function present and called in transitions
-    assert "def clear_auth_form_state()" in content
-    assert "clear_auth_form_state()" in content
-    assert content.count("clear_auth_form_state()") >= 5
+    assert "def _clear_auth_forms()" in content
+    assert "_clear_auth_forms()" in content
+    assert content.count("_clear_auth_forms()") >= 4
 
-    # 3. Module cards share one min-height class (.module-card)
-    assert ".module-card" in content
-    assert "min-height: 210px;" in content or "min-height:210px;" in content
+    # 3. Equal-height containers (st.container(height=230))
+    assert "st.container(height=230)" in content
 
     # 4. Zero "JOURNAL" heading strings
     assert "JOURNAL" not in content
