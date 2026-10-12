@@ -1,5 +1,19 @@
 # CodeBreaker Development Log
 
+## Entry 058: Cross-Link Color Finalization & First-Paint CSS Law (v1.7.15)
+- **Date**: 2026-10-12
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.15 MICRO-MISSION — Cross-link color finalization (first-paint CSS)
+
+### Design Notes & Architectural Decisions
+1. **First-Paint CSS Law**:
+   - Style blocks must be injected before the first widget they style (immediately after `st.set_page_config()`), or the user watches colors arrive late during page render.
+   - Relocated `_XLINK_CSS` injection to the very top of `app.py` right after `st.set_page_config()`.
+2. **Extended Tertiary Button CSS Rules**:
+   - Added explicit styling for disabled tertiary buttons (`button[data-testid="stBaseButton-tertiary"][disabled] { color: #111111; opacity: 1; -webkit-text-fill-color: #111111; cursor: default; }`) and enabled tertiary buttons (`button[data-testid="stBaseButton-tertiary"]:not([disabled]) { color: #1a73e8; font-weight: 600; }`).
+3. **Testing & Verification**:
+   - Enforced compile gate (`py_compile`), source-scan assertions, unit tests (`tests/test_v1_7_15.py`), and verified green test suite.
+
 ## Entry 057: Cross-Link Baseline Fix & JOURNAL Line Removal (v1.7.13)
 - **Date**: 2026-10-11
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

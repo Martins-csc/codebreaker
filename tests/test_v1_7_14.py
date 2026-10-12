@@ -25,11 +25,11 @@ def test_v1_7_14_source_scan():
     assert "xlink_q_signup" in content
     assert "disabled=True" in content
 
-    # 2. Zero xlink baseline CSS
-    assert "_XLINK_CSS" not in content
+    # 2. _XLINK_CSS present with :has() rule
+    assert "_XLINK_CSS" in content
     assert (
         'div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"])'
-        not in content
+        in content
     )
 
     # 3. menu_book icon present in third card, analytics and description untouched

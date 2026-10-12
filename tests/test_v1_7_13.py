@@ -20,8 +20,8 @@ def test_v1_7_13_source_scan():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. Zero xlink baseline CSS
-    assert "_XLINK_CSS" not in content
+    # 1. _XLINK_CSS present
+    assert "_XLINK_CSS" in content
 
     # 2. menu_book icon present
     assert ":material_menu_book:" in content

@@ -20,8 +20,8 @@ def test_v1_7_9_source_scan():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. Zero xlink baseline CSS in v1.7.14
-    assert "_XLINK_CSS" not in content
+    # 1. _XLINK_CSS present in v1.7.15
+    assert "_XLINK_CSS" in content
 
     # 2. Disabled tertiary button present
     assert "disabled=True" in content

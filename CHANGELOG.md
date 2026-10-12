@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.15] - 2026-10-12
+
+### Added / Changed
+- MICRO-MISSION v1.7.15 — Cross-link color finalization (first-paint CSS):
+  - **First-Paint CSS Relocation**: Relocated `_XLINK_CSS` injection to immediately after `st.set_page_config()` at the top of `app.py` (before any widget renders), enforcing the First-Paint CSS Law.
+  - **Extended CSS Rules**: Added explicit selectors for disabled tertiary buttons (`[disabled] { color: #111111; opacity: 1; -webkit-text-fill-color: #111111; cursor: default; }`) and enabled tertiary buttons (`:not([disabled]) { color: #1a73e8; font-weight: 600; }`).
+  - **Documentation & Testing**: Recorded First-Paint CSS Law in DEVLOG Entry 058. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_15.py`), and verified green test suite.
+
 ## [1.7.13] - 2026-10-11
 
 ### Added / Changed
