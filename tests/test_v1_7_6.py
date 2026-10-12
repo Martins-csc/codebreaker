@@ -24,10 +24,9 @@ def test_v1_7_6_source_scan():
     assert 'href="?mode=' not in app_content
     assert "?mode=" not in app_content
 
-    # 2. Tertiary cross-link buttons present with underline CSS
+    # 2. Tertiary cross-link buttons present
     assert "auth_switch_to_signup" in app_content
     assert "auth_switch_to_login" in app_content
-    assert "text-decoration: underline;" in app_content
 
     # 3. Widget state clearance on login success
     assert "auth_card_email" in app_content

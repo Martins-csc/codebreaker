@@ -20,9 +20,8 @@ def test_v1_7_10_source_scan():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. CSS contains stBaseButton-tertiary and zero button[kind="tertiary"]
-    assert 'button[data-testid="stBaseButton-tertiary"]' in content
-    assert 'button[kind="tertiary"]' not in content
+    # 1. Zero xlink baseline CSS
+    assert "_XLINK_CSS" not in content
 
     # 2. Auth form isolation clear function present and called in transitions
     assert "def _clear_auth_forms()" in content
@@ -34,4 +33,4 @@ def test_v1_7_10_source_scan():
 
     # 4. Zero "JOURNAL" heading strings
     assert "JOURNAL" not in content
-    assert "journal" in content  # icon material/journal is fine
+    assert "menu_book" in content

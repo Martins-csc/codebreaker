@@ -20,20 +20,11 @@ def test_v1_7_9_source_scan():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. :has() CSS block present verbatim
-    assert (
-        'div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"])'
-        in content
-        or 'div[data-testid="stHorizontalBlock"]:has(button[kind="tertiary"])'
-        in content
-    )
+    # 1. Zero xlink baseline CSS in v1.7.14
+    assert "_XLINK_CSS" not in content
 
-    # 2. Question column right-aligned
-    assert (
-        "text-align: right;" in content
-        or "text-align: right" in content
-        or "text-align:right" in content
-    )
+    # 2. Disabled tertiary button present
+    assert "disabled=True" in content
 
     # 3. _ROOT pattern present
     assert "_ROOT = st.empty()" in content

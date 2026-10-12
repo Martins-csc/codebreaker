@@ -27,10 +27,8 @@ def test_v1_7_8_source_scan():
     # 2. Cross-link inner columns [0.62, 0.38] present
     assert "[0.62, 0.38]" in app_content or "[0.25, 0.5, 0.25]" in app_content
 
-    # 3. Alignment CSS present
-    assert "p" in app_content
-    assert "margin: 0;" in app_content
-    assert "line-height: inherit;" in app_content
+    # 3. Alignment/Form CSS present
+    assert "stForm" in app_content
 
     # 4. config.toml contains primaryColor "#1a73e8" and toolbarMode minimal
     config_path = os.path.abspath(

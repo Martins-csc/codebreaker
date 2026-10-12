@@ -90,14 +90,6 @@ with _ROOT.container():
         unsafe_allow_html=True,
     )
 
-    _XLINK_CSS = """
-    <style>
-    div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) p { margin: 0; line-height: 2.5rem; }
-    button[data-testid="stBaseButton-tertiary"] { min-height: 0; height: 2.5rem; padding: 0; line-height: 2.5rem; }
-    </style>
-    """
-    st.markdown(_XLINK_CSS, unsafe_allow_html=True)
-
     _AUTH_WIDGET_KEYS = [
         "auth_card_email",
         "auth_card_password",
@@ -111,16 +103,12 @@ with _ROOT.container():
     def clear_auth_form_state():
         _clear_auth_forms()
 
-    def _auth_switch_line(question, link_label, key):
+    def _auth_switch_line(question, link_label, key, q_key="xlink_q_login"):
         outer = st.columns([0.25, 0.5, 0.25])
         with outer[1]:
-            q, l = st.columns([0.62, 0.38], gap="small", vertical_alignment="center")
-            q.markdown(
-                f"<div style='text-align:right'>{question}</div>",
-                unsafe_allow_html=True,
-            )
-            with l:
-                return st.button(link_label, key=key, type="tertiary")
+            q, l = st.columns([0.62, 0.38], gap="small")
+            q.button(question, key=q_key, type="tertiary", disabled=True)
+            return l.button(link_label, key=key, type="tertiary")
 
     def format_lagos_timestamp(created_at_str):
         if not created_at_str or created_at_str == "N/A":
@@ -663,20 +651,6 @@ with _ROOT.container():
                     .stForm [data-testid="InputInstructions"], div[data-baseweb="input"] + div {
                         display: none !important;
                     }
-                    p {
-                        margin: 0;
-                    }
-                    div[data-testid="stButton"] button[data-testid="stBaseButton-tertiary"] {
-                        color: #1a73e8;
-                        font-weight: 600;
-                        font-size: 1.05em;
-                        text-decoration: underline;
-                        padding: 0;
-                        margin: 0;
-                        line-height: inherit;
-                    }
-                    div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) p { margin: 0; line-height: 2.5rem; }
-                    div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) button[data-testid="stBaseButton-tertiary"] { min-height: 0; padding: 0; line-height: 2.5rem; }
                     </style>
                     """,
                     unsafe_allow_html=True,
@@ -1016,14 +990,20 @@ with _ROOT.container():
 
                     if auth_mode == "login":
                         if _auth_switch_line(
-                            "Don't have an account?", "Sign up", "auth_switch_to_signup"
+                            "Don't have an account?",
+                            "Sign up",
+                            "auth_switch_to_signup",
+                            "xlink_q_login",
                         ):
                             _clear_auth_forms()
                             st.session_state["auth_view"] = "signup"
                             st.rerun()
                     else:
                         if _auth_switch_line(
-                            "Already have an account?", "Log in", "auth_switch_to_login"
+                            "Already have an account?",
+                            "Log in",
+                            "auth_switch_to_login",
+                            "xlink_q_signup",
                         ):
                             _clear_auth_forms()
                             st.session_state["auth_view"] = "login"
@@ -1071,7 +1051,7 @@ with _ROOT.container():
             with _c3:
                 with st.container(height=230):
                     st.markdown(
-                        ":material_journal: **Engineering Log**\n\nMaintain a secure, chronological record of daily progress and technical insights."
+                        ":material_menu_book: **Engineering Log**\n\nMaintain a secure, chronological record of daily progress and technical insights."
                     )
 
             st.markdown("---")

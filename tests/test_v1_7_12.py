@@ -20,8 +20,8 @@ def test_v1_7_12_source_scan():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. vertical_alignment="center" present in _auth_switch_line
-    assert 'vertical_alignment="center"' in content
+    # 1. Columns [0.62, 0.38] present in _auth_switch_line
+    assert "[0.62, 0.38]" in content
 
     # 2. _clear_auth_forms defined and called
     assert "def _clear_auth_forms()" in content
