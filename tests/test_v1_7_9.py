@@ -23,17 +23,17 @@ def test_v1_7_9_source_scan():
     # 1. _XLINK_CSS present in v1.7.15
     assert "_XLINK_CSS" in content
 
-    # 2. Disabled tertiary button present
-    assert "disabled=True" in content
+    # 2. Right-aligned question markdown present
+    assert "text-align:right" in content
 
     # 3. _ROOT pattern present
     assert "_ROOT = st.empty()" in content
     assert "with _ROOT.container():" in content
 
-    # 4. [0.62, 0.38] split with gap="small"
+    # 4. [0.72, 0.28] split with gap="small"
     assert (
-        "st.columns([0.62, 0.38]" in content
-        or 'st.columns([0.62, 0.38], gap="small")' in content
+        "st.columns([0.72, 0.28]" in content
+        or 'st.columns([0.72, 0.28], gap="small")' in content
         or "st.columns([0.25, 0.5, 0.25])" in content
     )
     assert 'gap="small"' in content

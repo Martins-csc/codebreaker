@@ -20,10 +20,10 @@ def test_v1_7_14_source_scan():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. Disabled tertiary question buttons present (xlink_q_login / disabled=True)
+    # 1. Right-aligned question markdown present (xlink_q_login / q_key)
     assert "xlink_q_login" in content
     assert "xlink_q_signup" in content
-    assert "disabled=True" in content
+    assert "text-align:right" in content
 
     # 2. _XLINK_CSS present with :has() rule
     assert "_XLINK_CSS" in content

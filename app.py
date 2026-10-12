@@ -116,9 +116,14 @@ with _ROOT.container():
     def _auth_switch_line(question, link_label, key, q_key="xlink_q_login"):
         outer = st.columns([0.25, 0.5, 0.25])
         with outer[1]:
-            q, l = st.columns([0.62, 0.38], gap="small")
-            q.button(question, key=q_key, type="tertiary", disabled=True)
-            return l.button(link_label, key=key, type="tertiary")
+            q, l = st.columns([0.72, 0.28], gap="small")
+            q.markdown(
+                f'<div style="text-align:right;">{question}</div>',
+                unsafe_allow_html=True,
+            )
+            return l.button(
+                link_label, key=key, type="tertiary", use_container_width=False
+            )
 
     def format_lagos_timestamp(created_at_str):
         if not created_at_str or created_at_str == "N/A":

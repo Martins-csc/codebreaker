@@ -5,6 +5,13 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.16] - 2026-10-12
+
+### Added / Changed
+- MICRO-MISSION v1.7.16 — cross-link gap closed: right-aligned question meets auto-width link at the column boundary:
+  - **Cross-Link Gap Closure**: Replaced disabled button with right-aligned markdown (`st.markdown(f'<div style="text-align:right;">{question}</div>', unsafe_allow_html=True)`), inner columns `st.columns([0.72, 0.28], gap="small")`, and link button with `use_container_width=False`.
+  - **Documentation & Testing**: Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_16.py`), and verified green test suite.
+
 ## [1.7.15] - 2026-10-12
 
 ### Added / Changed
