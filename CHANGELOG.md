@@ -5,6 +5,13 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.19] - 2026-10-13
+
+### Added / Changed
+- MICRO-MISSION v1.7.19 — close the cross-link gap with native alignment (no CSS):
+  - **Native Alignment Law**: Replaced `_auth_switch_line` helper with native container alignment (`with st.container(horizontal_alignment="right"):` and `with st.container(horizontal_alignment="left"):`) and purged all `justify-content` CSS rules. Preferred Streamlit's native alignment arguments over injected CSS for layout, reserving CSS strictly for color.
+  - **Documentation & Testing**: Recorded Alignment Law in DEVLOG Entry 061. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_19.py`), and verified green test suite.
+
 ## [1.7.18] - 2026-10-13
 
 ### Added / Changed

@@ -73,8 +73,8 @@ _XLINK_CSS = """
 <style>
 div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) { column-gap: 6px; align-items: center; }
 button[data-testid="stBaseButton-tertiary"] { min-height: 0; padding: 0; white-space: nowrap; }
-button[data-testid="stBaseButton-tertiary"][disabled] { color: #111111; opacity: 1; -webkit-text-fill-color: #111111; justify-content: flex-end; cursor: default; }
-button[data-testid="stBaseButton-tertiary"]:not([disabled]) { color: #1a73e8; font-weight: 600; justify-content: flex-start; }
+button[data-testid="stBaseButton-tertiary"][disabled] { color: #111111; opacity: 1; -webkit-text-fill-color: #111111; cursor: default; }
+button[data-testid="stBaseButton-tertiary"]:not([disabled]) { color: #1a73e8; font-weight: 600; }
 </style>
 """
 st.markdown(_XLINK_CSS, unsafe_allow_html=True)
@@ -113,12 +113,17 @@ with _ROOT.container():
     def clear_auth_form_state():
         _clear_auth_forms()
 
-    def _auth_switch_line(question, link_label, key, q_key="xlink_q_login"):
+    def _auth_switch_line(question, link_label, q_key, l_key):
         outer = st.columns([0.25, 0.5, 0.25])
         with outer[1]:
             q, l = st.columns([0.62, 0.38], gap="small")
-            q.button(question, key=q_key, type="tertiary", disabled=True)
-            return l.button(link_label, key=key, type="tertiary")
+            with q:
+                with st.container(horizontal_alignment="right"):
+                    st.button(question, key=q_key, type="tertiary", disabled=True)
+            with l:
+                with st.container(horizontal_alignment="left"):
+                    clicked = st.button(link_label, key=l_key, type="tertiary")
+        return clicked
 
     def format_lagos_timestamp(created_at_str):
         if not created_at_str or created_at_str == "N/A":
@@ -1002,8 +1007,8 @@ with _ROOT.container():
                         if _auth_switch_line(
                             "Don't have an account?",
                             "Sign up",
-                            "auth_switch_to_signup",
                             "xlink_q_login",
+                            "auth_switch_to_signup",
                         ):
                             _clear_auth_forms()
                             st.session_state["auth_view"] = "signup"
@@ -1012,8 +1017,8 @@ with _ROOT.container():
                         if _auth_switch_line(
                             "Already have an account?",
                             "Log in",
-                            "auth_switch_to_login",
                             "xlink_q_signup",
+                            "auth_switch_to_login",
                         ):
                             _clear_auth_forms()
                             st.session_state["auth_view"] = "login"

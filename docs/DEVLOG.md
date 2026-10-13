@@ -1,5 +1,19 @@
 # CodeBreaker Development Log
 
+## Entry 061: Native Alignment Law & Cross-Link Gap Closure (v1.7.19)
+- **Date**: 2026-10-13
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.19 MICRO-MISSION — close the cross-link gap with native alignment (no CSS)
+
+### Design Notes & Architectural Decisions
+1. **Native Alignment Law**:
+   - Prefer Streamlit's native alignment arguments (`horizontal_alignment`, `vertical_alignment`, `gap`) over injected CSS for layout. CSS is strictly reserved for color styling.
+   - Purged all `justify-content` CSS rules from `_XLINK_CSS`.
+2. **Container-Native Cross-Links (`_auth_switch_line`)**:
+   - Implemented native horizontal alignment using `st.container(horizontal_alignment="right")` for the question button and `st.container(horizontal_alignment="left")` for the link button inside inner columns `[0.62, 0.38]`.
+3. **Testing & Verification**:
+   - Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_19.py`), and verified green test suite.
+
 ## Entry 060: Cross-Link Flex Geometry & External-Advice Vetting Law (v1.7.18)
 - **Date**: 2026-10-13
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

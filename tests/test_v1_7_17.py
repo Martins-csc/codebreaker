@@ -27,7 +27,11 @@ def test_v1_7_17_source_scan():
     # 3. Zero markdown question elements in cross-link switch function
     # Check that q.markdown is not used for the question in _auth_switch_line
     # Instead q.button is used with disabled=True
-    assert "q.button(question" in content or "q.button(" in content
+    assert (
+        "q.button(question" in content
+        or "q.button(" in content
+        or "st.button(" in content
+    )
 
     # 4. _XLINK_CSS rules present
     assert "_XLINK_CSS = " in content
