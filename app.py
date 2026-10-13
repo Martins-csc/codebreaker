@@ -71,9 +71,10 @@ st.set_page_config(
 
 _XLINK_CSS = """
 <style>
-button[data-testid="stBaseButton-tertiary"][disabled] { color: #111111; opacity: 1; -webkit-text-fill-color: #111111; cursor: default; }
-button[data-testid="stBaseButton-tertiary"]:not([disabled]) { color: #1a73e8; font-weight: 600; }
-div[data-testid="stButton"] button[disabled] { color: #111111; opacity: 1; }
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) { column-gap: 6px; align-items: center; }
+button[data-testid="stBaseButton-tertiary"] { min-height: 0; padding: 0; white-space: nowrap; }
+button[data-testid="stBaseButton-tertiary"][disabled] { color: #111111; opacity: 1; -webkit-text-fill-color: #111111; justify-content: flex-end; cursor: default; }
+button[data-testid="stBaseButton-tertiary"]:not([disabled]) { color: #1a73e8; font-weight: 600; justify-content: flex-start; }
 </style>
 """
 st.markdown(_XLINK_CSS, unsafe_allow_html=True)
@@ -115,11 +116,9 @@ with _ROOT.container():
     def _auth_switch_line(question, link_label, key, q_key="xlink_q_login"):
         outer = st.columns([0.25, 0.5, 0.25])
         with outer[1]:
-            q, l = st.columns([0.62, 0.38], gap="small", vertical_alignment="center")
+            q, l = st.columns([0.62, 0.38], gap="small")
             q.button(question, key=q_key, type="tertiary", disabled=True)
-            return l.button(
-                link_label, key=key, type="tertiary", use_container_width=False
-            )
+            return l.button(link_label, key=key, type="tertiary")
 
     def format_lagos_timestamp(created_at_str):
         if not created_at_str or created_at_str == "N/A":

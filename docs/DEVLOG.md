@@ -1,5 +1,21 @@
 # CodeBreaker Development Log
 
+## Entry 060: Cross-Link Flex Geometry & External-Advice Vetting Law (v1.7.18)
+- **Date**: 2026-10-13
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.18 MICRO-MISSION — cross-link flex geometry, widget-native
+
+### Design Notes & Architectural Decisions
+1. **External-Advice Vetting Law**:
+   - Adopt layout math (`column-gap: 6px; align-items: center; justify-content: flex-end / flex-start;`), reject foreign navigation mechanisms.
+   - Anchors remain strictly banned (they cause new-tab behavior or reload-induced session loss). Widgets own all in-app navigation.
+2. **Widget-Native Flex Geometry CSS**:
+   - Injected verbatim `_XLINK_CSS` targeting `div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"])` with `column-gap: 6px; align-items: center;`.
+   - Configured `button[data-testid="stBaseButton-tertiary"]` with `min-height: 0; padding: 0; white-space: nowrap;`.
+   - Configured disabled (`justify-content: flex-end; color: #111111;`) and enabled (`justify-content: flex-start; color: #1a73e8; font-weight: 600;`) states.
+3. **Testing & Verification**:
+   - Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_18.py`), and verified green test suite.
+
 ## Entry 059: Structural Cross-Link Baseline & Identical-Widget-Metrics Law (v1.7.17)
 - **Date**: 2026-10-13
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

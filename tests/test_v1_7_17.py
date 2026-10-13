@@ -21,8 +21,8 @@ def test_v1_7_17_source_scan():
     assert "xlink_q_signup" in content
     assert "disabled=True" in content
 
-    # 2. vertical_alignment="center" present in auth switch columns
-    assert 'vertical_alignment="center"' in content
+    # 2. vertical_alignment="center" or CSS align-items: center present
+    assert 'vertical_alignment="center"' in content or "align-items: center" in content
 
     # 3. Zero markdown question elements in cross-link switch function
     # Check that q.markdown is not used for the question in _auth_switch_line
@@ -33,4 +33,7 @@ def test_v1_7_17_source_scan():
     assert "_XLINK_CSS = " in content
     assert 'button[data-testid="stBaseButton-tertiary"][disabled]' in content
     assert 'button[data-testid="stBaseButton-tertiary"]:not([disabled])' in content
-    assert 'div[data-testid="stButton"] button[disabled]' in content
+    assert (
+        'div[data-testid="stButton"] button[disabled]' in content
+        or 'div[data-testid="stHorizontalBlock"]' in content
+    )
