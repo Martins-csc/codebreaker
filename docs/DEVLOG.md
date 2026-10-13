@@ -1,5 +1,19 @@
 # CodeBreaker Development Log
 
+## Entry 059: Structural Cross-Link Baseline & Identical-Widget-Metrics Law (v1.7.17)
+- **Date**: 2026-10-13
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.7.17 MICRO-MISSION — structural cross-link baseline (identical widget metrics)
+
+### Design Notes & Architectural Decisions
+1. **Identical-Widget-Metrics Law**:
+   - Baseline alignment is guaranteed by using the same widget type on both sides (disabled tertiary button vs enabled tertiary button), never by CSS equalization.
+   - Replaced markdown question elements with disabled tertiary buttons inside `st.columns([0.62, 0.38], gap="small", vertical_alignment="center")`.
+2. **Builder Color CSS**:
+   - Updated `_XLINK_CSS` with both selector forms targeting `button[data-testid="stBaseButton-tertiary"][disabled]`, `button[data-testid="stBaseButton-tertiary"]:not([disabled])`, and `div[data-testid="stButton"] button[disabled]`.
+3. **Testing & Verification**:
+   - Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_17.py`), and verified green test suite.
+
 ## Entry 058: Cross-Link Color Finalization & First-Paint CSS Law (v1.7.15)
 - **Date**: 2026-10-12
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

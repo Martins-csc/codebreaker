@@ -73,8 +73,7 @@ _XLINK_CSS = """
 <style>
 button[data-testid="stBaseButton-tertiary"][disabled] { color: #111111; opacity: 1; -webkit-text-fill-color: #111111; cursor: default; }
 button[data-testid="stBaseButton-tertiary"]:not([disabled]) { color: #1a73e8; font-weight: 600; }
-div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-tertiary"]) p { margin: 0; line-height: 2.5rem; }
-button[data-testid="stBaseButton-tertiary"] { min-height: 0; height: 2.5rem; padding: 0; line-height: 2.5rem; }
+div[data-testid="stButton"] button[disabled] { color: #111111; opacity: 1; }
 </style>
 """
 st.markdown(_XLINK_CSS, unsafe_allow_html=True)
@@ -116,11 +115,8 @@ with _ROOT.container():
     def _auth_switch_line(question, link_label, key, q_key="xlink_q_login"):
         outer = st.columns([0.25, 0.5, 0.25])
         with outer[1]:
-            q, l = st.columns([0.72, 0.28], gap="small")
-            q.markdown(
-                f'<div style="text-align:right;">{question}</div>',
-                unsafe_allow_html=True,
-            )
+            q, l = st.columns([0.62, 0.38], gap="small", vertical_alignment="center")
+            q.button(question, key=q_key, type="tertiary", disabled=True)
             return l.button(
                 link_label, key=key, type="tertiary", use_container_width=False
             )

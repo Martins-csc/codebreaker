@@ -16,16 +16,17 @@ def test_v1_7_16_source_scan():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. Question markdown contains text-align:right
-    assert "text-align:right" in content
+    # 1. Question markdown contains text-align:right or disabled tertiary button
+    assert "text-align:right" in content or "disabled=True" in content
 
     # 2. Link button carries use_container_width=False
     assert "use_container_width=False" in content
 
-    # 3. Inner columns [0.72, 0.28] present
+    # 3. Inner columns present
     assert (
         'st.columns([0.72, 0.28], gap="small")' in content
         or "st.columns([0.72, 0.28]" in content
+        or "st.columns([0.62, 0.38]" in content
     )
 
     # 4. Disabled-black CSS rule present

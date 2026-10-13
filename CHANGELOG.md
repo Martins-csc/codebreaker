@@ -5,6 +5,13 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.7.17] - 2026-10-13
+
+### Added / Changed
+- MICRO-MISSION v1.7.17 — structural cross-link baseline (identical widget metrics):
+  - **Identical-Widget-Metrics Law**: Replaced markdown question with a disabled tertiary button (`type="tertiary"`, `disabled=True`) inside centered columns `st.columns([0.62, 0.38], gap="small", vertical_alignment="center")`. Baseline alignment is guaranteed by using the same widget type on both sides, never by CSS equalization.
+  - **Documentation & Testing**: Recorded Identical-Widget-Metrics Law in DEVLOG Entry 059. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_7_17.py`), and verified green test suite.
+
 ## [1.7.16] - 2026-10-12
 
 ### Added / Changed
