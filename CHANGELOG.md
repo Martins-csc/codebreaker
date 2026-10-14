@@ -5,6 +5,17 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-10-14
+
+### Added / Changed
+- MICRO-MISSION v1.8.2 — remove misread feature, pre-warm caches, no-token-no-probe, true auth form isolation, full login/Create-Account symmetry:
+  - **Changelog Reader Removal**: Deleted `_render_home_changelog` and every call to it (the "🚀 What's New" card), restoring clean Home layout without misread features.
+  - **Cache Pre-Warm Pattern**: Pre-warmed `@st.cache_data`-cached read functions (`_cached_fetch_blueprints`, `_cached_fetch_logs`, `_cached_fetch_profile`) inside both sign-in and sign-up success handlers immediately after session stamping, ensuring the first Dashboard render after authentication is a zero-latency cache hit.
+  - **No-Token-No-Probe Rule**: Unauthenticated views perform zero Supabase calls; verification probes are strictly guarded by token presence and the 300s `auth_verified_at` TTL guard; landing CTAs set their view flag and `st.rerun()` network-free.
+  - **True Form Isolation**: Assigned explicit, unique keys to all auth inputs (`login_email`, `login_password`, `signup_email`, `signup_password`, `signup_display_name`). Updated `_AUTH_WIDGET_KEYS` and `_clear_auth_forms()` to pop exactly these keys across cross-switch handlers, landing CTAs, successful auth, and overview back button, eliminating keyless widget aliasing across views.
+  - **Token Stamping Frozen Code Rule**: Maintained byte-identical token-stamping blocks (`access_token`, `refresh_token`, `expires_at`) per frozen-code doctrine.
+  - **Documentation & Testing**: Recorded Entry 063 in DEVLOG. Enforced `py_compile`, source-scan assertions, updated unit tests, and verified 225/225 green test suite.
+
 ## [1.8.1] - 2026-10-14
 
 ### Added / Changed

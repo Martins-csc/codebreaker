@@ -40,25 +40,6 @@ from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
 
 
-def _render_home_changelog():
-    try:
-        with open("CHANGELOG.md", "r", encoding="utf-8") as f:
-            content = f.read()
-        import re
-
-        match = re.search(
-            r"## \[?v?\d+\.\d+\.\d+\]?.*?(?=## \[?v?\d+|\Z)",
-            content,
-            re.IGNORECASE | re.DOTALL,
-        )
-        if match:
-            with st.container(border=True):
-                st.markdown("### 🚀 What's New")
-                st.markdown(match.group(0).strip())
-    except Exception:
-        pass
-
-
 def format_display_title(title: str, version: int = 1) -> str:
     if not title:
         title = "Untitled"
@@ -186,9 +167,11 @@ with _ROOT.container():
     )
 
     _AUTH_WIDGET_KEYS = [
-        "auth_card_email",
-        "auth_card_password",
-        "auth_card_display_name",
+        "login_email",
+        "login_password",
+        "signup_email",
+        "signup_password",
+        "signup_display_name",
     ]
 
     def _clear_auth_forms():
@@ -763,20 +746,29 @@ with _ROOT.container():
                     unsafe_allow_html=True,
                 )
 
-                auth_email = st.text_input(
-                    "Email", placeholder="", key="auth_card_email"
-                )
-                auth_password = st.text_input(
-                    "Password",
-                    type="password",
-                    placeholder="",
-                    key="auth_card_password",
-                )
-
-                auth_display_name = ""
-                if auth_mode == "signup":
+                if auth_mode == "login":
+                    auth_email = st.text_input(
+                        "Email", placeholder="", key="login_email"
+                    )
+                    auth_password = st.text_input(
+                        "Password",
+                        type="password",
+                        placeholder="",
+                        key="login_password",
+                    )
+                    auth_display_name = ""
+                else:
+                    auth_email = st.text_input(
+                        "Email", placeholder="", key="signup_email"
+                    )
+                    auth_password = st.text_input(
+                        "Password",
+                        type="password",
+                        placeholder="",
+                        key="signup_password",
+                    )
                     auth_display_name = st.text_input(
-                        "Display Name", placeholder="", key="auth_card_display_name"
+                        "Display Name", placeholder="", key="signup_display_name"
                     )
 
                 if auth_mode == "login":
@@ -875,6 +867,9 @@ with _ROOT.container():
                                     mint_and_set_rt(
                                         client, user_obj.id, res.session.refresh_token
                                     )
+                                    _cached_fetch_blueprints(user_obj.id)
+                                    _cached_fetch_logs(user_obj.id)
+                                    _cached_fetch_profile(user_obj.id)
                                     st.success("Logged in successfully!")
                                     _clear_auth_forms()
                                     del st.session_state["auth_view"]
@@ -1025,6 +1020,9 @@ with _ROOT.container():
                                             user_obj.id,
                                             session_obj.refresh_token,
                                         )
+                                        _cached_fetch_blueprints(user_obj.id)
+                                        _cached_fetch_logs(user_obj.id)
+                                        _cached_fetch_profile(user_obj.id)
                                     st.success(
                                         "Account created and logged in successfully!"
                                     )
@@ -1602,8 +1600,6 @@ with _ROOT.container():
                         del st.session_state[key]
                     st.success("Signed out successfully.")
                     st.rerun()
-
-        _render_home_changelog()
 
     elif page == "Analyze":
         st.title("Analyze & Architecture Generation")

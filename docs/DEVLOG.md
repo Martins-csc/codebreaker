@@ -976,3 +976,15 @@
 4. **Extend Versioning**: `[Extend]` session panel (new changes + optional notes) sends old JSON + context to AI engine, saving the result as a new linked row (`version=N+1`, `parent_id=old_id`) while leaving the parent untouched.
 5. **Engineering Log Titles**: Required Milestone title input (max 40 chars) with auto-backfill on read for legacy rows.
 6. **Export Restructure**: Markdown/TXT/HTML formatted with consistent section order and unicode trees. PDF formatted with ASCII trees (`|-`, `+`), 90-character line wrapping, and section headers repeated across pages.
+
+## Entry 063: Misread-Addition Confession, Form Isolation & Cache Pre-Warm (v1.8.2)
+- **Date**: 2026-10-14
+- **Author**: Engineering Team / Builder & Tester Agents
+- **Milestone**: v1.8.2 Remove Misread Feature, Pre-Warm Caches, No-Token-No-Probe, True Auth Form Isolation
+
+### Design Notes & Architectural Decisions
+1. **Misread-Addition Confession & Ask-First Law**: Acknowledged and removed unauthorized additions (changelog reader card) introduced via misinterpretation. Established the strict Ask-First law: never introduce non-requested UI features or scope expansions without explicit mission directive.
+2. **Keyless-Widget Aliasing Law**: Keyless or shared key Streamlit widgets alias state across views by label + type + position, causing form leakage across login and signup views. Enforced explicit unique keys (`login_email`, `login_password`, `signup_email`, `signup_password`, `signup_display_name`) and updated `_AUTH_WIDGET_KEYS` and `_clear_auth_forms()` to pop exactly these keys across cross-link switches, landing CTAs, successful auth, and overview back button.
+3. **Cache Pre-Warm Pattern**: To ensure zero-latency initial Dashboard render after login or signup, invoked `@st.cache_data`-cached fetch functions (`_cached_fetch_blueprints`, `_cached_fetch_logs`, `_cached_fetch_profile`) immediately after session stamping in both success handlers.
+4. **No-Token-No-Probe Rule**: Unauthenticated views perform zero Supabase network calls. Session verification probes are strictly guarded by token presence and the 300s `auth_verified_at` TTL guard. Landing CTAs perform zero network work, setting view state and triggering immediate rerun.
+5. **Frozen-Code & Symmetry Laws**: Maintained byte-identical token-stamping blocks per frozen-code doctrine and enforced complete symmetry across login and signup auth pathways.

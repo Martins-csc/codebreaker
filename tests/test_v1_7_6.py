@@ -29,8 +29,8 @@ def test_v1_7_6_source_scan():
     assert "auth_switch_to_login" in app_content
 
     # 3. Widget state clearance on login success
-    assert "auth_card_email" in app_content
-    assert "auth_card_password" in app_content
+    assert "login_email" in app_content
+    assert "login_password" in app_content
 
     # 4. config.toml contains toolbarMode
     config_path = os.path.abspath(
