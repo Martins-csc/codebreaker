@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.8.3] - 2026-10-14
+
+### Added / Changed
+- MICRO-MISSION v1.8.3 — zero-network logged-out reruns:
+  - **Token-Gated Boot Verify**: Wrapped the module-level session restore/verify block and boot client initialization (`get_client()`) with explicit token presence checks (`st.session_state.get("access_token")` / `rt_param` / query params). Unauthenticated runs (landing render, landing navigation, cross-switches) now execute zero Supabase client calls.
+  - **Stale-Default Trap Mitigation**: Addressed the stale-default trap (`auth_verified_at=0` firing TTL guards on logged-out runs) by placing the `access_token` presence gate before the TTL duration check.
+  - **Documentation & Testing**: Recorded Entry 064 in DEVLOG. Enforced `py_compile`, source-scan assertions, unit tests, and verified 227/227 green test suite.
+
 ## [1.8.2] - 2026-10-14
 
 ### Added / Changed

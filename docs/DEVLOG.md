@@ -988,3 +988,14 @@
 3. **Cache Pre-Warm Pattern**: To ensure zero-latency initial Dashboard render after login or signup, invoked `@st.cache_data`-cached fetch functions (`_cached_fetch_blueprints`, `_cached_fetch_logs`, `_cached_fetch_profile`) immediately after session stamping in both success handlers.
 4. **No-Token-No-Probe Rule**: Unauthenticated views perform zero Supabase network calls. Session verification probes are strictly guarded by token presence and the 300s `auth_verified_at` TTL guard. Landing CTAs perform zero network work, setting view state and triggering immediate rerun.
 5. **Frozen-Code & Symmetry Laws**: Maintained byte-identical token-stamping blocks per frozen-code doctrine and enforced complete symmetry across login and signup auth pathways.
+
+## Entry 064: Zero-Network Logged-Out Reruns & The Stale-Default Trap (v1.8.3)
+- **Date**: 2026-10-14
+- **Author**: Engineering Team / Builder & Tester Agents
+- **Milestone**: v1.8.3 Zero-Network Logged-Out Reruns
+
+### Design Notes & Architectural Decisions
+1. **The Stale-Default Trap**: When initializing default session state or using `.get("auth_verified_at", 0)`, a default value of `0` means `time.time() - 0 > 300` evaluates to `True` on every run. On logged-out runs without a token, a TTL guard alone fires forever unless guarded by a token presence gate first.
+2. **Token-Gated Boot Verify**: Wrapped module-level session restore/verify and boot client initialization (`get_client()`) with explicit token presence checks (`st.session_state.get("access_token")`, `rt_param`, `type_param`, `code_param`).
+3. **Zero-Network Logged-Out Reruns**: Confirmed that ordinary logged-out reruns (landing page render, navigation to Log In / Create Account, and cross-switch navigation) execute zero Supabase client calls.
+4. **Gates & Verification**: Verified clean compilation (`py_compile`) and 100% test pass rate (`pytest tests/ -q`, 225/225 + new v1.8.3 tests).

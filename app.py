@@ -287,12 +287,12 @@ with _ROOT.container():
     # Boot session rehydration via URL capability token (?rt=...)
     if "user" not in st.session_state or "access_token" not in st.session_state:
         try:
-            client = get_client()
             rt_param = st.query_params.get("rt")
             if isinstance(rt_param, list):
                 rt_param = rt_param[0] if rt_param else None
 
             if rt_param:
+                client = get_client()
                 token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
                 try:
                     verify_res = client.rpc(
@@ -457,24 +457,28 @@ with _ROOT.container():
                 del st.query_params["rt"]
 
     # Ensure client session is restored if access_token is in session_state
+    type_param = st.query_params.get("type")
+    token_param = (
+        st.query_params.get("token")
+        or st.query_params.get("token_hash")
+        or st.query_params.get("code")
+    )
+    code_param = st.query_params.get("code")
+
+    if isinstance(type_param, list):
+        type_param = type_param[0] if type_param else None
+    if isinstance(token_param, list):
+        token_param = token_param[0] if token_param else None
+    if isinstance(code_param, list):
+        code_param = code_param[0] if code_param else None
+
     try:
-        client = get_client()
-
-        # Check query parameters on page load for email verification (signup/recovery) or OAuth authorization code
-        type_param = st.query_params.get("type")
-        token_param = (
-            st.query_params.get("token")
-            or st.query_params.get("token_hash")
-            or st.query_params.get("code")
-        )
-        code_param = st.query_params.get("code")
-
-        if isinstance(type_param, list):
-            type_param = type_param[0] if type_param else None
-        if isinstance(token_param, list):
-            token_param = token_param[0] if token_param else None
-        if isinstance(code_param, list):
-            code_param = code_param[0] if code_param else None
+        if (
+            (type_param in ["signup", "recovery"] and (token_param or code_param))
+            or code_param
+            or "access_token" in st.session_state
+        ):
+            client = get_client()
 
         # 1. Handle email link ownership verification (signup or recovery) via verify_otp
         if type_param in ["signup", "recovery"] and (token_param or code_param):
@@ -670,20 +674,21 @@ with _ROOT.container():
             for p in ["code", "state"]:
                 st.query_params.pop(p, None)
 
-        if "access_token" in st.session_state and "refresh_token" in st.session_state:
-            _now = time.time()
-            _exp = float(st.session_state.get("expires_at", 0))
-            if (_now - st.session_state.get("auth_verified_at", 0) > 300) or (
-                _exp > 0 and _exp - _now < 300
-            ):
-                try:
-                    client.auth.set_session(
-                        st.session_state["access_token"],
-                        st.session_state["refresh_token"],
-                    )
-                    st.session_state["auth_verified_at"] = time.time()
-                except Exception:
-                    pass
+        if st.session_state.get("access_token") and (
+            time.time() - st.session_state.get("auth_verified_at", 0) > 300
+            or (
+                float(st.session_state.get("expires_at", 0)) > 0
+                and float(st.session_state.get("expires_at", 0)) - time.time() < 300
+            )
+        ):
+            try:
+                client.auth.set_session(
+                    st.session_state["access_token"],
+                    st.session_state["refresh_token"],
+                )
+                st.session_state["auth_verified_at"] = time.time()
+            except Exception:
+                pass
     except ConfigError as ce:
         st.session_state["config_error"] = str(ce)
 
