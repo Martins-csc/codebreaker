@@ -40,6 +40,25 @@ from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client
 
 
+def _render_home_changelog():
+    try:
+        with open("CHANGELOG.md", "r", encoding="utf-8") as f:
+            content = f.read()
+        import re
+
+        match = re.search(
+            r"## \[?v?\d+\.\d+\.\d+\]?.*?(?=## \[?v?\d+|\Z)",
+            content,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if match:
+            with st.container(border=True):
+                st.markdown("### 🚀 What's New")
+                st.markdown(match.group(0).strip())
+    except Exception:
+        pass
+
+
 def format_display_title(title: str, version: int = 1) -> str:
     if not title:
         title = "Untitled"
@@ -60,6 +79,72 @@ def get_config(key, default=None):
 
     val = _os.environ.get(key)
     return val if val is not None else default
+
+
+@st.cache_data(ttl=30)
+def _cached_fetch_blueprints(user_id):
+    client = get_client()
+    if "access_token" in st.session_state:
+        try:
+            client.auth.set_session(
+                st.session_state["access_token"],
+                st.session_state.get("refresh_token", ""),
+            )
+        except Exception:
+            pass
+    res = (
+        client.table("blueprints")
+        .select("id, title, created_at, version, blueprint_json")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return getattr(res, "data", [])
+
+
+@st.cache_data(ttl=30)
+def _cached_fetch_logs(user_id):
+    client = get_client()
+    if "access_token" in st.session_state:
+        try:
+            client.auth.set_session(
+                st.session_state["access_token"],
+                st.session_state.get("refresh_token", ""),
+            )
+        except Exception:
+            pass
+    res = client.table("engineering_log").select("*").eq("user_id", user_id).execute()
+    return getattr(res, "data", [])
+
+
+@st.cache_data(ttl=30)
+def _cached_fetch_profile(user_id):
+    client = get_client()
+    if "access_token" in st.session_state:
+        try:
+            client.auth.set_session(
+                st.session_state["access_token"],
+                st.session_state.get("refresh_token", ""),
+            )
+        except Exception:
+            pass
+    res = (
+        client.table("profiles")
+        .select("active_blueprint_id")
+        .eq("id", user_id)
+        .execute()
+    )
+    return getattr(res, "data", [])
+
+
+def _invalidate_caches():
+    try:
+        _cached_fetch_blueprints.clear()
+        _cached_fetch_logs.clear()
+        _cached_fetch_profile.clear()
+        st.cache_data.clear()
+    except Exception:
+        pass
 
 
 st.set_page_config(
@@ -603,12 +688,19 @@ with _ROOT.container():
                 st.query_params.pop(p, None)
 
         if "access_token" in st.session_state and "refresh_token" in st.session_state:
-            try:
-                client.auth.set_session(
-                    st.session_state["access_token"], st.session_state["refresh_token"]
-                )
-            except Exception:
-                pass
+            _now = time.time()
+            _exp = float(st.session_state.get("expires_at", 0))
+            if (_now - st.session_state.get("auth_verified_at", 0) > 300) or (
+                _exp > 0 and _exp - _now < 300
+            ):
+                try:
+                    client.auth.set_session(
+                        st.session_state["access_token"],
+                        st.session_state["refresh_token"],
+                    )
+                    st.session_state["auth_verified_at"] = time.time()
+                except Exception:
+                    pass
     except ConfigError as ce:
         st.session_state["config_error"] = str(ce)
 
@@ -1363,15 +1455,7 @@ with _ROOT.container():
                             st.session_state["access_token"],
                             st.session_state.get("refresh_token", ""),
                         )
-                    bp_res = (
-                        client.table("blueprints")
-                        .select("id, title, created_at, version")
-                        .eq("user_id", user["id"])
-                        .order("created_at", desc=True)
-                        .limit(5)
-                        .execute()
-                    )
-                    bp_rows = getattr(bp_res, "data", [])
+                    bp_rows = _cached_fetch_blueprints(user["id"])[:5]
                     if bp_rows:
                         st.markdown("**Recent Blueprints:**")
                         for bp_item in bp_rows:
@@ -1396,6 +1480,7 @@ with _ROOT.container():
                                         client.table("profiles").update(
                                             {"active_blueprint_id": bp_id}
                                         ).eq("id", user["id"]).execute()
+                                        _invalidate_caches()
                                     except Exception:
                                         pass
                                     st.session_state["nav_pending"] = "Blueprint"
@@ -1411,6 +1496,7 @@ with _ROOT.container():
                                 client.table("profiles").update(
                                     {"active_blueprint_id": None}
                                 ).eq("id", user["id"]).execute()
+                                _invalidate_caches()
                             except Exception:
                                 pass
                             st.session_state["nav_pending"] = "Blueprint"
@@ -1428,20 +1514,7 @@ with _ROOT.container():
             with st.container(border=True):
                 st.subheader("My Engineering Logs")
                 try:
-                    client = get_client()
-                    if "access_token" in st.session_state:
-                        client.auth.set_session(
-                            st.session_state["access_token"],
-                            st.session_state.get("refresh_token", ""),
-                        )
-                    res_logs = (
-                        client.table("engineering_log")
-                        .select("project_name, title, progress, created_at")
-                        .eq("user_id", user["id"])
-                        .order("created_at", desc=True)
-                        .execute()
-                    )
-                    log_rows = getattr(res_logs, "data", [])
+                    log_rows = _cached_fetch_logs(user["id"])
                     log_count = len(log_rows)
                     st.metric("Total Logs", log_count)
                     st.markdown("**Recent Milestones:**")
@@ -1530,6 +1603,8 @@ with _ROOT.container():
                     st.success("Signed out successfully.")
                     st.rerun()
 
+        _render_home_changelog()
+
     elif page == "Analyze":
         st.title("Analyze & Architecture Generation")
 
@@ -1605,6 +1680,7 @@ with _ROOT.container():
                             ins_res = (
                                 client.table("blueprints").insert(bp_payload).execute()
                             )
+                            _invalidate_caches()
                             ins_data = getattr(ins_res, "data", [])
                             if ins_data and isinstance(ins_data, list):
                                 new_bp_id = ins_data[0].get("id")
@@ -1614,6 +1690,7 @@ with _ROOT.container():
                                         client.table("profiles").update(
                                             {"active_blueprint_id": new_bp_id}
                                         ).eq("id", user["id"]).execute()
+                                        _invalidate_caches()
                                     except Exception:
                                         pass
                         except Exception as e:
@@ -1641,13 +1718,7 @@ with _ROOT.container():
 
         if not active_bp_id:
             try:
-                res_prof = (
-                    client.table("profiles")
-                    .select("active_blueprint_id")
-                    .eq("id", user["id"])
-                    .execute()
-                )
-                p_rows = getattr(res_prof, "data", [])
+                p_rows = _cached_fetch_profile(user["id"])
                 if p_rows and p_rows[0].get("active_blueprint_id"):
                     active_bp_id = p_rows[0].get("active_blueprint_id")
                     st.session_state["active_blueprint_id"] = active_bp_id
@@ -1702,14 +1773,7 @@ with _ROOT.container():
                             st.session_state[f"arm_del_bp_{b_id_k}"] = False
                             st.session_state.pop(k, None)
 
-                all_bp_res = (
-                    client.table("blueprints")
-                    .select("id, title, created_at, version, blueprint_json")
-                    .eq("user_id", user["id"])
-                    .order("created_at", desc=True)
-                    .execute()
-                )
-                all_bps = getattr(all_bp_res, "data", [])
+                all_bps = _cached_fetch_blueprints(user["id"])
                 if all_bps:
                     for item in all_bps:
                         b_id = item.get("id")
@@ -1744,6 +1808,7 @@ with _ROOT.container():
                                         client.table("profiles").update(
                                             {"active_blueprint_id": b_id}
                                         ).eq("id", user["id"]).execute()
+                                        _invalidate_caches()
                                     except Exception:
                                         pass
                                     st.session_state["nav_pending"] = "Blueprint"
@@ -1776,6 +1841,7 @@ with _ROOT.container():
                                     client.table("blueprints").delete().eq(
                                         "id", rid
                                     ).execute()
+                                    _invalidate_caches()
                                     if (
                                         st.session_state.get("active_blueprint_id")
                                         == rid
@@ -1786,6 +1852,7 @@ with _ROOT.container():
                                             client.table("profiles").update(
                                                 {"active_blueprint_id": None}
                                             ).eq("id", user["id"]).execute()
+                                            _invalidate_caches()
                                         except Exception:
                                             pass
                                     st.session_state.pop(del_armed_key, None)
@@ -2128,6 +2195,7 @@ with _ROOT.container():
                         ),
                     }
                     client.table("engineering_log").insert(payload).execute()
+                    _invalidate_caches()
                     st.success("Engineering log entry saved successfully!")
                     st.rerun()
                 except Exception as e:
@@ -2157,13 +2225,7 @@ with _ROOT.container():
                         st.session_state[f"confirm_del_{log_id_k}"] = False
                         st.session_state.pop(k, None)
 
-            response = (
-                client.table("engineering_log")
-                .select("*")
-                .eq("user_id", user["id"])
-                .execute()
-            )
-            entries = getattr(response, "data", [])
+            entries = _cached_fetch_logs(user["id"])
 
             # Apply sorting
             if sort_option == "Newest first":
@@ -2250,6 +2312,7 @@ with _ROOT.container():
                                         client.table("engineering_log").delete().eq(
                                             "id", rid
                                         ).eq("user_id", user["id"]).execute()
+                                        _invalidate_caches()
                                         st.session_state[confirm_del_key] = False
                                         st.session_state.pop(arm_time_key, None)
                                         st.success("Log entry deleted successfully.")
@@ -2309,6 +2372,7 @@ with _ROOT.container():
                                     client.table("engineering_log").delete().eq(
                                         "user_id", user["id"]
                                     ).execute()
+                                    _invalidate_caches()
                                     st.session_state[all_confirm_key] = False
                                     st.success(
                                         "All engineering logs deleted successfully."

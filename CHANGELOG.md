@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-10-14
+
+### Added / Changed
+- MICRO-MISSION v1.8.1 — fast reruns (ghost eradication), additive edits only:
+  - **Verify-Once Guard**: Wrapped the per-rerun Supabase session-verification (`client.auth.set_session`) with a 300-second TTL guard (`time.time() - st.session_state.get("auth_verified_at", 0) > 300`) and near-expiry check, eliminating redundant auth round-trips on every rerun.
+  - **Cached Reads & Invalidation**: Converted Supabase read functions used by Dashboard, Library, Log, and Home to `@st.cache_data(ttl=30)` keyed by `user_id`, with automatic cache invalidation (`_invalidate_caches()`) triggered inside every WRITE operation (create, extend, delete, log add, profile update).
+  - **Root Container Check**: Confirmed `_ROOT = st.empty()` plus `with _ROOT.container():` wraps the entire UI.
+  - **Frozen Code Rule**: Enforced strict additive-only edits with zero modifications, re-indents, moves, renames, or refactors of existing token-stamping blocks (`access_token`, `refresh_token`, `expires_at`). `git diff` confirms stamping blocks are byte-identical to HEAD.
+  - **Documentation & Testing**: Recorded ghost eradication and architectural rules in DEVLOG Entry 062. Enforced `py_compile`, source-scan assertions, unit tests, and verified green test suite.
+
 ## [1.7.19] - 2026-10-13
 
 ### Added / Changed
