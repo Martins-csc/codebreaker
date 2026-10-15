@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.8.4] - 2026-10-15
+
+### Added / Changed
+- MICRO-MISSION v1.8.4 — root-wrap audit + ghost probe:
+  - **Root-Wrap Audit**: Inspected and verified the root container (`_ROOT = st.empty()` + `with _ROOT.container():`) enclosing every page branch (landing, login, signup, dashboard, blueprint, log, contact/about).
+  - **Ghost Probe in Persistence Debug**: Upgraded Persistence Debug to act as a runtime ghost probe measuring execution duration (`last_run_ms` via prune-at-run-end mechanic), tracking Supabase call count per run (`sb_calls`), token presence (`yes`/`no`), and auth verified age in seconds.
+  - **Documentation & Testing**: Recorded Entry 065 in DEVLOG. Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_8_4.py`), and verified 229/229 green test suite.
+
 ## [1.8.3] - 2026-10-14
 
 ### Added / Changed

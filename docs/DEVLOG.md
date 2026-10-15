@@ -999,3 +999,16 @@
 2. **Token-Gated Boot Verify**: Wrapped module-level session restore/verify and boot client initialization (`get_client()`) with explicit token presence checks (`st.session_state.get("access_token")`, `rt_param`, `type_param`, `code_param`).
 3. **Zero-Network Logged-Out Reruns**: Confirmed that ordinary logged-out reruns (landing page render, navigation to Log In / Create Account, and cross-switch navigation) execute zero Supabase client calls.
 4. **Gates & Verification**: Verified clean compilation (`py_compile`) and 100% test pass rate (`pytest tests/ -q`, 225/225 + new v1.8.3 tests).
+
+## Entry 065: Persistence Debug Origin, Ghost Probe, Prune-at-Run-End & Transmission Custody (v1.8.4)
+- **Date**: 2026-10-15
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.8.4 MICRO-MISSION — root-wrap audit + ghost probe
+
+### Design Notes & Architectural Decisions
+1. **Persistence Debug Origin (Persistence Wars)**: Traced from early token storage battles and session persistence diagnostics, Persistence Debug evolved from a basic token/gate display into a robust runtime telemetry probe.
+2. **New Role as Ghost Probe**: Upgraded Persistence Debug into an active runtime ghost probe that continuously monitors performance, API call frequency, and session health without disrupting unauthenticated zero-network rendering.
+3. **Prune-at-Run-End Mechanic**: Recorded `run_start = time.time()` at script top alongside `st.session_state["sb_calls"] = 0` reset, and calculated elapsed run duration (`last_run_ms`) at script completion as well as prior to any `st.stop()` exits, capturing exact run milliseconds.
+4. **Transmission-Custody Definition**: Defined transmission custody as the atomic tracking of access tokens, session verification age, and network invocation counts (`sb_calls`) across client state boundaries, ensuring precise accountability for every database interaction.
+5. **Root-Wrap Audit & Guarantee**: Verified via source scan that `_ROOT = st.empty()` and `with _ROOT.container():` strictly enclose every page branch (Landing, Login, Signup, Dashboard, Blueprint, Engineering Log, Contact, About).
+6. **Testing & Verification**: Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_8_4.py`), and verified 229/229 green test suite.

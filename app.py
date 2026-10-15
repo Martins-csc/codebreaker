@@ -62,9 +62,17 @@ def get_config(key, default=None):
     return val if val is not None else default
 
 
+def _track_client():
+    try:
+        st.session_state["sb_calls"] = st.session_state.get("sb_calls", 0) + 1
+    except Exception:
+        pass
+    return get_client()
+
+
 @st.cache_data(ttl=30)
 def _cached_fetch_blueprints(user_id):
-    client = get_client()
+    client = _track_client()
     if "access_token" in st.session_state:
         try:
             client.auth.set_session(
@@ -85,7 +93,7 @@ def _cached_fetch_blueprints(user_id):
 
 @st.cache_data(ttl=30)
 def _cached_fetch_logs(user_id):
-    client = get_client()
+    client = _track_client()
     if "access_token" in st.session_state:
         try:
             client.auth.set_session(
@@ -100,7 +108,7 @@ def _cached_fetch_logs(user_id):
 
 @st.cache_data(ttl=30)
 def _cached_fetch_profile(user_id):
-    client = get_client()
+    client = _track_client()
     if "access_token" in st.session_state:
         try:
             client.auth.set_session(
@@ -147,6 +155,9 @@ st.markdown(_XLINK_CSS, unsafe_allow_html=True)
 
 _ROOT = st.empty()
 with _ROOT.container():
+    if "run_start" not in st.session_state:
+        st.session_state["run_start"] = time.time()
+    st.session_state["sb_calls"] = 0
 
     st.markdown(
         """
@@ -292,7 +303,7 @@ with _ROOT.container():
                 rt_param = rt_param[0] if rt_param else None
 
             if rt_param:
-                client = get_client()
+                client = _track_client()
                 token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
                 try:
                     verify_res = client.rpc(
@@ -478,7 +489,7 @@ with _ROOT.container():
             or code_param
             or "access_token" in st.session_state
         ):
-            client = get_client()
+            client = _track_client()
 
         # 1. Handle email link ownership verification (signup or recovery) via verify_otp
         if type_param in ["signup", "recovery"] and (token_param or code_param):
@@ -1200,7 +1211,7 @@ with _ROOT.container():
         if is_admin:
             st.sidebar.subheader(":material/shield: Admin Pulse")
             try:
-                client = get_client()
+                client = _track_client()
                 if "access_token" in st.session_state:
                     client.auth.set_session(
                         st.session_state["access_token"],
@@ -1252,6 +1263,23 @@ with _ROOT.container():
                 rt_present = bool(st.query_params.get("rt"))
                 last_verify = st.session_state.get("last_verify_result", "None")
                 gate_flags = f"user={bool(user)}, access_token={bool(st.session_state.get('access_token'))}, refresh_token={bool(st.session_state.get('refresh_token'))}"
+
+                token_present_str = (
+                    "yes" if "access_token" in st.session_state else "no"
+                )
+                if "auth_verified_at" in st.session_state:
+                    auth_verified_age = int(
+                        time.time() - st.session_state["auth_verified_at"]
+                    )
+                else:
+                    auth_verified_age = "N/A"
+                last_run_ms_val = f"{st.session_state.get('last_run_ms', 0):.2f}"
+                sb_calls_val = st.session_state.get("sb_calls", 0)
+
+                st.write(f"**Token Present**: {token_present_str}")
+                st.write(f"**Auth Verified Age (s)**: {auth_verified_age}")
+                st.write(f"**Last Completed Run (ms)**: {last_run_ms_val}")
+                st.write(f"**Supabase Calls This Run**: {sb_calls_val}")
 
                 st.write(f"**RT Present**: {rt_present}")
                 st.write(f"**Last Verify Result**: {last_verify}")
@@ -1396,6 +1424,10 @@ with _ROOT.container():
                         st.error(
                             "Contact form unavailable — email service not configured"
                         )
+                        st.session_state["last_run_ms"] = (
+                            time.time() - st.session_state.get("run_start", time.time())
+                        ) * 1000.0
+                        st.session_state["run_start"] = time.time()
                         st.stop()
 
                     smtp_host = get_config("SMTP_HOST")
@@ -1662,7 +1694,7 @@ with _ROOT.container():
                             st.session_state.get("blueprint_count", 0) + 1
                         )
                         try:
-                            client = get_client()
+                            client = _track_client()
                             if "access_token" in st.session_state:
                                 client.auth.set_session(
                                     st.session_state["access_token"],
@@ -2212,7 +2244,7 @@ with _ROOT.container():
         )
 
         try:
-            client = get_client()
+            client = _track_client()
             if "access_token" in st.session_state:
                 client.auth.set_session(
                     st.session_state["access_token"],
@@ -2302,7 +2334,7 @@ with _ROOT.container():
 
                                 def do_delete(rid):
                                     try:
-                                        client = get_client()
+                                        client = _track_client()
                                         if "access_token" in st.session_state:
                                             client.auth.set_session(
                                                 st.session_state["access_token"],
@@ -2364,7 +2396,7 @@ with _ROOT.container():
                                 use_container_width=True,
                             ):
                                 try:
-                                    client = get_client()
+                                    client = _track_client()
                                     if "access_token" in st.session_state:
                                         client.auth.set_session(
                                             st.session_state["access_token"],
@@ -2397,3 +2429,8 @@ with _ROOT.container():
             st.warning(
                 f"Could not load engineering log entries (Table setup required): {e}"
             )
+
+st.session_state["last_run_ms"] = (
+    time.time() - st.session_state.get("run_start", time.time())
+) * 1000.0
+st.session_state["run_start"] = time.time()
