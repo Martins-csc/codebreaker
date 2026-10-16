@@ -835,7 +835,7 @@ with _ROOT.container():
                             st.error(email_format_err)
                         else:
                             try:
-                                client = get_client()
+                                client = _track_client("verify:login")
                                 res = client.auth.sign_in_with_password(
                                     {
                                         "email": auth_email.strip(),
@@ -925,7 +925,7 @@ with _ROOT.container():
                             st.error(email_err)
                         else:
                             try:
-                                client = get_client()
+                                client = _track_client("write:forgot_password")
                                 redirect_to = getattr(st.context, "url", None)
                                 if redirect_to:
                                     redirect_to = redirect_to.split("?")[0]
@@ -970,7 +970,7 @@ with _ROOT.container():
                             st.error(name_err)
                         else:
                             try:
-                                client = get_client()
+                                client = _track_client("write:signup")
                                 res = client.auth.sign_up(
                                     {
                                         "email": auth_email.strip(),
@@ -2441,7 +2441,6 @@ with _ROOT.container():
                 f"Could not load engineering log entries (Table setup required): {e}"
             )
 
-st.session_state["last_run_ms"] = (
-    time.time() - st.session_state.get("run_start", time.time())
-) * 1000.0
-st.session_state["run_start"] = time.time()
+st.session_state["last_run_ms"] = round((time.time() - _run_start) * 1000, 1)
+st.session_state["last_sb_calls"] = st.session_state.get("sb_calls", 0)
+st.session_state["last_sb_tags"] = list(st.session_state.get("sb_tags", []))
