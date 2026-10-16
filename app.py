@@ -62,9 +62,17 @@ def get_config(key, default=None):
     return val if val is not None else default
 
 
-def _track_client():
+_run_start = time.time()
+
+
+def _track_client(tag="unknown"):
     try:
         st.session_state["sb_calls"] = st.session_state.get("sb_calls", 0) + 1
+        tags = st.session_state.get("sb_tags")
+        if not isinstance(tags, list):
+            tags = []
+        tags.append(tag)
+        st.session_state["sb_tags"] = tags
     except Exception:
         pass
     return get_client()
@@ -72,7 +80,7 @@ def _track_client():
 
 @st.cache_data(ttl=30)
 def _cached_fetch_blueprints(user_id):
-    client = _track_client()
+    client = _track_client("read:library")
     if "access_token" in st.session_state:
         try:
             client.auth.set_session(
@@ -93,7 +101,7 @@ def _cached_fetch_blueprints(user_id):
 
 @st.cache_data(ttl=30)
 def _cached_fetch_logs(user_id):
-    client = _track_client()
+    client = _track_client("read:logs")
     if "access_token" in st.session_state:
         try:
             client.auth.set_session(
@@ -108,7 +116,7 @@ def _cached_fetch_logs(user_id):
 
 @st.cache_data(ttl=30)
 def _cached_fetch_profile(user_id):
-    client = _track_client()
+    client = _track_client("read:profile")
     if "access_token" in st.session_state:
         try:
             client.auth.set_session(
@@ -158,6 +166,7 @@ with _ROOT.container():
     if "run_start" not in st.session_state:
         st.session_state["run_start"] = time.time()
     st.session_state["sb_calls"] = 0
+    st.session_state["sb_tags"] = []
 
     st.markdown(
         """
@@ -303,7 +312,7 @@ with _ROOT.container():
                 rt_param = rt_param[0] if rt_param else None
 
             if rt_param:
-                client = _track_client()
+                client = _track_client("verify:set_session")
                 token_hash = hashlib.sha256(rt_param.encode("utf-8")).hexdigest()
                 try:
                     verify_res = client.rpc(
@@ -489,7 +498,7 @@ with _ROOT.container():
             or code_param
             or "access_token" in st.session_state
         ):
-            client = _track_client()
+            client = _track_client("verify:verify_otp")
 
         # 1. Handle email link ownership verification (signup or recovery) via verify_otp
         if type_param in ["signup", "recovery"] and (token_param or code_param):
@@ -1075,7 +1084,7 @@ with _ROOT.container():
                     redirect_to = "http://localhost:8501"
 
                 try:
-                    client = get_client()
+                    client = _track_client("write:oauth")
                     supabase_url = get_config("SUPABASE_URL").rstrip("/")
                     anon_key = get_config("SUPABASE_ANON_KEY")
 
@@ -1273,13 +1282,15 @@ with _ROOT.container():
                     )
                 else:
                     auth_verified_age = "N/A"
-                last_run_ms_val = f"{st.session_state.get('last_run_ms', 0):.2f}"
-                sb_calls_val = st.session_state.get("sb_calls", 0)
+                last_run_ms_val = f"{st.session_state.get('last_run_ms', 0):.1f}"
+                last_sb_calls_val = st.session_state.get("last_sb_calls", 0)
+                last_sb_tags_val = st.session_state.get("last_sb_tags", [])
 
                 st.write(f"**Token Present**: {token_present_str}")
                 st.write(f"**Auth Verified Age (s)**: {auth_verified_age}")
                 st.write(f"**Last Completed Run (ms)**: {last_run_ms_val}")
-                st.write(f"**Supabase Calls This Run**: {sb_calls_val}")
+                st.write(f"**Last Completed Run Supabase Calls**: {last_sb_calls_val}")
+                st.write(f"**Last Completed Run Supabase Tags**: {last_sb_tags_val}")
 
                 st.write(f"**RT Present**: {rt_present}")
                 st.write(f"**Last Verify Result**: {last_verify}")
@@ -1308,7 +1319,7 @@ with _ROOT.container():
             )
             if st.button("Got it", key="tour_got_it_btn"):
                 try:
-                    client = get_client()
+                    client = _track_client("write:profile")
                     if "access_token" in st.session_state:
                         client.auth.set_session(
                             st.session_state["access_token"],
@@ -1484,7 +1495,7 @@ with _ROOT.container():
             with st.container(border=True):
                 st.subheader("My Blueprints")
                 try:
-                    client = get_client()
+                    client = _track_client("read:library")
                     if "access_token" in st.session_state:
                         client.auth.set_session(
                             st.session_state["access_token"],
@@ -1742,7 +1753,7 @@ with _ROOT.container():
         st.title("System Architecture Blueprint")
 
         active_bp_id = st.session_state.get("active_blueprint_id")
-        client = get_client()
+        client = _track_client("read:blueprint")
         if "access_token" in st.session_state:
             client.auth.set_session(
                 st.session_state["access_token"],
@@ -2209,7 +2220,7 @@ with _ROOT.container():
                 st.error("Please fill out at least one field for the log entry.")
             else:
                 try:
-                    client = get_client()
+                    client = _track_client("write:logs")
                     if "access_token" in st.session_state:
                         client.auth.set_session(
                             st.session_state["access_token"],
