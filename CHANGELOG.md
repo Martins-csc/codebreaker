@@ -5,9 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
-## [1.8.6] - 2026-10-16
+## [1.8.8] - 2026-10-16
 
 ### Added / Changed
+- MICRO-MISSION v1.8.8 — structural ghost kill + instrument truth:
+  - **Root-Wrap Audit & Quoted Branch Heads**: Proved all page branches (`About`, `Contact`, `Home`, `Analyze`, `Blueprint`, `Engineering Log`, landing/auth) sit inside the `with _ROOT.container():` block opening at line 165.
+  - **Run-MS Reachability (`_record_run_ms`)**: Defined helper `_record_run_ms()` and called it immediately before both `st.stop()` exit sites (lines 1206, 1438) and as the final module tail line (line 2440), ensuring zero run paths escape recording.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_8_8.py`), and verified 233/233 green test suite.
+
+## [1.8.6] - 2026-10-16
 - MICRO-MISSION v1.8.6 — complete the ghost probe (finish v1.8.5): probe completed: end-of-run finals (`last_run_ms`, `last_sb_calls`, `last_sb_tags`) + named call tags for all raw `get_client()` call sites. Enforced `py_compile`, source-scan assertions, unit tests, and verified green test suite.
 
 ## [1.8.4] - 2026-10-15

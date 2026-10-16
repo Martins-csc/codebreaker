@@ -144,6 +144,10 @@ def _invalidate_caches():
         pass
 
 
+def _record_run_ms():
+    st.session_state["last_run_ms"] = round((time.time() - _run_start) * 1000, 1)
+
+
 st.set_page_config(
     page_title="CodeBreaker",
     page_icon=":material/terminal:",
@@ -1203,6 +1207,7 @@ with _ROOT.container():
                     st.session_state["nav_pending"] = "Auth"
                     st.rerun()
 
+        _record_run_ms()
         st.stop()
     else:
         # Authenticated sidebar contract:
@@ -1435,6 +1440,7 @@ with _ROOT.container():
                         st.error(
                             "Contact form unavailable — email service not configured"
                         )
+                        _record_run_ms()
                         st.stop()
 
                     smtp_host = get_config("SMTP_HOST")
@@ -2437,6 +2443,6 @@ with _ROOT.container():
                 f"Could not load engineering log entries (Table setup required): {e}"
             )
 
-st.session_state["last_run_ms"] = round((time.time() - _run_start) * 1000, 1)
+_record_run_ms()
 st.session_state["last_sb_calls"] = st.session_state.get("sb_calls", 0)
 st.session_state["last_sb_tags"] = list(st.session_state.get("sb_tags", []))

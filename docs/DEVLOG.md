@@ -1012,3 +1012,15 @@
 4. **Transmission-Custody Definition**: Defined transmission custody as the atomic tracking of access tokens, session verification age, and network invocation counts (`sb_calls`) across client state boundaries, ensuring precise accountability for every database interaction.
 5. **Root-Wrap Audit & Guarantee**: Verified via source scan that `_ROOT = st.empty()` and `with _ROOT.container():` strictly enclose every page branch (Landing, Login, Signup, Dashboard, Blueprint, Engineering Log, Contact, About).
 6. **Testing & Verification**: Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_8_4.py`), and verified 229/229 green test suite.
+
+## Entry 068: Structural Ghost Kill, Instrument Truth, Double-Run Tax & Prune-at-Run-End Tax (v1.8.8)
+- **Date**: 2026-10-16
+- **Author**: Engineering Team / Builder, Tester & Orchestrator Agents
+- **Milestone**: v1.8.8 MICRO-MISSION — Structural Ghost Kill + Instrument Truth
+
+### Design Notes & Architectural Decisions
+1. **Double-Run Tax & Prune-at-Run-End Tax Explained**: In Streamlit single-page script architectures, when execution halts early via `st.stop()` (e.g. unauthenticated landing or missing SMTP config) or completes at the module tail, metrics like `last_run_ms` risk escaping recording if calculations rely solely on final module-level statements. The "Double-Run Tax" refers to overhead incurred when rerunning or re-evaluating unrecorded states, while the "Prune-at-Run-End Tax" represents the architectural cost of ensuring every exit path (including early `st.stop()` exits) correctly snapshots execution timing.
+2. **Atomic-Clear vs Multipage Routes as Structural Cures**: While native multipage apps segment code into physical files, a monolithic single-file Streamlit app relies on container wrappers (`_ROOT = st.empty()` + `with _ROOT.container():`) and explicit helper telemetry (`_record_run_ms()`) to achieve atomic layout clearing and un-escapable execution measurement.
+3. **Run-MS Reachability & Helper Unification**: Extracted `def _record_run_ms(): st.session_state["last_run_ms"] = round((time.time() - _run_start) * 1000, 1)` and invoked it unconditionally before both `st.stop()` sites (lines 1206 and 1438) and as the final module-level execution record at line 2440.
+4. **Root-Wrap Prover & Quoted Branch Heads**: Verified that every page branch (`About`, `Contact`, `Home`, `Analyze`, `Blueprint`, `Engineering Log`, and landing/auth) is fully enclosed within the root container block opening at line 165.
+5. **Testing & Verification**: Enforced `py_compile`, source-scan assertions, new unit test suite (`tests/test_v1_8_8.py`), and verified 233/233 green test suite.
