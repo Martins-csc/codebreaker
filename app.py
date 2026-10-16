@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import importlib as _importlib
 import json
 import os as _os
 import re
@@ -17,24 +16,6 @@ from ai_engine import (BlueprintError, clean_roadmap_step, extend_blueprint,
                        generate_blueprint, render_blueprint_html,
                        render_blueprint_markdown, render_blueprint_pdf,
                        render_blueprint_text, sanitize_filename)
-
-_AE_MT = _os.path.getmtime(ai_engine.__file__)
-if st.session_state.get("_ae_mt") != _AE_MT:
-    _importlib.reload(ai_engine)
-    for _n in (
-        "BlueprintError",
-        "clean_roadmap_step",
-        "extend_blueprint",
-        "generate_blueprint",
-        "render_blueprint_html",
-        "render_blueprint_markdown",
-        "render_blueprint_pdf",
-        "render_blueprint_text",
-        "sanitize_filename",
-    ):
-        if hasattr(ai_engine, _n):
-            globals()[_n] = getattr(ai_engine, _n)
-    st.session_state["_ae_mt"] = _AE_MT
 from config import ADMIN_EMAIL
 from security import validate_email, validate_input_length, validate_password
 from supabase_client import ConfigError, get_client

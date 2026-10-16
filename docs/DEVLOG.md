@@ -1024,3 +1024,14 @@
 3. **Run-MS Reachability & Helper Unification**: Extracted `def _record_run_ms(): st.session_state["last_run_ms"] = round((time.time() - _run_start) * 1000, 1)` and invoked it unconditionally before both `st.stop()` sites (lines 1206 and 1438) and as the final module-level execution record at line 2440.
 4. **Root-Wrap Prover & Quoted Branch Heads**: Verified that every page branch (`About`, `Contact`, `Home`, `Analyze`, `Blueprint`, `Engineering Log`, and landing/auth) is fully enclosed within the root container block opening at line 165.
 5. **Testing & Verification**: Enforced `py_compile`, source-scan assertions, new unit test suite (`tests/test_v1_8_8.py`), and verified 233/233 green test suite.
+
+## Entry 069: The 1672ms Confession — Killing the Per-Run Reload Tax (v1.8.9)
+- **Date**: 2026-10-16
+- **Author**: Engineering Team / Builder, Tester & Orchestrator Agents
+- **Milestone**: v1.8.9 MICRO-MISSION — Kill the Per-Run Reload Tax
+
+### Design Notes & Architectural Decisions
+1. **The 1672ms Confession**: The per-run mtime check and `importlib.reload(ai_engine)` block was the ghost's engine from the day it landed. Because the stored `_ae_mt` session state key never correctly synchronized or matched on execution runs, every single Streamlit rerun redundantly re-imported `ai_engine` and its heavy LLM/requests dependencies, inflicting a ~1672ms reload tax even on zero-network runs.
+2. **Reboot as the Only Reload**: Deploys in cloud/containerized environments are always followed by server reboot, which cleanly reloads all modules. Module-level hot-reload hacks inside application runtime loops are antithetical to stable, high-performance execution.
+3. **Complete Deletion & Clean Import**: Deleted `importlib` import, `_AE_MT` calculation, reload check, and name-rebinding loop entirely. `ai_engine` is now imported exactly once at module top, and zero `importlib.reload` calls remain in `app.py`.
+4. **Testing & Verification**: Enforced `py_compile`, source-scan assertions (`tests/test_v1_8_9.py`), and verified 235/235 green test suite.

@@ -31,9 +31,6 @@ def test_v1_7_1_source_scan():
     # 3. Centering columns present
     assert "st.columns" in content and ("0.25" in content or "0.72" in content)
 
-    # 4. Reload block present with rebind loop
-    assert "_importlib.reload(ai_engine)" in content
-    assert "_AE_MT = _os.path.getmtime(ai_engine.__file__)" in content
-    assert 'st.session_state.get("_ae_mt") != _AE_MT' in content
-    assert "for _n in (" in content
-    assert "globals()[_n] = getattr(ai_engine, _n)" in content
+    # 4. Reload block removed in v1.8.9 (Reboot is the only reload)
+    assert "_importlib.reload" not in content
+    assert "_AE_MT" not in content
