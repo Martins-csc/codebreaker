@@ -1435,10 +1435,6 @@ with _ROOT.container():
                         st.error(
                             "Contact form unavailable — email service not configured"
                         )
-                        st.session_state["last_run_ms"] = (
-                            time.time() - st.session_state.get("run_start", time.time())
-                        ) * 1000.0
-                        st.session_state["run_start"] = time.time()
                         st.stop()
 
                     smtp_host = get_config("SMTP_HOST")
