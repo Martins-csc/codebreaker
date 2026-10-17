@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.2] - 2026-10-17
+
+### Added / Changed
+- MICRO-MISSION v1.9.2 — instrument honesty + security literal:
+  - **Probe-MS Retirement (Option b)**: Retired `last_run_ms` from the Persistence Debug display per external counsel recommendations ("server runtime and browser response are separate metrics, and a sidebar field that goes stale across hot deploys is not an instrument"). Replaced with `"Timing truth: [PERF] logs in Manage app → Logs"`.
+  - **Secure Contact Literal & Fail-Clearly Rule**: Replaced both hardcoded `codebreakerbuild@gmail.com` occurrences with `get_config("CONTACT_TO_EMAIL")`; enforced fail-clearly rule (`st.error("Contact form disabled: set CONTACT_TO_EMAIL in Cloud secrets")` + `st.stop()`) when missing—zero silent recipient fallback.
+  - **Counsel Order-of-Work Honored**: Honored order-of-work (instrument → route → placeholder → cache → measure).
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertions (zero "codebreakerbuild" literals in `app.py`), unit tests, and verified 235/235 green test suite.
+
 ## [1.9.1] - 2026-10-17
 
 ### Added / Changed

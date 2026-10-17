@@ -1046,3 +1046,14 @@
 2. **Phase-Timing Law Adopted**: Established structured runtime profiling via `import logging`, `logger = logging.getLogger("app.perf")`, and `time.perf_counter()` logging at 6 critical checkpoints (`imports`, `boot_verify`, `sidebar`, `routing_start`, `routing`, `record_run_ms`) using format `[PERF] %s: delta=%.1f ms cum=%.1f ms`, plus once-per-run `client_build` timing in `_track_client`.
 3. **Verify-Frequency Anomaly Logged**: Inspected and quoted session verification guard condition (`time.time() - st.session_state.get("auth_verified_at", 0) > 300`) and assignment (`st.session_state["auth_verified_at"] = time.time()`). While no assignment path bypasses the 300s gate, probe Age:1 anomaly indicates that frequent session/state resets cause verification to trigger far more often than every 300s.
 4. **Testing & Verification**: Enforced `py_compile` on `app.py` and `ai_engine.py`, verified 235/235 green test suite (`pytest tests/ -q`), and confirmed `git diff` shows exclusively instrumentation and documentation updates with zero behavior changes.
+
+## Entry 072: Probe-MS Retirement, Secure Contact Literal & Counsel Order-of-Work (v1.9.2)
+- **Date**: 2026-10-17
+- **Author**: Engineering Team / Builder, Tester & Orchestrator Agents
+- **Milestone**: v1.9.2 MICRO-MISSION — Instrument Honesty + Security Literal
+
+### Design Notes & Architectural Decisions
+1. **Probe-MS Field Retirement (Option b)**: Retired `last_run_ms` from the Persistence Debug display per external counsel recommendations ("server runtime and browser response are separate metrics, and a sidebar field that goes stale across hot deploys is not an instrument"). Replaced with `"Timing truth: [PERF] logs in Manage app → Logs"`.
+2. **Secure Contact Literal & Fail-Clearly Rule**: Replaced both hardcoded `codebreakerbuild@gmail.com` occurrences with `get_config("CONTACT_TO_EMAIL")`. Enforced security review requirement: when missing, show `st.error("Contact form disabled: set CONTACT_TO_EMAIL in Cloud secrets")` and skip sending — zero silent recipient fallback.
+3. **Counsel Order-of-Work Honored**: Honored the strict order-of-work principle: instrument (`[PERF]` logs) → route → placeholder → cache → measure.
+4. **Testing & Verification**: Enforced `py_compile` after every edit, verified zero `"codebreakerbuild"` literals remain in `app.py`, updated unit tests (`tests/test_v1_4_1.py`, `tests/test_v1_8_6.py`), and verified 235/235 green test suite (`pytest tests/ -q`).

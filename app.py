@@ -1301,13 +1301,12 @@ with _ROOT.container():
                     )
                 else:
                     auth_verified_age = "N/A"
-                last_run_ms_val = f"{st.session_state.get('last_run_ms', 0):.1f}"
                 last_sb_calls_val = st.session_state.get("last_sb_calls", 0)
                 last_sb_tags_val = st.session_state.get("last_sb_tags", [])
 
                 st.write(f"**Token Present**: {token_present_str}")
                 st.write(f"**Auth Verified Age (s)**: {auth_verified_age}")
-                st.write(f"**Last Completed Run (ms)**: {last_run_ms_val}")
+                st.write("Timing truth: [PERF] logs in Manage app → Logs")
                 st.write(f"**Last Completed Run Supabase Calls**: {last_sb_calls_val}")
                 st.write(f"**Last Completed Run Supabase Tags**: {last_sb_tags_val}")
 
@@ -1465,12 +1464,13 @@ with _ROOT.container():
                     smtp_port_str = get_config("SMTP_PORT")
                     smtp_user = get_config("SMTP_USER")
                     smtp_password = get_config("SMTP_PASSWORD")
-                    to_email = get_config(
-                        "CONTACT_TO_EMAIL",
-                        "codebreakerbuild@gmail.com",
-                    )
+                    to_email = get_config("CONTACT_TO_EMAIL")
                     if not to_email:
-                        to_email = "codebreakerbuild@gmail.com"
+                        st.error(
+                            "Contact form disabled: set CONTACT_TO_EMAIL in Cloud secrets"
+                        )
+                        _record_run_ms()
+                        st.stop()
 
                     success = False
                     try:

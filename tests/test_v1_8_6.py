@@ -34,8 +34,8 @@ def test_v1_8_6_source_scan():
         in content
     )
 
-    # 2. Probe displays last_run_ms, last_sb_calls, last_sb_tags
-    assert "Last Completed Run (ms)" in content
+    # 2. Probe displays Timing truth / last_sb_calls, last_sb_tags
+    assert "Timing truth: [PERF] logs in Manage app → Logs" in content
     assert "Last Completed Run Supabase Calls" in content
     assert "Last Completed Run Supabase Tags" in content
 

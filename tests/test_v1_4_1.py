@@ -89,7 +89,8 @@ def test_contact_page_validation_and_cooldown():
         content = f.read()
 
     assert 'page == "Contact"' in content
-    assert "codebreakerbuild@gmail.com" in content
+    assert "CONTACT_TO_EMAIL" in content
+    assert "Contact form disabled: set CONTACT_TO_EMAIL in Cloud secrets" in content
     assert "Message sent. We'll respond within 24 hours." in content
     assert "60" in content  # cooldown check
 
