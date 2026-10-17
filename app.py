@@ -43,10 +43,29 @@ def get_config(key, default=None):
     return val if val is not None else default
 
 
+import logging
+
+logger = logging.getLogger("app.perf")
+
+_perf_start = time.perf_counter()
+_last_perf = _perf_start
+_client_built_logged = False
+
+
+def _log_perf(phase):
+    global _last_perf
+    now = time.perf_counter()
+    delta = (now - _last_perf) * 1000.0
+    cum = (now - _perf_start) * 1000.0
+    _last_perf = now
+    logger.warning("[PERF] %s: delta=%.1f ms cum=%.1f ms", phase, delta, cum)
+
+
 _run_start = time.time()
 
 
 def _track_client(tag="unknown"):
+    global _client_built_logged
     try:
         st.session_state["sb_calls"] = st.session_state.get("sb_calls", 0) + 1
         tags = st.session_state.get("sb_tags")
@@ -56,6 +75,15 @@ def _track_client(tag="unknown"):
         st.session_state["sb_tags"] = tags
     except Exception:
         pass
+    if not _client_built_logged:
+        _client_built_logged = True
+        t0 = time.perf_counter()
+        client = globals().get("get_client", get_client)()
+        t1 = time.perf_counter()
+        delta = (t1 - t0) * 1000.0
+        cum = (t1 - _perf_start) * 1000.0
+        logger.warning("[PERF] client_build: delta=%.1f ms cum=%.1f ms", delta, cum)
+        return client
     return get_client()
 
 
@@ -127,6 +155,7 @@ def _invalidate_caches():
 
 def _record_run_ms():
     st.session_state["last_run_ms"] = round((time.time() - _run_start) * 1000, 1)
+    _log_perf("record_run_ms")
 
 
 st.set_page_config(
@@ -288,6 +317,8 @@ with _ROOT.container():
     if "render_count" not in st.session_state:
         st.session_state["render_count"] = 0
     st.session_state["render_count"] += 1
+
+    _log_perf("imports")
 
     # Boot session rehydration via URL capability token (?rt=...)
     if "user" not in st.session_state or "access_token" not in st.session_state:
@@ -696,6 +727,8 @@ with _ROOT.container():
                 pass
     except ConfigError as ce:
         st.session_state["config_error"] = str(ce)
+
+    _log_perf("boot_verify")
 
     user = st.session_state.get("user")
     if not user:
@@ -1292,6 +1325,8 @@ with _ROOT.container():
                     p_status = "PRESENT" if bool(get_config(pkey)) else "MISSING"
                     st.write(f"- `{pkey}`: **{p_status}**")
 
+    _log_perf("sidebar")
+
     # First-run onboarding tour for authenticated sessions
     user_meta = user.get("user_metadata", {}) if user else {}
     if user and not user_meta.get("tour_seen", False):
@@ -1317,6 +1352,8 @@ with _ROOT.container():
                 user_meta["tour_seen"] = True
                 st.session_state["user"]["user_metadata"] = user_meta
                 st.rerun()
+
+    _log_perf("routing_start")
 
     if page == "About":
         st.title("About CodeBreaker")
@@ -2423,6 +2460,8 @@ with _ROOT.container():
             st.warning(
                 f"Could not load engineering log entries (Table setup required): {e}"
             )
+
+    _log_perf("routing")
 
 _record_run_ms()
 st.session_state["last_sb_calls"] = st.session_state.get("sb_calls", 0)

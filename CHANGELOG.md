@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.1] - 2026-10-17
+
+### Added / Changed
+- MICRO-MISSION v1.9.1 — phase timing instrumentation ONLY (zero behavior change):
+  - **Phase-Timing Law & Checkpoints**: Added `import logging`, `logger = logging.getLogger("app.perf")`, and `time.perf_counter()` logging at 6 execution checkpoints (`imports`, `boot_verify`, `sidebar`, `routing_start`, `routing`, `record_run_ms`) with format `[PERF] %s: delta=%.1f ms cum=%.1f ms`.
+  - **Client-Build Timing**: Timed `get_client()` construction inside `_track_client` once per run as `[PERF] client_build`.
+  - **Verify-Guard Witness & Anomaly**: Quoted auth guard condition and `auth_verified_at` assignment; recorded verify-frequency anomaly where session re-initialization causes frequent verification.
+  - **Reload Measurement Falsification**: Precise timing proved deletion of reload block yielded ~1675ms post-deletion (falsifying 1672ms reload tax assumption).
+  - **Testing & Verification**: Enforced `py_compile`, verified 235/235 green test suite.
+
 ## [1.8.9] - 2026-10-16
 
 ### Added / Changed

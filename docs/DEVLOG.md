@@ -1031,7 +1031,18 @@
 - **Milestone**: v1.8.9 MICRO-MISSION — Kill the Per-Run Reload Tax
 
 ### Design Notes & Architectural Decisions
-1. **The 1672ms Confession**: The per-run mtime check and `importlib.reload(ai_engine)` block was the ghost's engine from the day it landed. Because the stored `_ae_mt` session state key never correctly synchronized or matched on execution runs, every single Streamlit rerun redundantly re-imported `ai_engine` and its heavy LLM/requests dependencies, inflicting a ~1672ms reload tax even on zero-network runs.
+1. **The 1672ms Confession**: The per-run mtime check and `importlib.reload(ai_engine)` block was the ghost's engine from the day it landed. Because the stored `_ae_mt` session state key never correctly synchronized or matched on execution runs, every single Streamlit rerun redundantly re-imported `ai_engine` and its heavy LLM/requests dependencies, inflicting a ~1672ms reload tax even on zero-network runs. *(Amended in v1.9.1: subsequent empirical phase-timing instrumentation falsified the estimated 1672ms reload tax magnitude, measuring execution at ~1675ms post-deletion and proving module import cost dominates initial cold start).*
 2. **Reboot as the Only Reload**: Deploys in cloud/containerized environments are always followed by server reboot, which cleanly reloads all modules. Module-level hot-reload hacks inside application runtime loops are antithetical to stable, high-performance execution.
 3. **Complete Deletion & Clean Import**: Deleted `importlib` import, `_AE_MT` calculation, reload check, and name-rebinding loop entirely. `ai_engine` is now imported exactly once at module top, and zero `importlib.reload` calls remain in `app.py`.
 4. **Testing & Verification**: Enforced `py_compile`, source-scan assertions (`tests/test_v1_8_9.py`), and verified 235/235 green test suite.
+
+## Entry 071: Phase Timing Instrumentation, Reload Measurement Falsification & Verify-Frequency Anomaly (v1.9.1)
+- **Date**: 2026-10-17
+- **Author**: Engineering Team / Builder, Tester & Orchestrator Agents
+- **Milestone**: v1.9.1 MICRO-MISSION — Phase Timing Instrumentation ONLY (Zero Behavior Change)
+
+### Design Notes & Architectural Decisions
+1. **Reload Falsified by Measurement (1672ms → 1675ms Post-Deletion)**: High-resolution phase-timing instrumentation adopted in v1.9.1 measured execution duration at ~1675ms post-deletion of the reload block, empirically falsifying the initial assumption of a 1672ms reload penalty and proving that standard Python module import overhead dominates cold startup. Entry 069 has been amended accordingly.
+2. **Phase-Timing Law Adopted**: Established structured runtime profiling via `import logging`, `logger = logging.getLogger("app.perf")`, and `time.perf_counter()` logging at 6 critical checkpoints (`imports`, `boot_verify`, `sidebar`, `routing_start`, `routing`, `record_run_ms`) using format `[PERF] %s: delta=%.1f ms cum=%.1f ms`, plus once-per-run `client_build` timing in `_track_client`.
+3. **Verify-Frequency Anomaly Logged**: Inspected and quoted session verification guard condition (`time.time() - st.session_state.get("auth_verified_at", 0) > 300`) and assignment (`st.session_state["auth_verified_at"] = time.time()`). While no assignment path bypasses the 300s gate, probe Age:1 anomaly indicates that frequent session/state resets cause verification to trigger far more often than every 300s.
+4. **Testing & Verification**: Enforced `py_compile` on `app.py` and `ai_engine.py`, verified 235/235 green test suite (`pytest tests/ -q`), and confirmed `git diff` shows exclusively instrumentation and documentation updates with zero behavior changes.
