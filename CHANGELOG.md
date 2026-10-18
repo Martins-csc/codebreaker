@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.7] - 2026-10-18
+
+### Added / Changed
+- MICRO-MISSION v1.9.7 — Recent Milestones actually recent, invalidation fails loud, cache status silenced:
+  - **Recent Milestones Descending Sort Fix**: Replaced unsorted `log_rows[:3]` slice in the Dashboard recent milestones block with a robust descending sort (`sorted(log_rows, key=lambda r: str(r.get("created_at") or ""), reverse=True)[:3]`) ensuring rows missing timestamps are never exiled and truly recent milestones appear first.
+  - **Loud Cache Invalidation**: Removed the silent `except Exception: pass` wrapper from `_invalidate_caches()`, ensuring cache-clearing failures crash visibly rather than failing silently.
+  - **Cache Status Silence (`show_spinner=False` & `st.spinner`)**: Added `show_spinner=False` to EVERY `@st.cache_data` decorator (`_cached_fetch_blueprints`, `_cached_fetch_logs`, `_cached_fetch_profile`) and confirmed explicit `with st.spinner("Loading..."):` or specific `st.spinner` wrappers at the three main render call sites (Dashboard cards, Blueprint Library list, and Engineering Log entries list), ensuring raw Streamlit cache-execution notices ("Running cached...") never reach users.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertions, unit tests (`tests/test_v1_9_7.py`), and verified green test suite.
+
 ## [1.9.6] - 2026-10-18
 
 ### Added / Changed

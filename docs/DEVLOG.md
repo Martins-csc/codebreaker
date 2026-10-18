@@ -1,5 +1,21 @@
 # CodeBreaker Development Log
 
+## Entry 077: Recent Milestones Sorting, Loud Invalidation & Cache Status Silence (v1.9.7)
+- **Date**: 2026-10-18
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.9.7 MICRO-MISSION — Recent Milestones actually recent, invalidation fails loud, cache status silenced (descending sort, loud invalidation, `show_spinner=False`, `st.spinner` wrappers)
+
+### Design Notes & Architectural Decisions
+1. **Recent Milestones Descending Sort Law**:
+   - Replaced unsorted `log_rows[:3]` slice on the Dashboard recent milestones block with a descending sort keyed on `created_at` (`sorted(log_rows, key=lambda r: str(r.get("created_at") or ""), reverse=True)[:3]`), guaranteeing that the newest milestones appear first without exiling records lacking timestamps.
+2. **Loud Invalidation Law**:
+   - Removed the silent `except Exception: pass` swallow block from `_invalidate_caches()`. Cache clear operations now fail loudly and visibly if any cache store fails to clear.
+3. **Cache-Miss Status Silence Law**:
+   - Configured every `@st.cache_data` decorator across fetch functions (`_cached_fetch_blueprints`, `_cached_fetch_logs`, `_cached_fetch_profile`) with `show_spinner=False`.
+   - Wrapped fetch calls at the three main render call sites (Dashboard cards, Blueprint Library list, Engineering Log entries list) in professional `st.spinner` blocks (`with st.spinner("Loading..."):`, `with st.spinner("Loading blueprints..."):`, `with st.spinner("Loading logs..."):`), preventing raw Streamlit "Running cached..." execution text from leaking to users.
+4. **Testing & Verification**:
+   - Enforced `py_compile` after every edit, source-scan assertions (zero unsorted `log_rows[:3]` slices, zero try/except in `_invalidate_caches`, `show_spinner=False` on all cached fetchers, `st.spinner` wrappers at all three render sites), unit tests (`tests/test_v1_9_7.py`), and verified green test suite.
+
 ## Entry 074: Clean Login UX & Logout Message Alignment (v1.9.4)
 - **Date**: 2026-10-18
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

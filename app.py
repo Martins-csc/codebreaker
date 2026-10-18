@@ -87,7 +87,7 @@ def _track_client(tag="unknown"):
     return get_client()
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=30, show_spinner=False)
 def _cached_fetch_blueprints(user_id):
     client = _track_client("read:library")
     if "access_token" in st.session_state:
@@ -108,7 +108,7 @@ def _cached_fetch_blueprints(user_id):
     return getattr(res, "data", [])
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=30, show_spinner=False)
 def _cached_fetch_logs(user_id):
     client = _track_client("read:logs")
     if "access_token" in st.session_state:
@@ -123,7 +123,7 @@ def _cached_fetch_logs(user_id):
     return getattr(res, "data", [])
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=30, show_spinner=False)
 def _cached_fetch_profile(user_id):
     client = _track_client("read:profile")
     if "access_token" in st.session_state:
@@ -144,13 +144,10 @@ def _cached_fetch_profile(user_id):
 
 
 def _invalidate_caches():
-    try:
-        _cached_fetch_blueprints.clear()
-        _cached_fetch_logs.clear()
-        _cached_fetch_profile.clear()
-        st.cache_data.clear()
-    except Exception:
-        pass
+    _cached_fetch_blueprints.clear()
+    _cached_fetch_logs.clear()
+    _cached_fetch_profile.clear()
+    st.cache_data.clear()
 
 
 def _record_run_ms():
@@ -1532,7 +1529,8 @@ with _ROOT.container():
                             st.session_state["access_token"],
                             st.session_state.get("refresh_token", ""),
                         )
-                    bp_rows = _cached_fetch_blueprints(user["id"])[:5]
+                    with st.spinner("Loading..."):
+                        bp_rows = _cached_fetch_blueprints(user["id"])[:5]
                     if bp_rows:
                         st.markdown("**Recent Blueprints:**")
                         for bp_item in bp_rows:
@@ -1589,12 +1587,18 @@ with _ROOT.container():
             with st.container(border=True):
                 st.subheader("My Engineering Logs")
                 try:
-                    log_rows = _cached_fetch_logs(user["id"])
+                    with st.spinner("Loading..."):
+                        log_rows = _cached_fetch_logs(user["id"])
                     log_count = len(log_rows)
                     st.metric("Total Logs", log_count)
                     st.markdown("**Recent Milestones:**")
                     if log_rows:
-                        for row in log_rows[:3]:
+                        recent = sorted(
+                            log_rows,
+                            key=lambda r: str(r.get("created_at") or ""),
+                            reverse=True,
+                        )[:3]
+                        for row in recent:
                             proj = row.get("project_name") or "General"
                             ttl = (
                                 row.get("title")
