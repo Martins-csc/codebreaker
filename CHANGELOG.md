@@ -5,6 +5,11 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.8] - 2026-10-18
+
+### Added / Changed
+- MICRO-MISSION v1.9.8 — Name the unknown callers: assigned correct `read:admin_pulse`, `write:blueprint`, `read:logs`, and `write:logs` tags to all bare `_track_client()` calls (zero untagged calls remaining).
+
 ## [1.9.7] - 2026-10-18
 
 ### Added / Changed

@@ -1241,7 +1241,7 @@ with _ROOT.container():
         if is_admin:
             st.sidebar.subheader(":material/shield: Admin Pulse")
             try:
-                client = _track_client()
+                client = _track_client("read:admin_pulse")
                 if "access_token" in st.session_state:
                     client.auth.set_session(
                         st.session_state["access_token"],
@@ -1737,7 +1737,7 @@ with _ROOT.container():
                             st.session_state.get("blueprint_count", 0) + 1
                         )
                         try:
-                            client = _track_client()
+                            client = _track_client("write:blueprint")
                             if "access_token" in st.session_state:
                                 client.auth.set_session(
                                     st.session_state["access_token"],
@@ -2289,7 +2289,7 @@ with _ROOT.container():
         )
 
         try:
-            client = _track_client()
+            client = _track_client("read:logs")
             if "access_token" in st.session_state:
                 client.auth.set_session(
                     st.session_state["access_token"],
@@ -2380,7 +2380,7 @@ with _ROOT.container():
 
                                 def do_delete(rid):
                                     try:
-                                        client = _track_client()
+                                        client = _track_client("write:logs")
                                         if "access_token" in st.session_state:
                                             client.auth.set_session(
                                                 st.session_state["access_token"],
@@ -2442,7 +2442,7 @@ with _ROOT.container():
                                 use_container_width=True,
                             ):
                                 try:
-                                    client = _track_client()
+                                    client = _track_client("write:logs")
                                     if "access_token" in st.session_state:
                                         client.auth.set_session(
                                             st.session_state["access_token"],
