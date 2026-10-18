@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.3] - 2026-10-18
+
+### Added / Changed
+- MICRO-MISSION v1.9.3 — single-run navigation for landing page:
+  - **`_nav_to_auth` Helper**: Defined `_nav_to_auth(mode)` helper to set `auth_view` and `nav_pending`.
+  - **Landing CTAs `on_click` Routing**: Updated "Log In" (`cta_login`) and "Create Account" (`cta_signup`) buttons on the landing page to use `on_click=_nav_to_auth` with arguments, eliminating double-run tax.
+  - **Auth Switch Line Update**: Updated `_auth_switch_line` helper to accept `on_click` and `args` parameters and pass them to the link button, switching auth views in a single run.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan (zero `st.rerun()` calls inside landing button handlers or auth switch handlers), unit tests (`tests/test_v1_9_3.py`), and verified green test suite.
+
 ## [1.9.2] - 2026-10-17
 
 ### Added / Changed

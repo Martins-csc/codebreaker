@@ -1,5 +1,20 @@
 # CodeBreaker Development Log
 
+## Entry 073: Single-Run Navigation & on_click Routing for Landing Page (v1.9.3)
+- **Date**: 2026-10-18
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.9.3 MICRO-MISSION — on_click routing kills the double-run tax for auth navigation (`_nav_to_auth`, `on_click` routing)
+
+### Design Notes & Architectural Decisions
+1. **Single-Run Navigation Law (`on_click` Routing)**:
+   - Auth navigation via landing page buttons ("Log In", "Create Account") and auth view switcher (`_auth_switch_line`) now utilize Streamlit `on_click` callbacks (`_nav_to_auth`) instead of inline session assignment followed by `st.rerun()`.
+   - This kills the double-run tax for auth navigation, executing state updates and rerunning in a single integrated event cycle.
+2. **Helper Updates**:
+   - Defined `_nav_to_auth(mode)` helper setting `st.session_state["auth_view"] = mode` and `st.session_state["nav_pending"] = "Auth"`.
+   - Updated `_auth_switch_line` to accept `on_click` and `args` parameters and pass them to the link button.
+3. **Testing & Verification**:
+   - Enforced `py_compile`, source-scan assertions (zero `st.rerun()` in landing CTAs or auth switch handlers), unit tests (`tests/test_v1_9_3.py`), and verified green test suite.
+
 ## Entry 061: Native Alignment Law & Cross-Link Gap Closure (v1.7.19)
 - **Date**: 2026-10-13
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

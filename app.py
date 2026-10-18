@@ -215,7 +215,11 @@ with _ROOT.container():
     def clear_auth_form_state():
         _clear_auth_forms()
 
-    def _auth_switch_line(question, link_label, q_key, l_key):
+    def _nav_to_auth(mode):
+        st.session_state["auth_view"] = mode
+        st.session_state["nav_pending"] = "Auth"
+
+    def _auth_switch_line(question, link_label, q_key, l_key, on_click=None, args=None):
         outer = st.columns([0.25, 0.5, 0.25])
         with outer[1]:
             q, l = st.columns([0.62, 0.38], gap="small")
@@ -224,7 +228,13 @@ with _ROOT.container():
                     st.button(question, key=q_key, type="tertiary", disabled=True)
             with l:
                 with st.container(horizontal_alignment="left"):
-                    clicked = st.button(link_label, key=l_key, type="tertiary")
+                    clicked = st.button(
+                        link_label,
+                        key=l_key,
+                        type="tertiary",
+                        on_click=on_click,
+                        args=args,
+                    )
         return clicked
 
     def format_lagos_timestamp(created_at_str):
@@ -1137,25 +1147,23 @@ with _ROOT.container():
                     )
 
                     if auth_mode == "login":
-                        if _auth_switch_line(
+                        _auth_switch_line(
                             "Don't have an account?",
                             "Sign up",
                             "xlink_q_login",
                             "auth_switch_to_signup",
-                        ):
-                            _clear_auth_forms()
-                            st.session_state["auth_view"] = "signup"
-                            st.rerun()
+                            on_click=_nav_to_auth,
+                            args=("signup",),
+                        )
                     else:
-                        if _auth_switch_line(
+                        _auth_switch_line(
                             "Already have an account?",
                             "Log in",
                             "xlink_q_signup",
                             "auth_switch_to_login",
-                        ):
-                            _clear_auth_forms()
-                            st.session_state["auth_view"] = "login"
-                            st.rerun()
+                            on_click=_nav_to_auth,
+                            args=("login",),
+                        )
                 except Exception as e:
                     st.error(f"Could not generate GitHub OAuth link: {e}")
         else:
@@ -1205,21 +1213,22 @@ with _ROOT.container():
             st.markdown("---")
             col_cta1, col_cta2 = st.columns(2)
             with col_cta1:
-                if st.button(
-                    "Log In", key="cta_login", type="primary", use_container_width=True
-                ):
-                    _clear_auth_forms()
-                    st.session_state["auth_view"] = "login"
-                    st.session_state["nav_pending"] = "Auth"
-                    st.rerun()
+                st.button(
+                    "Log In",
+                    key="cta_login",
+                    type="primary",
+                    use_container_width=True,
+                    on_click=_nav_to_auth,
+                    args=("login",),
+                )
             with col_cta2:
-                if st.button(
-                    "Create Account", key="cta_signup", use_container_width=True
-                ):
-                    _clear_auth_forms()
-                    st.session_state["auth_view"] = "signup"
-                    st.session_state["nav_pending"] = "Auth"
-                    st.rerun()
+                st.button(
+                    "Create Account",
+                    key="cta_signup",
+                    use_container_width=True,
+                    on_click=_nav_to_auth,
+                    args=("signup",),
+                )
 
         _record_run_ms()
         st.stop()
