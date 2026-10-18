@@ -15,9 +15,7 @@ def test_no_witness_strings_in_app():
 def test_oauth_hardcoded_winning_exchange_mints_rt_and_clears_params():
     """Test hardcoded winning OAuth call succeeds, mints rt, and clears auth query params."""
     mock_client = MagicMock()
-    mock_client.table("oauth_states").select("code_verifier").eq(
-        "state", "pending"
-    ).order("created_at", desc=True).limit(1).execute.return_value.data = [
+    mock_client.rpc.return_value.execute.return_value.data = [
         {"code_verifier": "ver_123"}
     ]
 
@@ -52,15 +50,10 @@ def test_oauth_hardcoded_winning_exchange_mints_rt_and_clears_params():
             code = mock_query_params.get("code")
             supabase_url = "https://example.supabase.co"
             anon_key = "anon"
-            state_res = (
-                mock_client.table("oauth_states")
-                .select("code_verifier")
-                .eq("state", "pending")
-                .order("created_at", desc=True)
-                .limit(1)
-                .execute()
-            )
-            verifier = state_res.data[0]["code_verifier"]
+            res = mock_client.rpc(
+                "consume_oauth_state", {"p_state": "pending"}
+            ).execute()
+            verifier = res.data[0]["code_verifier"] if res.data else None
 
             token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
             headers = {"apikey": anon_key, "Content-Type": "application/json"}

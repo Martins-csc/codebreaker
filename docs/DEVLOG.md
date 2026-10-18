@@ -1,5 +1,26 @@
 # CodeBreaker Development Log
 
+## Entry 078: Security Audit AUDIT-1 Remediation & SEC-1 Hardening (v1.9.9)
+- **Date**: 2026-10-18
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.9.9 SECURITY FIX MISSION SEC-1 — AUDIT-1 findings remediation (generic error sanitization, server-side logging, auth cooldowns, consume-once OAuth verifier RPC)
+
+### Design Notes & Architectural Decisions
+1. **Security Audit Mission AUDIT-1 Findings**:
+   - Conducted a comprehensive read-only security audit across 12 core checklists (Secrets, AuthN, AuthZ/RLS, XSS/Injection, Input Validation, Error Surface, Silent Failures, Abuse, Probe Exposure, Query Params, Deps, Hygiene), identifying minor findings in error surfaces (embedding `{e}` in `st.error`), lack of client-side cooldowns on auxiliary auth paths, and historical table `SELECT` usage for OAuth verifier lookup.
+2. **Generic Error Surface & Server-Side Logging Law**:
+   - Replaced user-facing `st.error` and `st.warning` notifications embedding raw exception objects (`{e}` / `{err_str}`) with clean, operation-specific generic messages across all 12 identified sites in `app.py`.
+   - Routed detailed exception tracebacks exclusively to server-side logging via `logging.getLogger("app.errors").exception(...)`.
+   - Source-scan verified zero `{e}` inside `st.error`.
+3. **Auth Abuse Cooldowns**:
+   - Implemented 60-second cooldown protection on Forgot Password (`forgot_submitted`) and confirmation-email resend (`resend_conf_btn`) flows, mirroring the robust Contact form cooldown pattern (`session_state` timestamp, disabled button states, countdown retry captions).
+4. **Verifier Exposure Confession & Consume-Once RPC Law**:
+   - Confessed and corrected the architectural flaw of using a public `SELECT` query on `public.oauth_states` during OAuth callback return.
+   - Replaced the table `SELECT` path with an atomic Postgres RPC function (`consume_oauth_state(p_state text)`) utilizing `DELETE ... RETURNING` in a single transaction (consume-once law).
+   - Zero `oauth_states` table `SELECT` queries remain outside insertion.
+5. **Testing & Verification**:
+   - Enforced `py_compile`, source-scan assertions, unit tests, and verified green pytest test suite (247/247 passed).
+
 ## Entry 077: Recent Milestones Sorting, Loud Invalidation & Cache Status Silence (v1.9.7)
 - **Date**: 2026-10-18
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

@@ -22,8 +22,8 @@ def test_manual_pkce_challenge_generation():
 def test_oauth_state_flow_and_token_exchange():
     """Test zero-network manual PKCE return flow: lookup state, post grant_type=pkce, set session."""
     mock_client = MagicMock()
-    # Mock oauth_states table lookup returning verifier
-    mock_client.table().select().eq().execute.return_value.data = [
+    # Mock consume_oauth_state RPC returning verifier
+    mock_client.rpc.return_value.execute.return_value.data = [
         {"code_verifier": "fake_verifier"}
     ]
 

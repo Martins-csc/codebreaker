@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.9] - 2026-10-18
+
+### Added / Changed
+- SECURITY FIX MISSION SEC-1 & AUDIT-1 Findings Remediation:
+  - **Generic Error Surface & Server-Side Logging**: Replaced user-facing `st.error` and `st.warning` notices embedding raw exception objects (`{e}` / `{err_str}`) with clean, operation-specific generic messages, routing detailed exception tracing exclusively to server-side logging via `logging.getLogger("app.errors").exception(...)`. Source-scanned zero `{e}` inside `st.error`.
+  - **Auth Abuse Cooldowns**: Implemented 60-second cooldown protection on Forgot Password and confirmation-email resend flows, featuring session-state timestamp tracking, disabled button states, and countdown captions.
+  - **OAuth Verifier Consume-Once Law**: Replaced `oauth_states` table `SELECT` lookup with an atomic RPC function (`consume_oauth_state`) enforcing single-use verifier consumption, eliminating verifier exposure, reuse windows, and race conditions.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertions, unit tests, and verified green pytest suite (247/247 passed).
+
 ## [1.9.8] - 2026-10-18
 
 ### Added / Changed

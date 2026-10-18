@@ -49,7 +49,7 @@ def test_v1_4_5_contact_form_requirements():
     assert "smtplib.SMTP_SSL" in content
     assert "starttls()" in content
     assert "smtplib.SMTPException" in content
-    assert "Email send failed:" in content
+    assert "Failed to send email. Please try again." in content
     assert "contact_name_input" in content
     assert "contact_email_input" in content
     assert "contact_message_input" in content

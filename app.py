@@ -601,17 +601,10 @@ with _ROOT.container():
                 except Exception:
                     pass
 
-                # Lookup verifier by state='pending' order by created_at desc limit 1
-                state_res = (
-                    client.table("oauth_states")
-                    .select("code_verifier")
-                    .eq("state", "pending")
-                    .order("created_at", desc=True)
-                    .limit(1)
-                    .execute()
-                )
-                state_rows = getattr(state_res, "data", [])
-                if not state_rows:
+                state = "pending"
+                res = client.rpc("consume_oauth_state", {"p_state": state}).execute()
+                verifier = res.data[0]["code_verifier"] if res.data else None
+                if not verifier:
                     st.session_state["auth_flash"] = (
                         "error",
                         "Sign-in session expired — tap Continue with GitHub again.",
@@ -619,8 +612,6 @@ with _ROOT.container():
                     for p in ["code", "state"]:
                         st.query_params.pop(p, None)
                     st.rerun()
-                else:
-                    verifier = state_rows[0].get("code_verifier")
 
                     token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
                     headers = {"apikey": anon_key, "Content-Type": "application/json"}
@@ -764,8 +755,23 @@ with _ROOT.container():
                 st.warning(fmsg)
                 col_res1, col_res2 = st.columns(2)
                 with col_res1:
-                    if st.button("Resend confirmation email", key="resend_conf_btn"):
-                        st.session_state["show_resend_link"] = True
+                    last_resend = st.session_state.get("resend_last_submitted", 0)
+                    now = time.time()
+                    if now - last_resend < 60:
+                        remaining = int(60 - (now - last_resend))
+                        st.warning(f"Please try again in {remaining}s (60s cooldown).")
+                        st.button(
+                            "Resend confirmation email",
+                            key="resend_conf_btn_disabled",
+                            disabled=True,
+                        )
+                    else:
+                        if st.button(
+                            "Resend confirmation email", key="resend_conf_btn"
+                        ):
+                            st.session_state["resend_last_submitted"] = time.time()
+                            st.session_state["show_resend_link"] = True
+                            st.rerun()
                 with col_res2:
                     if st.button("Forgot password?", key="forgot_pwd_btn"):
                         st.session_state["show_forgot_password"] = True
@@ -937,16 +943,29 @@ with _ROOT.container():
                                         "Invalid email or password. Please check your credentials."
                                     )
                                 else:
-                                    st.error(f"Login failed: {err_str}")
+                                    logging.getLogger("app.errors").exception(
+                                        "Login failed"
+                                    )
+                                    st.error(
+                                        "Login failed. Please check your credentials."
+                                    )
 
                 elif forgot_submitted:
-                    if not auth_email.strip():
+                    last_forgot = st.session_state.get("forgot_last_submitted", 0)
+                    now = time.time()
+                    if now - last_forgot < 60:
+                        remaining = int(60 - (now - last_forgot))
+                        st.error(
+                            f"Please wait {remaining} seconds before requesting another password reset (60s cooldown)."
+                        )
+                    elif not auth_email.strip():
                         st.error("Email cannot be empty.")
                     else:
                         email_valid, email_err = validate_email(auth_email.strip())
                         if not email_valid:
                             st.error(email_err)
                         else:
+                            st.session_state["forgot_last_submitted"] = time.time()
                             try:
                                 client = _track_client("write:forgot_password")
                                 redirect_to = getattr(st.context, "url", None)
@@ -1085,7 +1104,12 @@ with _ROOT.container():
                                         "This email is already linked to an account. Please log in or reset your password."
                                     )
                                 else:
-                                    st.error(f"Sign-up failed: {err_str}")
+                                    logging.getLogger("app.errors").exception(
+                                        "Sign-up failed"
+                                    )
+                                    st.error(
+                                        "Sign-up failed. Please check your inputs or try another email."
+                                    )
 
                 st.markdown(
                     """
@@ -1158,7 +1182,10 @@ with _ROOT.container():
                             args=("login",),
                         )
                 except Exception as e:
-                    st.error(f"Could not generate GitHub OAuth link: {e}")
+                    logging.getLogger("app.errors").exception(
+                        "GitHub OAuth link generation failed"
+                    )
+                    st.error("Could not generate GitHub OAuth link. Please try again.")
         else:
             st.title("Deconstruct, Analyze, and Architect Systems")
             st.write(
@@ -1497,9 +1524,15 @@ with _ROOT.container():
                         server.quit()
                         success = True
                     except smtplib.SMTPException as e:
-                        st.error(f"Email send failed: {e}")
+                        logging.getLogger("app.errors").exception(
+                            "SMTP error sending contact email"
+                        )
+                        st.error("Failed to send email. Please try again.")
                     except Exception as e:
-                        st.error(f"Email send failed: {e}")
+                        logging.getLogger("app.errors").exception(
+                            "Unexpected error sending contact email"
+                        )
+                        st.error("Failed to send email. Please try again.")
 
                     if success:
                         st.session_state["contact_last_submitted"] = time.time()
@@ -1770,16 +1803,25 @@ with _ROOT.container():
                                     except Exception:
                                         pass
                         except Exception as e:
+                            logging.getLogger("app.errors").exception(
+                                "Blueprint save failed"
+                            )
                             st.warning(
-                                f"Blueprint generated but could not be saved to your library: {e}"
+                                "Blueprint generated but could not be saved to your library."
                             )
                         st.success(
                             "Blueprint generated successfully! Navigate to the 'Blueprint' page to view it."
                         )
                     except BlueprintError as e:
-                        st.error(f"Blueprint Error: {e}")
+                        logging.getLogger("app.errors").exception(
+                            "Blueprint generation error"
+                        )
+                        st.error("Blueprint generation failed. Please try again.")
                     except Exception as e:
-                        st.error(f"An unexpected error occurred: {e}")
+                        logging.getLogger("app.errors").exception(
+                            "Unexpected error in blueprint generation"
+                        )
+                        st.error("An unexpected error occurred.")
 
     elif page == "Blueprint":
         st.title("System Architecture Blueprint")
@@ -2042,8 +2084,13 @@ with _ROOT.container():
                                                     )
                                                     st.rerun()
                                                 except Exception as e:
+                                                    logging.getLogger(
+                                                        "app.errors"
+                                                    ).exception(
+                                                        "Blueprint extension failed"
+                                                    )
                                                     st.error(
-                                                        f"Failed to extend blueprint: {e}"
+                                                        "Failed to extend blueprint. Please try again."
                                                     )
                 else:
                     st.info("Open a blueprint from your library or generate a new one.")
@@ -2277,7 +2324,10 @@ with _ROOT.container():
                     st.success("Engineering log entry saved successfully!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Failed to save engineering log: {e}")
+                    logging.getLogger("app.errors").exception(
+                        "Engineering log save failed"
+                    )
+                    st.error("Failed to save engineering log. Please try again.")
 
         st.markdown("---")
         st.subheader("Your Engineering Log Entries")
@@ -2397,7 +2447,12 @@ with _ROOT.container():
                                         st.success("Log entry deleted successfully.")
                                         st.rerun()
                                     except Exception as e:
-                                        st.error(f"Failed to delete log entry: {e}")
+                                        logging.getLogger("app.errors").exception(
+                                            "Engineering log delete failed"
+                                        )
+                                        st.error(
+                                            "Failed to delete log entry. Please try again."
+                                        )
 
                                 def disarm(rid):
                                     st.session_state[confirm_del_key] = False
@@ -2458,7 +2513,12 @@ with _ROOT.container():
                                     )
                                     st.rerun()
                                 except Exception as e:
-                                    st.error(f"Failed to delete all logs: {e}")
+                                    logging.getLogger("app.errors").exception(
+                                        "Delete all logs failed"
+                                    )
+                                    st.error(
+                                        "Failed to delete all logs. Please try again."
+                                    )
                         with col_all2:
                             if st.button(
                                 "Cancel",
@@ -2472,9 +2532,8 @@ with _ROOT.container():
                     "No engineering log entries found yet. Submit your first entry above."
                 )
         except Exception as e:
-            st.warning(
-                f"Could not load engineering log entries (Table setup required): {e}"
-            )
+            logging.getLogger("app.errors").exception("Engineering log load failed")
+            st.warning("Could not load engineering log entries.")
 
     _log_perf("routing")
 
