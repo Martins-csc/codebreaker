@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.6] - 2026-10-18
+
+### Added / Changed
+- MICRO-MISSION v1.9.6 — dashboard cache invalidation + hide "Running..." messages:
+  - **Dashboard Recent Milestones Cache Invalidation**: Explicitly ensured `_cached_fetch_logs.clear()` is called immediately upon successful log submission in the Engineering Log page, guaranteeing immediate updates to the Dashboard recent milestones list.
+  - **"Running..." Message Suppression via Spinners**: Wrapped `_cached_fetch_blueprints()` in the Blueprint Library view with `with st.spinner("Loading blueprints..."):` and `_cached_fetch_logs()` in the Engineering Log view with `with st.spinner("Loading logs..."):`, suppressing raw Streamlit cache execution text and presenting professional loading indicators.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertions (`tests/test_v1_9_6.py`), unit tests, and verified green test suite.
+
 ## [1.9.5] - 2026-10-18
 
 ### Added / Changed

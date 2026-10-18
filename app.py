@@ -1845,7 +1845,8 @@ with _ROOT.container():
                             st.session_state[f"arm_del_bp_{b_id_k}"] = False
                             st.session_state.pop(k, None)
 
-                all_bps = _cached_fetch_blueprints(user["id"])
+                with st.spinner("Loading blueprints..."):
+                    all_bps = _cached_fetch_blueprints(user["id"])
                 if all_bps:
                     for item in all_bps:
                         b_id = item.get("id")
@@ -2298,7 +2299,8 @@ with _ROOT.container():
                         st.session_state[f"confirm_del_{log_id_k}"] = False
                         st.session_state.pop(k, None)
 
-            entries = _cached_fetch_logs(user["id"])
+            with st.spinner("Loading logs..."):
+                entries = _cached_fetch_logs(user["id"])
 
             # Apply sorting
             if sort_option == "Newest first":

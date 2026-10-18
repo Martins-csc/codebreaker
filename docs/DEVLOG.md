@@ -1097,3 +1097,13 @@
 1. **Dashboard Recent Lists Cleanup**: Removed date timestamp badges (`(DD-MM-YYYY)`) from both the "My Blueprints" card (`• Project Name`) and the "My Engineering Logs" recent milestones card (`• Project Name — Milestone`) for cleaner visual hierarchy and clarity, while retaining action buttons ("Open") and log titles exactly as specified.
 2. **Recent Milestones Cache Invalidation Fix**: Ensured the write path for submitting new engineering logs explicitly clears the cache for the recent milestones / logs function (`_cached_fetch_logs.clear()`) in addition to general cache invalidation (`_invalidate_caches()`), ensuring fresh data renders immediately upon submission.
 3. **Testing & Verification**: Enforced `py_compile`, source-scan assertions (`tests/test_v1_9_5.py`), and verified green test suite.
+
+## Entry 076: Dashboard Cache Invalidation & "Running..." Message Suppression via Spinners (v1.9.6)
+- **Date**: 2026-10-18
+- **Author**: Engineering Team / Builder, Tester & Orchestrator Agents
+- **Milestone**: v1.9.6 MICRO-MISSION — fix dashboard cache invalidation + hide "Running..." messages
+
+### Design Notes & Architectural Decisions
+1. **Dashboard Cache Invalidation Guarantee**: Ensured `_cached_fetch_logs.clear()` is explicitly invoked in the Engineering Log submission handler immediately after successful database insertion, ensuring the Dashboard recent milestones list updates instantly upon log creation.
+2. **"Running..." Message Suppression**: Wrapped `_cached_fetch_blueprints(user["id"])` in the Blueprint Library view with `with st.spinner("Loading blueprints..."):` and `_cached_fetch_logs(user["id"])` in the Engineering Log view with `with st.spinner("Loading logs..."):`, suppressing raw Streamlit cache execution notices and providing clean professional loading indicators.
+3. **Testing & Verification**: Enforced `py_compile`, source-scan assertions (`tests/test_v1_9_6.py`), unit tests, and verified green test suite.
