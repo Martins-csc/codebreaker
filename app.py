@@ -1540,12 +1540,10 @@ with _ROOT.container():
                             bp_title = bp_item.get("title") or "Untitled Project"
                             bp_ver = bp_item.get("version", 1)
                             display_title = format_display_title(bp_title, bp_ver)
-                            b_created = bp_item.get("created_at", "N/A")
-                            date_str = fmt_date(b_created)
 
                             col_bl1, col_bl2 = st.columns([3, 1])
                             with col_bl1:
-                                st.markdown(f"- **{display_title}** `({date_str})`")
+                                st.markdown(f"- **{display_title}**")
                             with col_bl2:
                                 if st.button(
                                     "Open",
@@ -1602,8 +1600,7 @@ with _ROOT.container():
                                 row.get("title")
                                 or str(row.get("progress", "Milestone"))[:40]
                             )
-                            d_str = fmt_date(row.get("created_at"))
-                            st.markdown(f"- `({d_str})` **{proj}** — {ttl}")
+                            st.markdown(f"- **{proj}** — {ttl}")
                     else:
                         st.write("No logs recorded yet.")
                 except Exception:
@@ -2270,6 +2267,7 @@ with _ROOT.container():
                         ),
                     }
                     client.table("engineering_log").insert(payload).execute()
+                    _cached_fetch_logs.clear()
                     _invalidate_caches()
                     st.success("Engineering log entry saved successfully!")
                     st.rerun()

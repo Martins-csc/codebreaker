@@ -1087,3 +1087,13 @@
 2. **Secure Contact Literal & Fail-Clearly Rule**: Replaced both hardcoded `codebreakerbuild@gmail.com` occurrences with `get_config("CONTACT_TO_EMAIL")`. Enforced security review requirement: when missing, show `st.error("Contact form disabled: set CONTACT_TO_EMAIL in Cloud secrets")` and skip sending — zero silent recipient fallback.
 3. **Counsel Order-of-Work Honored**: Honored the strict order-of-work principle: instrument (`[PERF]` logs) → route → placeholder → cache → measure.
 4. **Testing & Verification**: Enforced `py_compile` after every edit, verified zero `"codebreakerbuild"` literals remain in `app.py`, updated unit tests (`tests/test_v1_4_1.py`, `tests/test_v1_8_6.py`), and verified 235/235 green test suite (`pytest tests/ -q`).
+
+## Entry 075: Dashboard UX Cleanup & Recent Milestones Cache Invalidation Fix (v1.9.5)
+- **Date**: 2026-10-18
+- **Author**: Engineering Team / Builder, Tester & Orchestrator Agents
+- **Milestone**: v1.9.5 MICRO-MISSION — Dashboard recent lists cleanup + cache invalidation fix
+
+### Design Notes & Architectural Decisions
+1. **Dashboard Recent Lists Cleanup**: Removed date timestamp badges (`(DD-MM-YYYY)`) from both the "My Blueprints" card (`• Project Name`) and the "My Engineering Logs" recent milestones card (`• Project Name — Milestone`) for cleaner visual hierarchy and clarity, while retaining action buttons ("Open") and log titles exactly as specified.
+2. **Recent Milestones Cache Invalidation Fix**: Ensured the write path for submitting new engineering logs explicitly clears the cache for the recent milestones / logs function (`_cached_fetch_logs.clear()`) in addition to general cache invalidation (`_invalidate_caches()`), ensuring fresh data renders immediately upon submission.
+3. **Testing & Verification**: Enforced `py_compile`, source-scan assertions (`tests/test_v1_9_5.py`), and verified green test suite.

@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.5] - 2026-10-18
+
+### Added / Changed
+- MICRO-MISSION v1.9.5 — Dashboard recent lists cleanup + cache invalidation fix:
+  - **Dashboard Recent Lists UX Cleanup**: Removed timestamp badges (`(DD-MM-YYYY)`) from both the "My Blueprints" card (`• Project Name`) and the "My Engineering Logs" recent milestones card (`• Project Name — Milestone`) for improved visual clarity and minimalism, keeping "Open" action buttons unchanged.
+  - **Recent Milestones Cache Invalidation Fix**: Ensured the engineering log submission write path explicitly invokes `_cached_fetch_logs.clear()` and `_invalidate_caches()` immediately after inserting new log entries, preventing stale cache renders on the Dashboard recent milestones list.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertions (zero date formatting strings in Dashboard recent renderers, explicit cache clearing in log submission handler), unit tests (`tests/test_v1_9_5.py`), and verified green test suite.
+
 ## [1.9.4] - 2026-10-18
 
 ### Added / Changed
