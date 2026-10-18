@@ -1,5 +1,20 @@
 # CodeBreaker Development Log
 
+## Entry 074: Clean Login UX & Logout Message Alignment (v1.9.4)
+- **Date**: 2026-10-18
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.9.4 MICRO-MISSION — pre-warm cache status must not leak into the login view; logout terminology aligned (`needs_prewarm`, `"Logged out successfully!"`)
+
+### Design Notes & Architectural Decisions
+1. **Pre-Warm Cache Relocation**:
+   - Removed `@st.cache_data`-cached fetch pre-warm calls (`_cached_fetch_blueprints`, `_cached_fetch_logs`, `_cached_fetch_profile`) from login and signup success handlers.
+   - Replaced them with setting `st.session_state["needs_prewarm"] = True` before rerunning.
+   - Consumed `needs_prewarm` inside the Dashboard view (`page == "Home"`), ensuring any loading/cache status executes within the Dashboard view where it belongs and keeping the login screen clean.
+2. **Logout Terminology Alignment**:
+   - Updated logout success message from `"Signed out successfully."` to `"Logged out successfully!"` to align with UI terminology.
+3. **Testing & Verification**:
+   - Enforced `py_compile`, source-scan assertions (zero "Signed out successfully" strings, zero pre-warm calls in auth handlers), unit tests (`tests/test_v1_9_4.py`), and verified 239/239 green test suite.
+
 ## Entry 073: Single-Run Navigation & on_click Routing for Landing Page (v1.9.3)
 - **Date**: 2026-10-18
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents

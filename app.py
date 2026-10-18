@@ -920,9 +920,7 @@ with _ROOT.container():
                                     mint_and_set_rt(
                                         client, user_obj.id, res.session.refresh_token
                                     )
-                                    _cached_fetch_blueprints(user_obj.id)
-                                    _cached_fetch_logs(user_obj.id)
-                                    _cached_fetch_profile(user_obj.id)
+                                    st.session_state["needs_prewarm"] = True
                                     st.success("Logged in successfully!")
                                     _clear_auth_forms()
                                     del st.session_state["auth_view"]
@@ -1073,9 +1071,7 @@ with _ROOT.container():
                                             user_obj.id,
                                             session_obj.refresh_token,
                                         )
-                                        _cached_fetch_blueprints(user_obj.id)
-                                        _cached_fetch_logs(user_obj.id)
-                                        _cached_fetch_profile(user_obj.id)
+                                        st.session_state["needs_prewarm"] = True
                                     st.success(
                                         "Account created and logged in successfully!"
                                     )
@@ -1516,6 +1512,12 @@ with _ROOT.container():
                         st.rerun()
 
     elif page == "Home":
+        if st.session_state.get("needs_prewarm"):
+            _cached_fetch_blueprints(user["id"])
+            _cached_fetch_logs(user["id"])
+            _cached_fetch_profile(user["id"])
+            st.session_state["needs_prewarm"] = False
+
         st.title("Dashboard")
         st.markdown("---")
 
@@ -1675,7 +1677,7 @@ with _ROOT.container():
                         st.query_params.pop(p, None)
                     for key in list(st.session_state.keys()):
                         del st.session_state[key]
-                    st.success("Signed out successfully.")
+                    st.success("Logged out successfully!")
                     st.rerun()
 
     elif page == "Analyze":

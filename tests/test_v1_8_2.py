@@ -38,7 +38,5 @@ def test_v1_8_2_source_scan():
     assert '"signup_password"' in content
     assert '"signup_display_name"' in content
 
-    # 4. Pre-warm calls present in both success handlers
-    assert content.count("_cached_fetch_blueprints(user_obj.id)") >= 2
-    assert content.count("_cached_fetch_logs(user_obj.id)") >= 2
-    assert content.count("_cached_fetch_profile(user_obj.id)") >= 2
+    # 4. Pre-warm relocated to Dashboard via needs_prewarm
+    assert "needs_prewarm" in content

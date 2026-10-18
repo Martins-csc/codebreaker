@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.4] - 2026-10-18
+
+### Added / Changed
+- MICRO-MISSION v1.9.4 — clean login UX + logout message fix:
+  - **Pre-Warm Cache Relocation**: Removed direct `@st.cache_data`-cached fetch calls from login and signup success handlers. Replaced them with setting `st.session_state["needs_prewarm"] = True` before rerunning, and consumed the flag inside the Dashboard view (`page == "Home"`). This keeps the login screen clean and ensures pre-warm cache status executes within the Dashboard view where it belongs.
+  - **Logout Terminology Alignment**: Updated logout success message from `"Signed out successfully."` to `"Logged out successfully!"` to align with UI terminology.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertions (zero "Signed out successfully" strings, zero pre-warm calls in auth handlers), unit tests (`tests/test_v1_9_4.py`), and verified 239/239 green test suite.
+
 ## [1.9.3] - 2026-10-18
 
 ### Added / Changed
