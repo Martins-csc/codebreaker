@@ -620,10 +620,11 @@ with _ROOT.container():
                     st.rerun()
 
                 token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
+                headers = {"apikey": anon_key, "Content-Type": "application/json"}
                 payload = {"auth_code": code, "code_verifier": verifier}
 
                 resp = requests.post(
-                    token_url, headers={"apikey": anon_key}, data=payload, timeout=10
+                    token_url, headers=headers, json=payload, timeout=10
                 )
                 logging.getLogger("app.oauth").warning(
                     "[OAUTH] token status=%s", resp.status_code
