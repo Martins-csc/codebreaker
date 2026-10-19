@@ -606,6 +606,7 @@ with _ROOT.container():
                 logging.getLogger("app.oauth").warning(
                     "[OAUTH] consume rows=%s", len(res.data or [])
                 )
+                logging.getLogger("app.oauth").warning("[OAUTH] res.data=%s", res.data)
                 verifier = res.data[0]["code_verifier"] if res.data else None
                 if not verifier:
                     st.session_state["auth_flash"] = (
