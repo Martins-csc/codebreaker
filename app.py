@@ -627,6 +627,9 @@ with _ROOT.container():
                 logging.getLogger("app.oauth").warning(
                     "[OAUTH] token status=%s", resp.status_code
                 )
+                logging.getLogger("app.oauth").warning(
+                    "[OAUTH] token response=%s", resp.text[:200]
+                )
                 if resp.status_code == 200:
                     token_data = resp.json()
                     access_token = token_data.get("access_token")
