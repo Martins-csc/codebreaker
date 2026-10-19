@@ -585,7 +585,9 @@ with _ROOT.container():
 
         # 2. Handle GitHub OAuth authorization code exchange (Manual PKCE flow - single-slot verifier)
         elif code_param:
-            code = code_param
+            code = st.query_params.get("code")
+            if isinstance(code, list):
+                code = code[0]
             try:
                 supabase_url = get_config("SUPABASE_URL").rstrip("/")
                 anon_key = get_config("SUPABASE_ANON_KEY")
@@ -618,11 +620,10 @@ with _ROOT.container():
                     st.rerun()
 
                 token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
-                headers = {"apikey": anon_key, "Content-Type": "application/json"}
-                payload = {"code": code, "code_verifier": verifier}
+                payload = {"auth_code": code, "code_verifier": verifier}
 
                 resp = requests.post(
-                    token_url, headers=headers, json=payload, timeout=10
+                    token_url, headers={"apikey": anon_key}, data=payload, timeout=10
                 )
                 logging.getLogger("app.oauth").warning(
                     "[OAUTH] token status=%s", resp.status_code
