@@ -618,7 +618,7 @@ with _ROOT.container():
 
                     token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
                     headers = {"apikey": anon_key, "Content-Type": "application/json"}
-                    payload = {"auth_code": code, "code_verifier": verifier}
+                    payload = {"code": code, "code_verifier": verifier}
 
                     resp = requests.post(
                         token_url, headers=headers, json=payload, timeout=10
