@@ -603,6 +603,9 @@ with _ROOT.container():
 
                 state = "pending"
                 res = client.rpc("consume_oauth_state", {"p_state": state}).execute()
+                logging.getLogger("app.oauth").warning(
+                    "[OAUTH] consume rows=%s", len(res.data or [])
+                )
                 verifier = res.data[0]["code_verifier"] if res.data else None
                 if not verifier:
                     st.session_state["auth_flash"] = (
@@ -619,6 +622,9 @@ with _ROOT.container():
 
                     resp = requests.post(
                         token_url, headers=headers, json=payload, timeout=10
+                    )
+                    logging.getLogger("app.oauth").warning(
+                        "[OAUTH] token status=%s", resp.status_code
                     )
                     if resp.status_code == 200:
                         token_data = resp.json()
@@ -1147,8 +1153,13 @@ with _ROOT.container():
                         client.table("oauth_states").insert(
                             {"state": "pending", "code_verifier": verifier}
                         ).execute()
-                    except Exception:
-                        pass
+                        logging.getLogger("app.oauth").warning(
+                            "[OAUTH] insert ok state=pending"
+                        )
+                    except Exception as e:
+                        logging.getLogger("app.oauth").warning(
+                            "[OAUTH] insert failed: %s", e
+                        )
 
                     # Supabase Redirect URLs whitelist required in Dashboard:
                     # 1. App domain (e.g. https://your-app.replit.app / https://your-project.streamlit.app)
