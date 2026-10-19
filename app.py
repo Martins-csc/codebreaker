@@ -617,95 +617,93 @@ with _ROOT.container():
                         st.query_params.pop(p, None)
                     st.rerun()
 
-                    token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
-                    headers = {"apikey": anon_key, "Content-Type": "application/json"}
-                    payload = {"code": code, "code_verifier": verifier}
+                token_url = f"{supabase_url}/auth/v1/token?grant_type=pkce"
+                headers = {"apikey": anon_key, "Content-Type": "application/json"}
+                payload = {"code": code, "code_verifier": verifier}
 
-                    resp = requests.post(
-                        token_url, headers=headers, json=payload, timeout=10
-                    )
-                    logging.getLogger("app.oauth").warning(
-                        "[OAUTH] token status=%s", resp.status_code
-                    )
-                    if resp.status_code == 200:
-                        token_data = resp.json()
-                        access_token = token_data.get("access_token")
-                        refresh_token = token_data.get("refresh_token")
+                resp = requests.post(
+                    token_url, headers=headers, json=payload, timeout=10
+                )
+                logging.getLogger("app.oauth").warning(
+                    "[OAUTH] token status=%s", resp.status_code
+                )
+                if resp.status_code == 200:
+                    token_data = resp.json()
+                    access_token = token_data.get("access_token")
+                    refresh_token = token_data.get("refresh_token")
 
-                        if access_token and refresh_token:
-                            client.auth.set_session(access_token, refresh_token)
-                            user_res = client.auth.get_user(access_token)
-                            user_obj = getattr(user_res, "user", None)
+                    if access_token and refresh_token:
+                        client.auth.set_session(access_token, refresh_token)
+                        user_res = client.auth.get_user(access_token)
+                        user_obj = getattr(user_res, "user", None)
 
-                            if user_obj:
-                                display_name = ""
-                                if user_obj.user_metadata:
-                                    display_name = (
-                                        user_obj.user_metadata.get("display_name", "")
-                                        or user_obj.email.split("@")[0]
-                                    )
-                                elif user_obj.email:
-                                    display_name = user_obj.email.split("@")[0]
-                                user_metadata = (
-                                    getattr(user_obj, "user_metadata", {}) or {}
+                        if user_obj:
+                            display_name = ""
+                            if user_obj.user_metadata:
+                                display_name = (
+                                    user_obj.user_metadata.get("display_name", "")
+                                    or user_obj.email.split("@")[0]
                                 )
-                                u_created = getattr(
-                                    user_obj, "created_at", None
-                                ) or user_metadata.get("created_at", "")
-                                c_display = format_member_since(u_created)
-                                st.session_state["user"] = {
-                                    "id": user_obj.id,
-                                    "email": user_obj.email,
-                                    "display_name": display_name,
-                                    "user_metadata": user_metadata,
-                                    "member_since": c_display,
-                                }
-                                st.session_state["access_token"] = access_token
-                                st.session_state["refresh_token"] = refresh_token
-                                st.session_state["expires_at"] = token_data.get(
-                                    "expires_at", time.time() + 3600
-                                )
-                                mint_and_set_rt(client, user_obj.id, refresh_token)
+                            elif user_obj.email:
+                                display_name = user_obj.email.split("@")[0]
+                            user_metadata = getattr(user_obj, "user_metadata", {}) or {}
+                            u_created = getattr(
+                                user_obj, "created_at", None
+                            ) or user_metadata.get("created_at", "")
+                            c_display = format_member_since(u_created)
+                            st.session_state["user"] = {
+                                "id": user_obj.id,
+                                "email": user_obj.email,
+                                "display_name": display_name,
+                                "user_metadata": user_metadata,
+                                "member_since": c_display,
+                            }
+                            st.session_state["access_token"] = access_token
+                            st.session_state["refresh_token"] = refresh_token
+                            st.session_state["expires_at"] = token_data.get(
+                                "expires_at", time.time() + 3600
+                            )
+                            mint_and_set_rt(client, user_obj.id, refresh_token)
 
-                                # Delete the pending state row
-                                client.table("oauth_states").delete().eq(
-                                    "state", "pending"
-                                ).execute()
+                            # Delete the pending state row
+                            client.table("oauth_states").delete().eq(
+                                "state", "pending"
+                            ).execute()
 
-                                st.session_state["auth_flash"] = (
-                                    "success",
-                                    "Successfully logged in with GitHub!",
-                                )
-                                st.query_params["pg"] = "Home"
-                                for p in [
-                                    "code",
-                                    "state",
-                                    "type",
-                                    "token",
-                                    "token_hash",
-                                    "error",
-                                    "error_description",
-                                    "oauth_state",
-                                    "mode",
-                                    "auth_view",
-                                ]:
-                                    st.query_params.pop(p, None)
-                                st.rerun()
-                            else:
-                                st.session_state["auth_flash"] = (
-                                    "error",
-                                    "Failed to retrieve user profile after OAuth exchange.",
-                                )
+                            st.session_state["auth_flash"] = (
+                                "success",
+                                "Successfully logged in with GitHub!",
+                            )
+                            st.query_params["pg"] = "Home"
+                            for p in [
+                                "code",
+                                "state",
+                                "type",
+                                "token",
+                                "token_hash",
+                                "error",
+                                "error_description",
+                                "oauth_state",
+                                "mode",
+                                "auth_view",
+                            ]:
+                                st.query_params.pop(p, None)
+                            st.rerun()
                         else:
                             st.session_state["auth_flash"] = (
                                 "error",
-                                "Invalid token response received from authentication server.",
+                                "Failed to retrieve user profile after OAuth exchange.",
                             )
                     else:
                         st.session_state["auth_flash"] = (
                             "error",
-                            resp.text if resp else "OAuth token exchange failed",
+                            "Invalid token response received from authentication server.",
                         )
+                else:
+                    st.session_state["auth_flash"] = (
+                        "error",
+                        resp.text if resp else "OAuth token exchange failed",
+                    )
             except Exception as e:
                 st.session_state["auth_flash"] = (
                     "error",
