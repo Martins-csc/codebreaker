@@ -31,6 +31,38 @@ def format_display_title(title: str, version: int = 1) -> str:
     return base
 
 
+@st.fragment(run_every=1)
+def _resend_cooldown_banner():
+    last_resend = st.session_state.get("resend_last_submitted", 0)
+    now = time.time()
+    remaining = int(60 - (now - last_resend))
+    if remaining > 0:
+        st.warning(f"Please try again in {remaining}s (60s cooldown).")
+        st.button(
+            "Resend confirmation email",
+            key="resend_conf_btn_disabled",
+            disabled=True,
+        )
+    else:
+        if st.button("Resend confirmation email", key="resend_conf_btn"):
+            st.session_state["resend_last_submitted"] = time.time()
+            st.session_state["show_resend_link"] = True
+            st.rerun()
+
+
+@st.fragment(run_every=1)
+def _forgot_cooldown_banner():
+    last_forgot = st.session_state.get("forgot_last_submitted", 0)
+    now = time.time()
+    remaining = int(60 - (now - last_forgot))
+    if remaining > 0:
+        st.error(
+            f"Please wait {remaining} seconds before requesting another password reset (60s cooldown)."
+        )
+    else:
+        return
+
+
 def get_config(key, default=None):
     try:
         if key in st.secrets:
@@ -605,10 +637,6 @@ with _ROOT.container():
 
                 state = "pending"
                 res = client.rpc("consume_oauth_state", {"p_state": state}).execute()
-                logging.getLogger("app.oauth").warning(
-                    "[OAUTH] consume rows=%s", len(res.data or [])
-                )
-                logging.getLogger("app.oauth").warning("[OAUTH] res.data=%s", res.data)
                 verifier = res.data[0]["code_verifier"] if res.data else None
                 if not verifier:
                     st.session_state["auth_flash"] = (
@@ -625,12 +653,6 @@ with _ROOT.container():
 
                 resp = requests.post(
                     token_url, headers=headers, json=payload, timeout=10
-                )
-                logging.getLogger("app.oauth").warning(
-                    "[OAUTH] token status=%s", resp.status_code
-                )
-                logging.getLogger("app.oauth").warning(
-                    "[OAUTH] token response=%s", resp.text[:200]
                 )
                 if resp.status_code == 200:
                     token_data = resp.json()
@@ -765,23 +787,7 @@ with _ROOT.container():
                 st.warning(fmsg)
                 col_res1, col_res2 = st.columns(2)
                 with col_res1:
-                    last_resend = st.session_state.get("resend_last_submitted", 0)
-                    now = time.time()
-                    if now - last_resend < 60:
-                        remaining = int(60 - (now - last_resend))
-                        st.warning(f"Please try again in {remaining}s (60s cooldown).")
-                        st.button(
-                            "Resend confirmation email",
-                            key="resend_conf_btn_disabled",
-                            disabled=True,
-                        )
-                    else:
-                        if st.button(
-                            "Resend confirmation email", key="resend_conf_btn"
-                        ):
-                            st.session_state["resend_last_submitted"] = time.time()
-                            st.session_state["show_resend_link"] = True
-                            st.rerun()
+                    _resend_cooldown_banner()
                 with col_res2:
                     if st.button("Forgot password?", key="forgot_pwd_btn"):
                         st.session_state["show_forgot_password"] = True
@@ -964,10 +970,7 @@ with _ROOT.container():
                     last_forgot = st.session_state.get("forgot_last_submitted", 0)
                     now = time.time()
                     if now - last_forgot < 60:
-                        remaining = int(60 - (now - last_forgot))
-                        st.error(
-                            f"Please wait {remaining} seconds before requesting another password reset (60s cooldown)."
-                        )
+                        _forgot_cooldown_banner()
                     elif not auth_email.strip():
                         st.error("Email cannot be empty.")
                     else:
@@ -1157,13 +1160,8 @@ with _ROOT.container():
                         client.table("oauth_states").insert(
                             {"state": "pending", "code_verifier": verifier}
                         ).execute()
-                        logging.getLogger("app.oauth").warning(
-                            "[OAUTH] insert ok state=pending"
-                        )
-                    except Exception as e:
-                        logging.getLogger("app.oauth").warning(
-                            "[OAUTH] insert failed: %s", e
-                        )
+                    except Exception:
+                        pass
 
                     # Supabase Redirect URLs whitelist required in Dashboard:
                     # 1. App domain (e.g. https://your-app.replit.app / https://your-project.streamlit.app)
@@ -1815,8 +1813,10 @@ with _ROOT.container():
                                             {"active_blueprint_id": new_bp_id}
                                         ).eq("id", user["id"]).execute()
                                         _invalidate_caches()
-                                    except Exception:
-                                        pass
+                                    except Exception as e:
+                                        logging.getLogger("app.errors").warning(
+                                            "profile sync skipped: %s", e
+                                        )
                         except Exception as e:
                             logging.getLogger("app.errors").exception(
                                 "Blueprint save failed"
@@ -1855,8 +1855,8 @@ with _ROOT.container():
                 if p_rows and p_rows[0].get("active_blueprint_id"):
                     active_bp_id = p_rows[0].get("active_blueprint_id")
                     st.session_state["active_blueprint_id"] = active_bp_id
-            except Exception:
-                pass
+            except Exception as e:
+                logging.getLogger("app.errors").warning("profile sync skipped: %s", e)
 
         if active_bp_id and not st.session_state.get("blueprint"):
             try:
@@ -2089,8 +2089,13 @@ with _ROOT.container():
                                                             ).eq(
                                                                 "id", user["id"]
                                                             ).execute()
-                                                        except Exception:
-                                                            pass
+                                                        except Exception as e:
+                                                            logging.getLogger(
+                                                                "app.errors"
+                                                            ).warning(
+                                                                "profile sync skipped: %s",
+                                                                e,
+                                                            )
                                                     st.session_state[
                                                         f"extending_{b_id}"
                                                     ] = False

@@ -5,6 +5,16 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.20] - 2026-10-19
+
+### Added / Changed
+- SECURITY FIX MISSION SEC-2:
+  - **OAuth Debug Log Removal**: Cleaned up all `[OAUTH]` debug logging statements from `app.py`.
+  - **Live Cooldown Fragments**: Converted both cooldown banners (forgot-password and confirmation-resend) into `@st.fragment(run_every=1)` components that dynamically recompute remaining seconds each second and render nothing once expired.
+  - **Loud Profile Sync Catches**: Replaced silent `except Exception: pass` blocks at profile sync update/fetch sites with explicit warning logging (`logging.getLogger("app.errors").warning("profile sync skipped: %s", e)`).
+  - **Pinned Dependencies**: Pinned exact package versions in `requirements.txt` (`streamlit`, `supabase`, `markdown-it-py`, `mdurl`, `rich`, `pytest`, `requests`, `fpdf2`, `Markdown`).
+  - **Testing & Verification**: Verified via `py_compile`, source-scan assertions, and green pytest test suite.
+
 ## [1.9.9] - 2026-10-18
 
 ### Added / Changed

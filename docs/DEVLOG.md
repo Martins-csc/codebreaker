@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 080: Security Fix Mission SEC-2 (v1.9.20)
+- **Date**: 2026-10-19
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.9.20 SECURITY FIX MISSION SEC-2 — OAuth log cleanup, live cooldown `@st.fragment(run_every=1)` banners, loud profile sync exception logging, pinned requirements.txt dependencies.
+
+### Design Notes & Architectural Decisions
+1. **OAuth Log Cleanup**: Removed all `[OAUTH]` debugging warning logs from `app.py`.
+2. **Live Cooldown Fragments**: Upgraded forgot-password and confirmation-resend cooldown banners to `@st.fragment(run_every=1)` components that recompute `remaining` seconds every second and render nothing once expired.
+3. **Loud Profile Sync Exception Logging**: Replaced silent `except Exception: pass` swallow blocks at profile sync update/fetch locations with explicit server-side warning logging (`logging.getLogger("app.errors").warning("profile sync skipped: %s", e)`).
+4. **Pinned Dependencies**: Pinned package versions in `requirements.txt` to exact deployed versions from `.venv/bin/pip freeze`.
+5. **Testing & Verification**: Verified via `py_compile`, source-scan assertions (zero `[OAUTH]` logs, zero silent profile sync passes), and green pytest test suite.
+
 ## Entry 078: Security Audit AUDIT-1 Remediation & SEC-1 Hardening (v1.9.9)
 - **Date**: 2026-10-18
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
