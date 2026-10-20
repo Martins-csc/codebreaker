@@ -636,6 +636,9 @@ with _ROOT.container():
                     pass
 
                 res = client.rpc("consume_latest_oauth_state").execute()
+                logging.getLogger("app.oauth").warning(
+                    "[OAUTH-DEBUG] Consume result: %s", res.data
+                )
                 verifier = res.data[0]["code_verifier"] if res.data else None
                 if not verifier:
                     st.session_state["auth_flash"] = (
@@ -1151,6 +1154,9 @@ with _ROOT.container():
                         client.table("oauth_states").insert(
                             {"state": state, "code_verifier": verifier}
                         ).execute()
+                        logging.getLogger("app.oauth").warning(
+                            "[OAUTH-DEBUG] Insert executed for state: %s", state
+                        )
                     except Exception:
                         pass
 
