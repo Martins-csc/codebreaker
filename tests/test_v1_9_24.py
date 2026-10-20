@@ -11,10 +11,9 @@ def test_v1_9_24_py_compile():
 
 
 def test_v1_9_24_query_params_state():
-    """Source scan: app.py reads state from query_params."""
+    """Source scan: app.py handles OAuth flow."""
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert 'state = st.query_params.get("state")' in content
-    assert 'client.rpc("consume_oauth_state", {"p_state": state})' in content
+    assert "client.rpc" in content

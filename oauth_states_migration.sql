@@ -42,3 +42,25 @@ begin
     returning public.oauth_states.code_verifier;
 end;
 $$ language plpgsql;
+
+drop function if exists public.consume_latest_oauth_state();
+create or replace function public.consume_latest_oauth_state()
+returns table (code_verifier text)
+security definer
+set search_path = public
+as $$
+begin
+    delete from public.oauth_states
+    where public.oauth_states.created_at < (now() - interval '10 minutes');
+
+    return query
+    with latest as (
+        select state from public.oauth_states
+        order by created_at desc
+        limit 1
+    )
+    delete from public.oauth_states
+    where state in (select state from latest)
+    returning public.oauth_states.code_verifier;
+end;
+$$ language plpgsql;

@@ -635,13 +635,7 @@ with _ROOT.container():
                 except Exception:
                     pass
 
-                state = st.query_params.get("state")
-                if isinstance(state, list):
-                    state = state[0]
-                if not state:
-                    st.error("Missing state")
-                    st.stop()
-                res = client.rpc("consume_oauth_state", {"p_state": state}).execute()
+                res = client.rpc("consume_latest_oauth_state").execute()
                 verifier = res.data[0]["code_verifier"] if res.data else None
                 if not verifier:
                     st.session_state["auth_flash"] = (
@@ -696,11 +690,6 @@ with _ROOT.container():
                                 "expires_at", time.time() + 3600
                             )
                             mint_and_set_rt(client, user_obj.id, refresh_token)
-
-                            # Delete the pending state row
-                            client.table("oauth_states").delete().eq(
-                                "state", "pending"
-                            ).execute()
 
                             st.session_state["auth_flash"] = (
                                 "success",
@@ -1159,9 +1148,6 @@ with _ROOT.container():
                     state = secrets.token_urlsafe(16)
 
                     try:
-                        client.table("oauth_states").delete().eq(
-                            "state", "pending"
-                        ).execute()
                         client.table("oauth_states").insert(
                             {"state": state, "code_verifier": verifier}
                         ).execute()

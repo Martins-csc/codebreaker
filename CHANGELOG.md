@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.27] - 2026-10-20
+
+### Added / Changed
+- MICRO-MISSION v1.9.27 — Unique OAuth States and Latest-Row Consumption:
+  - **Unique Random States**: Generated random `state = secrets.token_urlsafe(16)` on GitHub OAuth initiation and inserted `{"state": state, "code_verifier": verifier}` into `oauth_states` without hardcoded `"pending"` state.
+  - **Latest-Row RPC Consumption**: Updated GitHub OAuth callback handler to consume the latest OAuth state row via `client.rpc("consume_latest_oauth_state").execute()`, removing query parameter or session state `state` validation.
+  - **Database RPC & Migration**: Added `consume_latest_oauth_state` PL/pgSQL function to `oauth_states_migration.sql`.
+  - **Testing & Verification**: Enforced `py_compile`, unit tests, and verified green test suite.
+
 ## [1.9.26] - 2026-10-20
 
 ### Added / Changed

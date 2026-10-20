@@ -43,7 +43,7 @@ def test_v1_5_2_requirements():
 
     # 1. Blueprint default load queries most recent row when active_blueprint_id missing
     assert 'order("created_at", desc=True)' in content
-    assert "consume_oauth_state" in content
+    assert "consume_latest_oauth_state" in content
 
     # 2. Save failure wraps auto-save in try/except with st.warning
     assert "Blueprint generated but could not be saved to your library." in content
