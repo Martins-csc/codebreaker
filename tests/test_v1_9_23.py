@@ -10,11 +10,11 @@ def test_v1_9_23_py_compile():
     assert py_compile.compile(app_path, doraise=True)
 
 
-def test_v1_9_23_github_auth_url_state():
-    """Source scan: GitHub auth URL construction in app.py must contain &state={state}."""
+def test_v1_9_23_session_state_state():
+    """Source scan: state is stored in session_state."""
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert "&state={state}" in content
+    assert 'st.session_state["pending_oauth_state"] = state' in content
     assert "state = secrets.token_urlsafe(16)" in content

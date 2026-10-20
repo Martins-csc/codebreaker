@@ -635,14 +635,19 @@ with _ROOT.container():
                 except Exception:
                     pass
 
-                state = st.query_params.get("state")
-                if isinstance(state, list):
-                    state = state[0]
+                state = st.session_state.get("pending_oauth_state")
                 if not state:
-                    st.error("Missing state")
+                    st.error("Login session expired or invalid.")
                     st.stop()
-                res = client.rpc("consume_oauth_state", {"p_state": state}).execute()
-                verifier = res.data[0]["code_verifier"] if res.data else None
+                try:
+                    res = client.rpc(
+                        "consume_oauth_state", {"p_state": state}
+                    ).execute()
+                    verifier = res.data[0]["code_verifier"] if res.data else None
+                except Exception:
+                    verifier = None
+                finally:
+                    st.session_state.pop("pending_oauth_state", None)
                 if not verifier:
                     st.session_state["auth_flash"] = (
                         "error",
@@ -1157,6 +1162,7 @@ with _ROOT.container():
                         base64.urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
                     )
                     state = secrets.token_urlsafe(16)
+                    st.session_state["pending_oauth_state"] = state
 
                     try:
                         client.table("oauth_states").delete().eq(
@@ -1172,7 +1178,7 @@ with _ROOT.container():
                     # 1. App domain (e.g. https://your-app.replit.app / https://your-project.streamlit.app)
                     # 2. Streamlit public URL + /streamlit (e.g. https://.../streamlit)
                     encoded_redirect = urllib.parse.quote(redirect_to, safe="")
-                    authorize_url = f"{supabase_url}/auth/v1/authorize?provider=github&apikey={anon_key}&redirect_to={encoded_redirect}&state={state}&code_challenge={challenge}&code_challenge_method=s256"
+                    authorize_url = f"{supabase_url}/auth/v1/authorize?provider=github&apikey={anon_key}&redirect_to={encoded_redirect}&code_challenge={challenge}&code_challenge_method=s256"
 
                     st.link_button(
                         "Continue with GitHub",

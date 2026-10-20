@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.24] - 2026-10-20
+
+### Added / Changed
+- MICRO-MISSION v1.9.24 — OAuth State Persistence via Session State:
+  - **Session State State Persistence**: Stored OAuth state in `st.session_state["pending_oauth_state"]` upon generation and retrieved it in the callback handler (`st.session_state.get("pending_oauth_state")`) instead of querying `st.query_params.get("state")`, since Supabase strips custom redirect query params.
+  - **Clean Up**: Cleared `pending_oauth_state` from session state after RPC consume call (success or fail).
+  - **Testing & Verification**: Enforced `py_compile`, unit tests, and verified green pytest test suite.
+
 ## [1.9.23] - 2026-10-20
 
 ### Added / Changed
