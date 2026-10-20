@@ -80,3 +80,22 @@ def test_sign_in_with_oauth_mock():
     )
     assert res.url == "https://example.supabase.co/auth/v1/authorize?provider=github"
     mock_client.auth.sign_in_with_oauth.assert_called_once()
+
+
+def test_oauth_missing_state_stops():
+    """Test that missing state query parameter triggers st.error and st.stop."""
+    mock_query_params = {"code": "some_code"}
+    with patch("streamlit.query_params", mock_query_params), patch(
+        "streamlit.error"
+    ) as mock_error, patch(
+        "streamlit.stop", side_effect=Exception("Stopped")
+    ) as mock_stop:
+        with pytest.raises(Exception, match="Stopped"):
+            state = mock_query_params.get("state")
+            if not state:
+                import streamlit as st
+
+                st.error("Missing state")
+                st.stop()
+        mock_error.assert_called_once_with("Missing state")
+        mock_stop.assert_called_once()

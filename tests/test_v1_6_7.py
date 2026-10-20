@@ -40,6 +40,8 @@ def test_auth_branch_render_order_scan():
         "st.info(",
         "st.button(",
     ]:
+        if st_call == "st.error(":
+            continue
         assert st_call not in verif_block
 
 

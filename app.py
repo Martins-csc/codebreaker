@@ -635,7 +635,12 @@ with _ROOT.container():
                 except Exception:
                     pass
 
-                state = "pending"
+                state = st.query_params.get("state")
+                if isinstance(state, list):
+                    state = state[0]
+                if not state:
+                    st.error("Missing state")
+                    st.stop()
                 res = client.rpc("consume_oauth_state", {"p_state": state}).execute()
                 verifier = res.data[0]["code_verifier"] if res.data else None
                 if not verifier:
@@ -1158,7 +1163,7 @@ with _ROOT.container():
                             "state", "pending"
                         ).execute()
                         client.table("oauth_states").insert(
-                            {"state": "pending", "code_verifier": verifier}
+                            {"state": state, "code_verifier": verifier}
                         ).execute()
                     except Exception:
                         pass

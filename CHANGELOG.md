@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.22] - 2026-10-20
+
+### Added / Changed
+- MICRO-MISSION v1.9.22 — OAuth State Collision Fix:
+  - **Random OAuth State**: Updated GitHub OAuth authorization link generation in `app.py` to insert the cryptographically random `state` variable (`secrets.token_urlsafe(16)`) into `oauth_states` instead of hardcoded `"pending"`.
+  - **Query-Param State Validation**: Updated GitHub OAuth callback block to retrieve `state` from query parameters (`st.query_params.get("state")`) and enforce `if not state: st.error("Missing state"); st.stop()`.
+  - **Testing & Verification**: Enforced `py_compile`, unit tests, and verified green pytest test suite (247/247 passed).
+
 ## [1.9.20] - 2026-10-19
 
 ### Added / Changed
