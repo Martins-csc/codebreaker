@@ -5,6 +5,13 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.23] - 2026-10-20
+
+### Added / Changed
+- MICRO-MISSION v1.9.23 — OAuth State Parameter Query String:
+  - **URL State Parameter**: Ensured OAuth state parameter (`&state={state}`) travels via URL query string in the GitHub authorization URL generated in `app.py`, preventing "Missing state" errors when GitHub echoes back the state token.
+  - **Testing & Verification**: Enforced `py_compile`, source-scan assertion (`&state={state}` in `app.py`), unit tests (`tests/test_v1_9_23.py`), and verified green test suite.
+
 ## [1.9.22] - 2026-10-20
 
 ### Added / Changed

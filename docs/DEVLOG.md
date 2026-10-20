@@ -1,5 +1,17 @@
 # CodeBreaker Development Log
 
+## Entry 081: OAuth State Parameter URL Query String (v1.9.23)
+- **Date**: 2026-10-20
+- **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
+- **Milestone**: v1.9.23 MICRO-MISSION — OAuth state parameter now travels via URL query string to prevent "Missing state" errors.
+
+### Design Notes & Architectural Decisions
+1. **OAuth State Parameter in Query String**:
+   - Updated/confirmed GitHub authorization URL construction in `app.py` includes `&state={state}` appended to the query string, ensuring GitHub echoes back the cryptographically random state token (`secrets.token_urlsafe(16)`).
+   - Prevents "Missing state" verification errors upon callback return.
+2. **Testing & Verification**:
+   - Enforced `py_compile` after edit, source-scan assertion confirming GitHub auth URL contains `&state={state}`, unit tests (`tests/test_v1_9_23.py`), and verified green pytest test suite.
+
 ## Entry 080: Security Fix Mission SEC-2 (v1.9.20)
 - **Date**: 2026-10-19
 - **Author**: Engineering Team / Builder, Tester, Reviewer & Orchestrator Agents
