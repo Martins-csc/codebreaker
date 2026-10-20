@@ -5,6 +5,14 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.26] - 2026-10-20
+
+### Added / Changed
+- MICRO-MISSION v1.9.26 — OAuth State Persistence via `redirect_to`:
+  - **Redirect URL State Persistence**: Appended `?state={state}` to `redirect_to` (`redirect_to = f"{base_url}?state={state}"`) before URL encoding, passing it into Supabase OAuth URL generation so Supabase echoes back the state query parameter upon redirect callback.
+  - **Callback Query Param State**: Read OAuth state from URL query parameters (`state = st.query_params.get("state")`) and consumed verifier via atomic RPC (`consume_oauth_state`).
+  - **Testing & Verification**: Enforced `py_compile`, unit tests (`tests/test_v1_9_26.py`), and verified green test suite.
+
 ## [1.9.24] - 2026-10-20
 
 ### Added / Changed

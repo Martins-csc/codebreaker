@@ -10,13 +10,11 @@ def test_v1_9_24_py_compile():
     assert py_compile.compile(app_path, doraise=True)
 
 
-def test_v1_9_24_session_state_oauth():
-    """Source scan: app.py uses st.session_state["pending_oauth_state"] for OAuth state persistence."""
+def test_v1_9_24_query_params_state():
+    """Source scan: app.py reads state from query_params."""
     app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app.py"))
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert 'st.session_state["pending_oauth_state"] = state' in content
-    assert 'state = st.session_state.get("pending_oauth_state")' in content
-    assert 'st.session_state.pop("pending_oauth_state", None)' in content
-    assert 'st.error("Login session expired or invalid.")' in content
+    assert 'state = st.query_params.get("state")' in content
+    assert 'client.rpc("consume_oauth_state", {"p_state": state})' in content
