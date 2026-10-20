@@ -1150,15 +1150,12 @@ with _ROOT.container():
                     )
                     state = secrets.token_urlsafe(16)
 
-                    try:
-                        client.table("oauth_states").insert(
-                            {"state": state, "code_verifier": verifier}
-                        ).execute()
-                        logging.getLogger("app.oauth").warning(
-                            "[OAUTH-DEBUG] Insert executed for state: %s", state
-                        )
-                    except Exception:
-                        pass
+                    client.table("oauth_states").insert(
+                        {"state": state, "code_verifier": verifier}
+                    ).execute()
+                    logging.getLogger("app.oauth").warning(
+                        "[OAUTH-DEBUG] Insert executed for state: %s", state
+                    )
 
                     # Supabase Redirect URLs whitelist required in Dashboard:
                     # 1. App domain (e.g. https://your-app.replit.app / https://your-project.streamlit.app)

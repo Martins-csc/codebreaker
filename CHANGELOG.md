@@ -5,6 +5,13 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.29] - 2026-10-20
+
+### Added / Changed
+- MICRO-MISSION v1.9.29 — Remove Manual OAuth State Cleanup & Try/Except Wrapper:
+  - **Direct OAuth State Insert**: Removed obsolete manual `delete` cleanup from the GitHub OAuth login insert handler and un-wrapped the `oauth_states` insert from the `try/except` block, ensuring clean execution of `client.table("oauth_states").insert({"state": state, "code_verifier": verifier}).execute()`.
+  - **Testing & Verification**: Enforced `py_compile`, unit tests, and verified green test suite.
+
 ## [1.9.27] - 2026-10-20
 
 ### Added / Changed
