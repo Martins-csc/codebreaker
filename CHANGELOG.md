@@ -5,6 +5,15 @@ All notable changes to the CodeBreaker project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/spec/v2.0.0.html).
 
+## [1.9.30] - 2026-10-21
+
+### Added / Changed
+- MICRO-MISSION v1.9.30 — OAuth Security Finalization & Cleanup:
+  - **Secure RPC Insert**: Replaced manual `oauth_states` table insert with secure RPC call `client.rpc("insert_oauth_state", {"p_state": state, "p_verifier": verifier}).execute()`.
+  - **Debug Cleanup**: Removed all `[OAUTH-DEBUG]` logging lines added in v1.9.28.
+  - **Database Migration**: Added `insert_oauth_state` PL/pgSQL function to `oauth_states_migration.sql`.
+  - **Testing & Verification**: Enforced `py_compile`, source consistency checks, unit tests, and verified green test suite.
+
 ## [1.9.29] - 2026-10-20
 
 ### Added / Changed

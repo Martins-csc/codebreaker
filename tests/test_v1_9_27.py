@@ -18,5 +18,5 @@ def test_v1_9_27_latest_row_consumption():
 
     assert 'client.rpc("consume_latest_oauth_state").execute()' in content
     assert "state = secrets.token_urlsafe(16)" in content
-    assert '{"state": state, "code_verifier": verifier}' in content
+    assert "insert_oauth_state" in content
     assert "consume_oauth_state" not in content

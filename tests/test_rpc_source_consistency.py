@@ -32,9 +32,14 @@ def test_rpc_parameter_name_consistency():
     sql_content = sql_path.read_text(encoding="utf-8")
     sql_funcs = parse_sql_functions(sql_content)
 
+    oauth_sql_path = Path(__file__).parent.parent / "oauth_states_migration.sql"
+    oauth_sql_content = oauth_sql_path.read_text(encoding="utf-8")
+    sql_funcs.update(parse_sql_functions(oauth_sql_content))
+
     assert "create_resume_token" in sql_funcs
     assert "verify_resume_token" in sql_funcs
     assert "revoke_resume_token" in sql_funcs
+    assert "insert_oauth_state" in sql_funcs
 
     app_path = Path(__file__).parent.parent / "app.py"
     app_code = app_path.read_text(encoding="utf-8")

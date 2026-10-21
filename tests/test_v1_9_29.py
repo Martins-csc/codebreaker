@@ -16,7 +16,6 @@ def test_v1_9_29_oauth_insert_no_try():
     with open(app_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert 'client.table("oauth_states").insert(' in content
-    assert '{"state": state, "code_verifier": verifier}' in content
+    assert "insert_oauth_state" in content
     assert '"pending"' not in content
     assert "consume_latest_oauth_state" in content

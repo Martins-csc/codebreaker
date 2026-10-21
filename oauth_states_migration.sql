@@ -64,3 +64,15 @@ begin
     returning public.oauth_states.code_verifier;
 end;
 $$ language plpgsql;
+
+drop function if exists public.insert_oauth_state(text, text);
+create or replace function public.insert_oauth_state(p_state text, p_verifier text)
+returns void
+security definer
+set search_path = public
+as $$
+begin
+    insert into public.oauth_states (state, code_verifier)
+    values (p_state, p_verifier);
+end;
+$$ language plpgsql;
